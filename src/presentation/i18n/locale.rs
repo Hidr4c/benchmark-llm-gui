@@ -1,0 +1,269 @@
+use serde::{Deserialize, Serialize};
+use super::en::EN_TRANSLATIONS;
+use super::fr::FR_TRANSLATIONS;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum Language {
+    #[default]
+    French,
+    English,
+}
+
+impl Language {
+    pub fn all() -> [Self; 2] {
+        [Self::French, Self::English]
+    }
+
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::French => "fr",
+            Self::English => "en",
+        }
+    }
+
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::French => "🇫🇷 Français",
+            Self::English => "🇬🇧 English",
+        }
+    }
+
+    pub fn t(&self) -> &'static Translations {
+        match self {
+            Self::French => &FR_TRANSLATIONS,
+            Self::English => &EN_TRANSLATIONS,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Translations {
+    // Navigation & Tabs
+    pub app_title: &'static str,
+    pub tab_table: &'static str,
+    pub tab_graph: &'static str,
+    pub tab_simulator: &'static str,
+    pub tab_sources: &'static str,
+    pub tab_tutorial: &'static str,
+    pub snapshot_active: &'static str,
+
+    // Filter Bar & Scopes
+    pub scope_label: &'static str,
+    pub scope_local: &'static str,
+    pub scope_cloud: &'static str,
+    pub scope_all: &'static str,
+    pub scope_tooltip: &'static str,
+    pub search_placeholder: &'static str,
+    pub search_tooltip: &'static str,
+    pub sync_refresh: &'static str,
+    pub sync_downloading: &'static str,
+    pub sync_tooltip: &'static str,
+    pub advanced_toggle: &'static str,
+    pub advanced_tooltip: &'static str,
+    pub reset_filters: &'static str,
+    pub reset_tooltip: &'static str,
+    pub btn_auto_detect: &'static str,
+    pub tooltip_auto_detect: &'static str,
+    pub license_label: &'static str,
+    pub license_all: &'static str,
+    pub license_permissive: &'static str,
+    pub license_community: &'static str,
+    pub license_cloud: &'static str,
+    pub license_tooltip: &'static str,
+
+    // Dropdowns
+    pub hw_label: &'static str,
+    pub hw_tooltip: &'static str,
+    pub mod_label: &'static str,
+    pub mod_all: &'static str,
+    pub mod_tooltip: &'static str,
+    pub bench_label: &'static str,
+    pub bench_avg: &'static str,
+    pub bench_general: &'static str,
+    pub bench_coding: &'static str,
+    pub bench_agentic: &'static str,
+    pub bench_real_world: &'static str,
+    pub bench_tooltip: &'static str,
+    pub priority_label: &'static str,
+    pub priority_intel: &'static str,
+    pub priority_efficiency: &'static str,
+    pub priority_speed: &'static str,
+    pub priority_compact: &'static str,
+    pub priority_real_world: &'static str,
+    pub priority_tooltip: &'static str,
+    pub group_roots: &'static str,
+    pub group_variants: &'static str,
+    pub group_tooltip: &'static str,
+    pub no_matching_models: &'static str,
+
+    // Table Columns
+    pub col_rank: &'static str,
+    pub col_model: &'static str,
+    pub col_year: &'static str,
+    pub col_hardware: &'static str,
+    pub col_size: &'static str,
+    pub col_efficiency: &'static str,
+    pub col_score: &'static str,
+    pub col_speed: &'static str,
+    pub col_popularity: &'static str,
+    pub col_cloud_price: &'static str,
+    pub col_real_world: &'static str,
+    pub price_free_local: &'static str,
+    pub col_mode_label: &'static str,
+    pub col_mode_global: &'static str,
+    pub col_mode_raw: &'static str,
+    pub col_open_llm: &'static str,
+    pub col_swe_bench: &'static str,
+    pub col_agentic: &'static str,
+    pub col_mmlu_pro: &'static str,
+    pub col_math: &'static str,
+    pub col_ifeval: &'static str,
+    pub col_gpqa: &'static str,
+
+    // Graph
+    pub graph_preset_label: &'static str,
+    pub preset_pareto: &'static str,
+    pub preset_cloud_price: &'static str,
+    pub preset_speed_intel: &'static str,
+    pub preset_embedded_efficiency: &'static str,
+    pub preset_code_vram: &'static str,
+    pub preset_agent_vram: &'static str,
+    pub axis_x: &'static str,
+    pub axis_y: &'static str,
+    pub pareto_curve: &'static str,
+    pub recenter_btn: &'static str,
+    pub recenter_tooltip: &'static str,
+    pub pareto_champions: &'static str,
+    pub close_inspection: &'static str,
+    pub copy_ollama: &'static str,
+    pub copied: &'static str,
+    pub view_online: &'static str,
+
+    // Detail & Diagnostic Panel
+    pub diagnostic_title: &'static str,
+    pub scores_detail_title: &'static str,
+    pub raw_score_notice: &'static str,
+    pub quant_title: &'static str,
+    pub quant_recommended: &'static str,
+    pub quant_enhanced: &'static str,
+    pub quant_fp16: &'static str,
+
+    // Economic & Real-World Details
+    pub economic_section_title: &'static str,
+    pub rli_label: &'static str,
+    pub swe_lancer_label: &'static str,
+    pub swe_clar_label: &'static str,
+    pub osworld_label: &'static str,
+    pub webarena_label: &'static str,
+    pub mle_bench_label: &'static str,
+    pub dollars_earned_label: &'static str,
+    pub clarification_label: &'static str,
+    pub implementation_label: &'static str,
+
+    // Anomaly & Consistency
+    pub anomaly_divergence_title: &'static str,
+    pub anomaly_divergence_desc: &'static str,
+    pub anomaly_speed_title: &'static str,
+    pub anomaly_speed_desc: &'static str,
+    pub anomaly_memory_title: &'static str,
+    pub anomaly_memory_desc: &'static str,
+    pub anomaly_variance_title: &'static str,
+    pub anomaly_variance_desc: &'static str,
+    pub anomaly_temporal_title: &'static str,
+    pub anomaly_temporal_desc: &'static str,
+
+    // Scoring & Breakdown
+    pub score_calibrated_formula: &'static str,
+    pub score_confidence_level: &'static str,
+    pub score_variance_label: &'static str,
+
+    // VRAM Budget Slider
+    pub vram_budget_label: &'static str,
+    pub vram_best_prefix: &'static str,
+
+    // Sources View
+    pub sources_title: &'static str,
+    pub sources_subtitle: &'static str,
+    pub sources_count_suffix: &'static str,
+    pub sources_live_badge: &'static str,
+    pub sources_doc_badge: &'static str,
+    pub sources_metrics_label: &'static str,
+
+    // Hardware Rig & Scenario Simulator
+    pub sim_title: &'static str,
+    pub sim_subtitle: &'static str,
+    pub sim_load_detected: &'static str,
+    pub sim_cpu_label: &'static str,
+    pub sim_gpu_label: &'static str,
+    pub sim_ram_label: &'static str,
+    pub sim_storage_label: &'static str,
+    pub sim_scenario_label: &'static str,
+    pub sim_scenario_pc: &'static str,
+    pub sim_scenario_nas: &'static str,
+    pub sim_nas_web_ram: &'static str,
+    pub sim_nas_docker_ram: &'static str,
+    pub sim_nas_users: &'static str,
+    pub sim_kpi_vram: &'static str,
+    pub sim_kpi_bandwidth: &'static str,
+    pub sim_kpi_speed: &'static str,
+    pub sim_kpi_latency: &'static str,
+    pub sim_kpi_max_pure: &'static str,
+    pub sim_kpi_max_hybrid: &'static str,
+    pub sim_kpi_headroom: &'static str,
+    pub sim_kpi_stability: &'static str,
+    pub sim_cost_title: &'static str,
+    pub sim_cost_local_tasks: &'static str,
+    pub sim_cost_cloud_tasks: &'static str,
+    pub sim_cost_savings: &'static str,
+    pub sim_rec_models_title: &'static str,
+    pub sim_rec_models_desc: &'static str,
+
+    // Pricing & Operational Cost
+    pub pricing_section_title: &'static str,
+    pub pricing_cloud_api: &'static str,
+    pub pricing_prompt_input: &'static str,
+    pub pricing_completion_output: &'static str,
+    pub pricing_tasks_est: &'static str,
+    pub pricing_local_free: &'static str,
+    pub pricing_local_elec: &'static str,
+    pub pricing_local_tasks_est: &'static str,
+    pub graph_include_electricity: &'static str,
+    pub graph_include_electricity_tooltip: &'static str,
+
+    // Interactive Tour & Guided Demo
+    pub btn_tour_demo: &'static str,
+    pub tooltip_tour_demo: &'static str,
+    pub tour_step_prefix: &'static str,
+    pub tour_prev: &'static str,
+    pub tour_next: &'static str,
+    pub tour_close: &'static str,
+    pub tour_autoplay: &'static str,
+    pub tour_pause: &'static str,
+    pub tour_s1_title: &'static str,
+    pub tour_s1_desc: &'static str,
+    pub tour_s2_title: &'static str,
+    pub tour_s2_desc: &'static str,
+    pub tour_s3_title: &'static str,
+    pub tour_s3_desc: &'static str,
+    pub tour_s4_title: &'static str,
+    pub tour_s4_desc: &'static str,
+    pub tour_s5_title: &'static str,
+    pub tour_s5_desc: &'static str,
+    pub tour_s6_title: &'static str,
+    pub tour_s6_desc: &'static str,
+    pub tour_s7_title: &'static str,
+    pub tour_s7_desc: &'static str,
+
+    // Tutorial View & Guides
+    pub tut_hero_title: &'static str,
+    pub tut_hero_desc: &'static str,
+    pub tut_btn_launch_tour: &'static str,
+    pub tut_card1_title: &'static str,
+    pub tut_card1_desc: &'static str,
+    pub tut_card2_title: &'static str,
+    pub tut_card2_desc: &'static str,
+    pub tut_card3_title: &'static str,
+    pub tut_card3_desc: &'static str,
+    pub tut_card4_title: &'static str,
+    pub tut_card4_desc: &'static str,
+}

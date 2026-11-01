@@ -1,0 +1,9 @@
+/target
+benchmarks_export.csv
+*.db
+*.db-journal
+.agent/
+GEMINI.md
+.gemini/
+*.log
+
