@@ -42,7 +42,7 @@ pub fn render_raw_benchmark_table(
             header.col(|ui| {
                 ui.horizontal(|ui| {
                     header_sort_col(ui, t.col_model, SortField::Name, SortOrder::Ascending, filters);
-                    let folder_icon = if filters.group_by_root { "📁" } else { "📂" };
+                    let folder_icon = if filters.group_by_root { "[+]" } else { "[-]" };
                     let folder_resp = ui.small_button(folder_icon).on_hover_text(t.group_tooltip);
                     ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_grouped"), folder_resp.rect));
                     if folder_resp.clicked() {
@@ -89,7 +89,7 @@ pub fn render_raw_benchmark_table(
                 row.col(|ui| {
                     ui.horizontal(|ui| {
                         if !item.is_child && item.variant_count > 1 {
-                            let arrow = if item.is_expanded { "▼" } else { "▶" };
+                            let arrow = if item.is_expanded { "v" } else { ">" };
                             let tag = format!("{arrow} [{} var.]", item.variant_count);
                             let tag_resp = ui.small_button(egui::RichText::new(tag).size(10.0).color(ThemeTokens::PRIMARY));
                             if is_first_row {
@@ -101,7 +101,7 @@ pub fn render_raw_benchmark_table(
                             }
                         }
 
-                        let display_name = if item.is_child { format!("  └─ {}", model.name) }
+                        let display_name = if item.is_child { format!("  |-- {}", model.name) }
                         else if filters.group_by_root { item.root_name.clone() }
                         else { model.name.clone() };
 
@@ -122,10 +122,10 @@ pub fn render_raw_benchmark_table(
                 // Col 3: Year
                 row.col(|ui| {
                     match model.release_year {
-                        Some(2026) => { ui.label(egui::RichText::new("✨ 2026").color(ThemeTokens::CYAN_EDGE).strong()); }
-                        Some(2025) => { ui.label(egui::RichText::new("🔹 2025").color(egui::Color32::from_rgb(100, 180, 255)).strong()); }
+                        Some(2026) => { ui.label(egui::RichText::new("2026").color(ThemeTokens::CYAN_EDGE).strong()); }
+                        Some(2025) => { ui.label(egui::RichText::new("2025").color(egui::Color32::from_rgb(100, 180, 255)).strong()); }
                         Some(y) => { ui.label(egui::RichText::new(format!("{y}")).color(ThemeTokens::TEXT_MUTED)); }
-                        None => { ui.label(egui::RichText::new("—").color(ThemeTokens::TEXT_MUTED)); }
+                        None => { ui.label(egui::RichText::new("-").color(ThemeTokens::TEXT_MUTED)); }
                     }
                 });
 

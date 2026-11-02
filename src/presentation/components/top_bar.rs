@@ -1,13 +1,14 @@
 use eframe::egui;
 use crate::domain::traits::SnapshotMeta;
-use crate::presentation::filtering::TableColumnMode;
 use crate::presentation::i18n::Language;
 use crate::presentation::theme::ThemeTokens;
+use crate::presentation::updater_state::UpdaterState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppTab {
     Table,
     Graph,
+    Comparator,
     Simulator,
     Sources,
     Tutorial,
@@ -19,6 +20,7 @@ impl AppTab {
         match self {
             Self::Table => t.tab_table,
             Self::Graph => t.tab_graph,
+            Self::Comparator => t.tab_comparator,
             Self::Simulator => t.tab_simulator,
             Self::Sources => t.tab_sources,
             Self::Tutorial => t.tab_tutorial,
@@ -29,12 +31,13 @@ impl AppTab {
 pub fn render_top_header(
     ui: &mut egui::Ui,
     active_tab: &mut AppTab,
-    column_mode: &mut TableColumnMode,
     language: &mut Language,
+    zoom_factor: &mut f32,
     is_syncing: bool,
     snapshots: &[SnapshotMeta],
     selected_snapshot_id: Option<i64>,
     status_message: Option<&(String, bool)>,
+    updater: &mut UpdaterState,
     on_sync: &mut bool,
     on_switch_snapshot: &mut Option<i64>,
     on_launch_tour: &mut bool,
@@ -45,7 +48,7 @@ pub fn render_top_header(
     // --- Single Header Line: Brand, Navigation View Dropdown & Utility Tools ---
     ui.horizontal(|ui| {
         ui.heading(
-            egui::RichText::new("🚀 LLM Benchmark Explorer")
+            egui::RichText::new("LLM Benchmark Explorer")
                 .size(17.0)
                 .strong()
                 .color(ThemeTokens::PRIMARY),
@@ -65,6 +68,7 @@ pub fn render_top_header(
                 let views = [
                     AppTab::Table,
                     AppTab::Graph,
+                    AppTab::Comparator,
                     AppTab::Simulator,
                     AppTab::Sources,
                     AppTab::Tutorial,
@@ -78,32 +82,7 @@ pub fn render_top_header(
                 }
             });
 
-        // 2. Table Mode Dropdown List (Prominent sub-view selector when on the Benchmark Table)
-        if *active_tab == AppTab::Table {
-            let col_mode_lbl = match *column_mode {
-                TableColumnMode::GlobalEvaluation => t.col_mode_global,
-                TableColumnMode::StrictVerified => t.col_mode_strict,
-                TableColumnMode::RawBenchmarkSources => t.col_mode_raw,
-            };
-            egui::ComboBox::from_id_salt("top_table_mode_dropdown")
-                .selected_text(
-                    egui::RichText::new(col_mode_lbl)
-                        .strong()
-                        .color(ThemeTokens::GOLD_5090)
-                )
-                .width(185.0)
-                .show_ui(ui, |ui| {
-                    if ui.selectable_label(*column_mode == TableColumnMode::GlobalEvaluation, t.col_mode_global).clicked() {
-                        *column_mode = TableColumnMode::GlobalEvaluation;
-                    }
-                    if ui.selectable_label(*column_mode == TableColumnMode::StrictVerified, t.col_mode_strict).clicked() {
-                        *column_mode = TableColumnMode::StrictVerified;
-                    }
-                    if ui.selectable_label(*column_mode == TableColumnMode::RawBenchmarkSources, t.col_mode_raw).clicked() {
-                        *column_mode = TableColumnMode::RawBenchmarkSources;
-                    }
-                }).response.on_hover_text(t.col_mode_label);
-        }
+
 
         // 2. Right-Aligned Global Actions
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -121,13 +100,40 @@ pub fn render_top_header(
 
             ui.separator();
 
-            // 2. Interactive Guided Demo / Walkthrough Button
+            // 2. Zoom / Text Scale Selector
+            let zoom_percent = (*zoom_factor * 100.0).round() as i32;
+            let zoom_prefix = language.dock().zoom_label;
+            let zoom_label = format!("{zoom_prefix} {zoom_percent}%");
+            egui::ComboBox::from_id_salt("top_zoom_combobox")
+                .selected_text(egui::RichText::new(zoom_label).strong())
+                .width(96.0)
+                .show_ui(ui, |ui| {
+                    let zoom_levels: [f32; 6] = [0.90, 1.0, 1.15, 1.25, 1.40, 1.50];
+                    for &z in &zoom_levels {
+                        let p = (z * 100.0).round() as i32;
+                        let text = format!("{p}%");
+                        if ui.selectable_label((*zoom_factor - z).abs() < 0.01, text).clicked() {
+                            *zoom_factor = z;
+                            ui.ctx().set_zoom_factor(z);
+                        }
+                    }
+                });
+
+            ui.separator();
+
+            // 3. Interactive Guided Demo / Walkthrough Button
             if ui.button(egui::RichText::new(t.btn_tour_demo).color(ThemeTokens::GOLD_5090).strong())
                 .on_hover_text(t.tooltip_tour_demo)
                 .clicked()
             {
                 *on_launch_tour = true;
             }
+
+            ui.separator();
+
+            // 3. Application Update Button / Status Badge
+            let egui_ctx = ui.ctx().clone();
+            updater.render_top_bar_button(ui, &egui_ctx, *language);
 
             ui.separator();
 
@@ -157,7 +163,7 @@ pub fn render_top_header(
                 "Empty".into()
             };
             egui::ComboBox::from_id_salt("snap_history_combo_top")
-                .selected_text(format!("📅 {snap_title}"))
+                .selected_text(format!("Snapshot: {snap_title}"))
                 .width(150.0)
                 .show_ui(ui, |ui| {
                     for snap in snapshots {
@@ -172,9 +178,9 @@ pub fn render_top_header(
     });
 
     if let Some((msg, is_err)) = status_message {
-        ui.add_space(2.0);
-        let color = if *is_err { ThemeTokens::DANGER } else { ThemeTokens::SUCCESS };
-        let resp = ui.label(egui::RichText::new(msg).color(color).size(12.0));
-        ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_result_detect"), resp.rect));
+        if *is_err {
+            ui.add_space(2.0);
+            ui.label(egui::RichText::new(msg).color(ThemeTokens::DANGER).size(12.0));
+        }
     }
 }
