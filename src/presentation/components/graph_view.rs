@@ -6,7 +6,7 @@ use crate::presentation::components::graph_clustering::{
     detect_clicked_model_id, format_cluster_tooltip, LookupItem,
 };
 pub use crate::presentation::components::graph_types::{
-    clamp_plot_bounds, compute_pareto_frontier, render_champion_bar, render_inspection_card,
+    apply_optimal_data_bounds, clamp_plot_bounds, compute_pareto_frontier, render_champion_bar, render_inspection_card,
     render_pareto_chips, GraphMetric, GraphViewState, PlottedPoint,
 };
 use crate::presentation::filtering::ModelScope;
@@ -28,6 +28,18 @@ pub fn render_graph_view(
         state.x_metric = GraphMetric::PriceUsd;
     } else if filters.scope == ModelScope::LocalOnly && state.x_metric == GraphMetric::PriceUsd && !state.include_electricity_cost {
         state.x_metric = GraphMetric::VramRecGb;
+    }
+
+    let criteria_key = (
+        state.x_metric,
+        state.y_metric,
+        state.include_electricity_cost,
+        filters.scope as usize,
+        filtered_indices.len(),
+    );
+    if state.last_criteria_key != Some(criteria_key) {
+        state.reset_requested = true;
+        state.last_criteria_key = Some(criteria_key);
     }
 
     ui.vertical(|ui| {
@@ -181,10 +193,10 @@ pub fn render_graph_view(
 
         let plot_resp = plot.show(ui, |plot_ui| {
             if state.reset_requested {
-                plot_ui.set_auto_bounds([true, true].into());
+                apply_optimal_data_bounds(plot_ui, state.x_metric, state.y_metric, &plotted);
                 state.reset_requested = false;
             } else {
-                clamp_plot_bounds(plot_ui);
+                clamp_plot_bounds(plot_ui, state.x_metric, state.y_metric, &plotted);
             }
 
             // Scatter points (highlighted if cloud or within VRAM budget, dimmed if exceeding)

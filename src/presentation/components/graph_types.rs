@@ -1,4 +1,3 @@
-use egui_plot::{PlotBounds, PlotUi};
 use crate::domain::modality::ModelModality;
 use crate::domain::model::ModelBenchmark;
 use crate::presentation::components::filter_bar::FilterState;
@@ -73,6 +72,7 @@ pub struct GraphViewState {
     pub vram_budget_gb: f32,
     pub include_electricity_cost: bool,
     pub search_query: String,
+    pub last_criteria_key: Option<(GraphMetric, GraphMetric, bool, usize, usize)>,
 }
 
 impl Default for GraphViewState {
@@ -86,6 +86,7 @@ impl Default for GraphViewState {
             vram_budget_gb: 48.0,
             include_electricity_cost: true,
             search_query: String::new(),
+            last_criteria_key: None,
         }
     }
 }
@@ -199,18 +200,7 @@ pub fn render_inspection_card(
         });
 }
 
-pub fn clamp_plot_bounds(plot_ui: &mut PlotUi) {
-    let bounds = plot_ui.plot_bounds();
-    if bounds.is_finite() {
-        let (min, max) = (bounds.min(), bounds.max());
-        let (w, h) = (bounds.width().clamp(1.0, 140.0), bounds.height().clamp(1.0, 160.0));
-        let cx = ((min[0] + max[0]) * 0.5).max(-10.0 + w * 0.5);
-        let cy = ((min[1] + max[1]) * 0.5).max(-10.0 + h * 0.5);
-        if (bounds.width() - w).abs() > 0.01 || (bounds.height() - h).abs() > 0.01 || min[0] < -10.0 || min[1] < -10.0 {
-            plot_ui.set_plot_bounds(PlotBounds::from_min_max([cx - w * 0.5, cy - h * 0.5], [cx + w * 0.5, cy + h * 0.5]));
-        }
-    }
-}
+pub use crate::presentation::components::graph_bounds::{apply_optimal_data_bounds, clamp_plot_bounds, compute_data_bounds};
 
 pub fn render_champion_bar(
     ui: &mut eframe::egui::Ui,

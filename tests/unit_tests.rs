@@ -268,14 +268,9 @@ fn test_economic_scores_composite_and_metrics() {
     use benchmark_llm_gui::domain::economic::EconomicScores;
 
     let econ = EconomicScores {
-        rli_automation_rate: Some(12.5), // 12.5 / 25.0 * 100 = 50.0
-        swe_lancer_score: Some(38.0),
-        swe_lancer_dollars: Some(380000.0),
-        swe_clar_impl: Some(60.0),
-        swe_clar_clarif: Some(80.0), // 60 * 0.6 + 80 * 0.4 = 68.0
-        os_world_success: Some(19.0), // 19 / 38 * 100 = 50.0
-        web_arena_success: Some(65.0),
-        mle_bench_score: Some(55.0),
+        rli_automation_rate: Some(12.5), swe_lancer_score: Some(38.0), swe_lancer_dollars: Some(380000.0),
+        swe_clar_impl: Some(60.0), swe_clar_clarif: Some(80.0), os_world_success: Some(19.0),
+        web_arena_success: Some(65.0), mle_bench_score: Some(55.0),
         mle_bench_medals: Some("Low: 75% | Med: 50% | High: 40%".into()),
     };
 

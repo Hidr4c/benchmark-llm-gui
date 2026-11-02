@@ -142,3 +142,37 @@ fn test_search_and_zoom_bounds() {
     assert_eq!(matches.len(), 1);
     assert_eq!(matches[0].name, "Qwen3.8-9B-Distill");
 }
+
+#[test]
+fn test_graph_data_bounds_computation() {
+    use benchmark_llm_gui::presentation::components::graph_bounds::compute_data_bounds;
+    use benchmark_llm_gui::presentation::components::graph_types::PlottedPoint;
+
+    // Empty list returns None
+    assert!(compute_data_bounds(&[]).is_none());
+
+    // Single point
+    let p1 = PlottedPoint {
+        index: 0, x: 12.0, y: 75.0, name: "M1".into(), family: "F1".into(),
+        vram_gb: 12.0, size_gb: 10.0, score: 75.0, speed: Some(60.0),
+        speed_hw: None, year: Some(2025), modality: Default::default(),
+    };
+    let bounds1 = compute_data_bounds(&[p1]).expect("Expected bounds");
+    assert_eq!(bounds1.0, [12.0, 75.0]);
+    assert_eq!(bounds1.1, [12.0, 75.0]);
+
+    // Multi points (including small price numbers)
+    let p2 = PlottedPoint {
+        index: 1, x: 0.25, y: 88.0, name: "Cloud1".into(), family: "F2".into(),
+        vram_gb: 0.0, size_gb: 0.0, score: 88.0, speed: Some(120.0),
+        speed_hw: None, year: Some(2026), modality: Default::default(),
+    };
+    let p3 = PlottedPoint {
+        index: 2, x: 1.50, y: 92.5, name: "Cloud2".into(), family: "F3".into(),
+        vram_gb: 0.0, size_gb: 0.0, score: 92.5, speed: Some(90.0),
+        speed_hw: None, year: Some(2026), modality: Default::default(),
+    };
+    let bounds_price = compute_data_bounds(&[p2, p3]).expect("Expected price bounds");
+    assert_eq!(bounds_price.0, [0.25, 88.0]);
+    assert_eq!(bounds_price.1, [1.50, 92.5]);
+}
