@@ -23,6 +23,7 @@ pub fn render_graph_search_picker(
         ui.label(egui::RichText::new("Recherche :").strong().size(12.0));
         ui.add(
             egui::TextEdit::singleline(search_query)
+                .id_source("graph_search_model_input")
                 .hint_text(t_hint)
                 .desired_width(340.0),
         );
@@ -109,6 +110,7 @@ pub fn render_slot_model_card(
                 ui.label(egui::RichText::new("Recherche :").size(11.0).color(ThemeTokens::TEXT_MUTED));
                 ui.add(
                     egui::TextEdit::singleline(query)
+                        .id_source(egui::Id::new("comparator_slot_search").with(slot_num))
                         .hint_text("Taper un nom ou taille...")
                         .desired_width(240.0),
                 );

@@ -85,6 +85,7 @@ pub fn render_filter_bar(
             // 4. Champ de Recherche de Modèle
             ui.add(
                 egui::TextEdit::singleline(&mut filters.search_text)
+                    .id_source("global_search_model_text")
                     .hint_text(t.search_placeholder)
                     .desired_width(140.0)
             ).on_hover_text(t.search_tooltip);
@@ -195,7 +196,7 @@ pub fn render_filter_bar(
                 filters.table_prefs.set_raw_sources_visible(filters.show_raw_sources);
             }
 
-            let col_btn = ui.button(egui::RichText::new(format!("⚙ {}", t.table_menu.btn_column_chooser)).size(11.5))
+            let col_btn = ui.button(egui::RichText::new(t.table_menu.btn_column_chooser).size(11.5))
                 .on_hover_text(t.table_menu.menu_column_chooser);
             if col_btn.clicked() {
                 filters.column_chooser_open = true;
@@ -216,6 +217,19 @@ pub fn render_filter_bar(
                 m.data.insert_temp(egui::Id::new("tour_result_scope"), counter_resp.rect);
                 m.data.insert_temp(egui::Id::new("tour_result_hardware"), counter_resp.rect);
             });
+
+            // 9. Indicateur des filtres de colonnes actifs (intégré en ligne sans saut de layout)
+            let active_filters = filters.table_prefs.active_filter_count();
+            if active_filters > 0 {
+                ui.separator();
+                let clear_lbl = format!("Filtres ({active_filters}) ×");
+                if ui.button(egui::RichText::new(clear_lbl).color(ThemeTokens::CYAN_EDGE).strong().size(11.0))
+                    .on_hover_text(t.table_menu.menu_clear_all_filters)
+                    .clicked()
+                {
+                    filters.table_prefs.reset_filters();
+                }
+            }
         });
 
         // --- Row 2: Unified Ergonomic Advanced Filters Card ---

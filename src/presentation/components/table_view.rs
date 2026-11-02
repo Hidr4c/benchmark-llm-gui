@@ -21,27 +21,6 @@ pub fn render_table(
     lang: Language,
 ) {
     let t = lang.t();
-    if filtered_indices.is_empty() {
-        ui.vertical_centered(|ui| {
-            ui.add_space(40.0);
-            ui.label(egui::RichText::new(t.no_matching_models).color(ThemeTokens::TEXT_SECONDARY).size(16.0));
-            if ui.button(t.reset_filters).clicked() { filters.reset(); }
-        });
-        return;
-    }
-
-    // Active column filters indicator bar (only shown when filters are active)
-    if filters.table_prefs.active_filter_count() > 0 {
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(format!("{} ({} active)", t.table_menu.active_filters_summary, filters.table_prefs.active_filter_count()))
-                .color(ThemeTokens::CYAN_EDGE).size(11.5).strong());
-            if ui.button(egui::RichText::new(t.table_menu.menu_clear_all_filters).color(ThemeTokens::DANGER).size(11.0)).clicked() {
-                filters.table_prefs.reset_filters();
-            }
-        });
-        ui.add_space(2.0);
-    }
-
     let items = build_display_items(all_models, filtered_indices, filters);
     let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
 
@@ -51,6 +30,7 @@ pub fn render_table(
         .collect();
 
     egui::ScrollArea::horizontal()
+        .id_salt("table_scroll_area_horizontal")
         .auto_shrink([false, false])
         .show(ui, |ui| {
             let any_raw = visible_cols.iter().any(|c| c.is_raw_source());
@@ -84,24 +64,37 @@ pub fn render_table(
                     });
                 }
             })
-            .body(|body| {
-                body.rows(text_height + 14.0, items.len(), |mut row| {
-                    let item = &items[row.index()];
-                    let model = &all_models[item.model_idx];
-                    let is_selected = selected_model_id.as_deref() == Some(&model.id);
-                    let is_first_row = row.index() == 0;
+            .body(|mut body| {
+                if items.is_empty() {
+                    body.row(50.0, |mut row| {
+                        row.col(|ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(egui::RichText::new(t.no_matching_models).color(ThemeTokens::TEXT_MUTED).size(13.0));
+                                if ui.button(t.reset_filters).clicked() {
+                                    filters.reset();
+                                }
+                            });
+                        });
+                    });
+                } else {
+                    body.rows(text_height + 14.0, items.len(), |mut row| {
+                        let item = &items[row.index()];
+                        let model = &all_models[item.model_idx];
+                        let is_selected = selected_model_id.as_deref() == Some(&model.id);
+                        let is_first_row = row.index() == 0;
 
-                    render_table_row(
-                        &mut row,
-                        item,
-                        model,
-                        is_first_row,
-                        is_selected,
-                        filters,
-                        selected_model_id,
-                        lang,
-                    );
-                });
+                        render_table_row(
+                            &mut row,
+                            item,
+                            model,
+                            is_first_row,
+                            is_selected,
+                            filters,
+                            selected_model_id,
+                            lang,
+                        );
+                    });
+                }
             });
         });
 
