@@ -26,6 +26,7 @@ pub mod table_row;
 pub mod table_simple_view;
 pub mod table_view;
 pub mod top_bar;
+pub mod top_bar_utils;
 pub mod tour_feedback;
 pub mod tour_overlay;
 pub mod tour_quest_log;

@@ -152,7 +152,9 @@ fn draw_pointing_hand(
     bounce: f32,
 ) {
     let is_pointing_up = target.center().y < screen.top() + screen.height() * 0.55;
-    let center_x = target.center().x.clamp(screen.left() + 150.0, screen.right() - 150.0);
+    let min_x = screen.left() + 150.0;
+    let max_x = screen.right() - 150.0;
+    let center_x = if min_x <= max_x { target.center().x.clamp(min_x, max_x) } else { screen.center().x };
     let hand_y = if is_pointing_up {
         target.bottom() + 18.0 + bounce
     } else {

@@ -54,17 +54,16 @@ pub fn render_simulator_view(
             .stroke(egui::Stroke::new(1.0, ThemeTokens::TEXT_MUTED))
             .inner_margin(12.0)
             .show(ui, |ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.label(egui::RichText::new(t.sim_scenario_label).strong().color(ThemeTokens::CYAN_EDGE));
                     
-                    // Single Dropdown List for Scenario selection (Replaces buttons)
                     let scenario_lbl = match config.mode {
                         SimTargetMode::WorkstationPc => t.sim_scenario_pc,
                         SimTargetMode::HomeServerNas => t.sim_scenario_nas,
                     };
                     egui::ComboBox::from_id_salt("sim_scenario_dropdown")
                         .selected_text(egui::RichText::new(scenario_lbl).strong())
-                        .width(360.0)
+                        .width(340.0)
                         .show_ui(ui, |ui| {
                             if ui.selectable_label(config.mode == SimTargetMode::WorkstationPc, t.sim_scenario_pc).clicked() {
                                 config.mode = SimTargetMode::WorkstationPc;
@@ -81,11 +80,11 @@ pub fn render_simulator_view(
 
                 match config.mode {
                     SimTargetMode::WorkstationPc => {
-                        ui.horizontal(|ui| {
+                        ui.horizontal_wrapped(|ui| {
                             ui.label(egui::RichText::new(t.sim_gpu_label).strong());
                             let gpu_resp = egui::ComboBox::from_id_salt("sim_gpu_combo")
                                 .selected_text(config.gpu.label())
-                                .width(310.0)
+                                .width(300.0)
                                 .show_ui(ui, |ui| {
                                     for g in GpuTier::all() {
                                         if ui.selectable_label(config.gpu == g, g.label()).clicked() { config.gpu = g; }
@@ -99,7 +98,7 @@ pub fn render_simulator_view(
                         });
                     }
                     SimTargetMode::HomeServerNas => {
-                        ui.horizontal(|ui| {
+                        ui.horizontal_wrapped(|ui| {
                             ui.label(egui::RichText::new(t.sim_ram_label).strong());
                             ui.add(egui::Slider::new(&mut config.ram_gb, 4.0..=64.0).suffix(" Go Total").logarithmic(true));
 
@@ -113,7 +112,7 @@ pub fn render_simulator_view(
 
         ui.add_space(10.0);
 
-        // --- 3. Visual 4-Card KPI Dashboard (Replaces raw text wall) ---
+        // --- 3. Visual 4-Card KPI Dashboard (Responsive 2x2 on narrow windows) ---
         let kpi_rect = ui.available_rect_before_wrap();
         ui.ctx().memory_mut(|m| {
             let area = egui::Rect::from_min_size(
@@ -123,51 +122,34 @@ pub fn render_simulator_view(
             m.data.insert_temp(egui::Id::new("tour_result_sim_kpi"), area);
         });
 
-        ui.columns(4, |cols| {
-            // Card 1: Memory & VRAM
-            render_card(
-                &mut cols[0],
-                "[VRAM] MEMOIRE ALLOUEE",
-                &format!("{:.1} Go", sim.usable_vram_gb),
-                &format!("RAM : {:.1} Go | IA Total : {:.1} Go", sim.usable_ram_gb, sim.total_ai_capacity_gb),
-                ThemeTokens::TEXT_PRIMARY,
-            );
+        let speed_color = if sim.projected_speed_tps >= 35.0 { ThemeTokens::SUCCESS } else if sim.projected_speed_tps >= 15.0 { ThemeTokens::GOLD_5090 } else { ThemeTokens::DANGER };
+        let speed_level = if sim.projected_speed_tps >= 50.0 { "Très Fluide" } else if sim.projected_speed_tps >= 20.0 { "Interactif" } else { "Lent (Offload)" };
+        let oom_color = if sim.stability_percent >= 80.0 { ThemeTokens::SUCCESS } else if sim.stability_percent >= 50.0 { ThemeTokens::GOLD_5090 } else { ThemeTokens::DANGER };
+        let oom_verdict = if sim.stability_percent >= 80.0 { "Stable & Fluide" } else if sim.stability_percent >= 50.0 { "Marge Restreinte" } else { "Risque OOM !" };
 
-            // Card 2: Inference Throughput
-            let speed_color = if sim.projected_speed_tps >= 35.0 { ThemeTokens::SUCCESS } else if sim.projected_speed_tps >= 15.0 { ThemeTokens::GOLD_5090 } else { ThemeTokens::DANGER };
-            let speed_level = if sim.projected_speed_tps >= 50.0 { "Très Fluide" } else if sim.projected_speed_tps >= 20.0 { "Interactif" } else { "Lent (Offload)" };
-            render_card(
-                &mut cols[1],
-                "[~] DEBIT INFERENCE",
-                &format!("{:.0} tok/s", sim.projected_speed_tps),
-                &format!("{} | Bandwidth : {:.0} Go/s", speed_level, sim.effective_bandwidth_gbps),
-                speed_color,
-            );
-
-            // Card 3: OOM Stability
-            let oom_color = if sim.stability_percent >= 80.0 { ThemeTokens::SUCCESS } else if sim.stability_percent >= 50.0 { ThemeTokens::GOLD_5090 } else { ThemeTokens::DANGER };
-            let oom_verdict = if sim.stability_percent >= 80.0 { "Stable & Fluide" } else if sim.stability_percent >= 50.0 { "Marge Restreinte" } else { "Risque OOM !" };
-            render_card(
-                &mut cols[2],
-                " STABILITE / RISQUE OOM",
-                &format!("{:.0}%", sim.stability_percent),
-                &format!("{} (Marge: {:.1} Go)", oom_verdict, sim.ram_headroom_gb),
-                oom_color,
-            );
-
-            // Card 4: Economic ROI
-            render_card(
-                &mut cols[3],
-                " ECONOMIE VS CLOUD",
-                &format!("-{:.1}%", sim.savings_percent),
-                &format!("{:.3} € local vs {:.2} € Cloud (100 tâches)", sim.cost_per_100_tasks_local_eur, sim.cost_per_100_tasks_cloud_eur),
-                ThemeTokens::SUCCESS,
-            );
-        });
+        let avail_w = ui.available_width();
+        if avail_w < 780.0 {
+            ui.columns(2, |cols| {
+                render_card(&mut cols[0], "[VRAM] MEMOIRE ALLOUEE", &format!("{:.1} Go", sim.usable_vram_gb), &format!("RAM : {:.1} Go | IA Total : {:.1} Go", sim.usable_ram_gb, sim.total_ai_capacity_gb), ThemeTokens::TEXT_PRIMARY);
+                render_card(&mut cols[1], "[~] DEBIT INFERENCE", &format!("{:.0} tok/s", sim.projected_speed_tps), &format!("{} | Bandwidth : {:.0} Go/s", speed_level, sim.effective_bandwidth_gbps), speed_color);
+            });
+            ui.add_space(6.0);
+            ui.columns(2, |cols| {
+                render_card(&mut cols[0], " STABILITE / RISQUE OOM", &format!("{:.0}%", sim.stability_percent), &format!("{} (Marge: {:.1} Go)", oom_verdict, sim.ram_headroom_gb), oom_color);
+                render_card(&mut cols[1], " ECONOMIE VS CLOUD", &format!("-{:.1}%", sim.savings_percent), &format!("{:.3} € local vs {:.2} € Cloud (100 tâches)", sim.cost_per_100_tasks_local_eur, sim.cost_per_100_tasks_cloud_eur), ThemeTokens::SUCCESS);
+            });
+        } else {
+            ui.columns(4, |cols| {
+                render_card(&mut cols[0], "[VRAM] MEMOIRE ALLOUEE", &format!("{:.1} Go", sim.usable_vram_gb), &format!("RAM : {:.1} Go | IA Total : {:.1} Go", sim.usable_ram_gb, sim.total_ai_capacity_gb), ThemeTokens::TEXT_PRIMARY);
+                render_card(&mut cols[1], "[~] DEBIT INFERENCE", &format!("{:.0} tok/s", sim.projected_speed_tps), &format!("{} | Bandwidth : {:.0} Go/s", speed_level, sim.effective_bandwidth_gbps), speed_color);
+                render_card(&mut cols[2], " STABILITE / RISQUE OOM", &format!("{:.0}%", sim.stability_percent), &format!("{} (Marge: {:.1} Go)", oom_verdict, sim.ram_headroom_gb), oom_color);
+                render_card(&mut cols[3], " ECONOMIE VS CLOUD", &format!("-{:.1}%", sim.savings_percent), &format!("{:.3} € local vs {:.2} € Cloud (100 tâches)", sim.cost_per_100_tasks_local_eur, sim.cost_per_100_tasks_cloud_eur), ThemeTokens::SUCCESS);
+            });
+        }
 
         ui.add_space(12.0);
 
-        // --- 4. Recommended Models (Deduplicated Visual Cards) ---
+        // --- 4. Recommended Models (Responsive Grid) ---
         render_recommended_models_grid(ui, &sim, all_models, filters, selected_model_id, t);
     });
 }
@@ -238,31 +220,37 @@ fn render_recommended_models_grid(
         }
     }
 
-    ui.add_space(6.0);
-    ui.columns(unique_models.len().max(1), |cols| {
-        for (i, m) in unique_models.iter().enumerate() {
-            let col = &mut cols[i];
-            let sc = m.score_for_sources(&filters.sources).unwrap_or(0.0);
-            let is_sel = selected_model_id.as_deref() == Some(&m.id);
-            let stroke_color = if is_sel { ThemeTokens::GOLD_5090 } else { ThemeTokens::CYAN_EDGE };
+    let avail_w = ui.available_width();
+    let num_cols = if avail_w < 600.0 { 1 } else if avail_w < 900.0 { 2 } else { unique_models.len().min(4).max(1) };
 
-            egui::Frame::group(col.style())
-                .fill(ThemeTokens::BG_CARD)
-                .stroke(egui::Stroke::new(1.0, stroke_color))
-                .inner_margin(8.0)
-                .show(col, |ui| {
-                    ui.label(egui::RichText::new(&m.name).strong().size(13.0).color(ThemeTokens::TEXT_PRIMARY));
-                    ui.add_space(2.0);
-                    ui.label(egui::RichText::new(format!(" Score : {:.1} pts", sc)).strong().color(ThemeTokens::GOLD_5090));
-                    ui.label(egui::RichText::new(format!("[VRAM] VRAM : {:.1} Go", m.vram_rec_gb)).color(ThemeTokens::CYAN_EDGE));
-                    if let Some(tps) = m.tokens_per_sec {
-                        ui.label(egui::RichText::new(format!(" Débit : {:.0} tok/s", tps)).color(ThemeTokens::SUCCESS));
-                    }
-                    ui.add_space(4.0);
-                    if ui.button(egui::RichText::new(" Inspecter").strong()).clicked() {
-                        *selected_model_id = Some(m.id.clone());
-                    }
-                });
-        }
-    });
+    ui.add_space(6.0);
+    for chunk in unique_models.chunks(num_cols) {
+        ui.columns(chunk.len(), |cols| {
+            for (i, m) in chunk.iter().enumerate() {
+                let col = &mut cols[i];
+                let sc = m.score_for_sources(&filters.sources).unwrap_or(0.0);
+                let is_sel = selected_model_id.as_deref() == Some(&m.id);
+                let stroke_color = if is_sel { ThemeTokens::GOLD_5090 } else { ThemeTokens::CYAN_EDGE };
+
+                egui::Frame::group(col.style())
+                    .fill(ThemeTokens::BG_CARD)
+                    .stroke(egui::Stroke::new(1.0, stroke_color))
+                    .inner_margin(8.0)
+                    .show(col, |ui| {
+                        ui.label(egui::RichText::new(&m.name).strong().size(13.0).color(ThemeTokens::TEXT_PRIMARY));
+                        ui.add_space(2.0);
+                        ui.label(egui::RichText::new(format!(" Score : {:.1} pts", sc)).strong().color(ThemeTokens::GOLD_5090));
+                        ui.label(egui::RichText::new(format!("[VRAM] VRAM : {:.1} Go", m.vram_rec_gb)).color(ThemeTokens::CYAN_EDGE));
+                        if let Some(tps) = m.tokens_per_sec {
+                            ui.label(egui::RichText::new(format!(" Débit : {:.0} tok/s", tps)).color(ThemeTokens::SUCCESS));
+                        }
+                        ui.add_space(4.0);
+                        if ui.button(egui::RichText::new(" Inspecter").strong()).clicked() {
+                            *selected_model_id = Some(m.id.clone());
+                        }
+                    });
+            }
+        });
+        ui.add_space(6.0);
+    }
 }

@@ -82,7 +82,7 @@ impl Default for GraphViewState {
             x_metric: GraphMetric::VramRecGb,
             y_metric: GraphMetric::CrossScore,
             show_pareto_curve: true,
-            show_node_labels: false,
+            show_node_labels: true,
             show_champion_labels: true,
             reset_requested: false,
             vram_budget_gb: 48.0,

@@ -93,11 +93,24 @@ pub fn clamp_plot_bounds(
     let limit_min_y = (data_min[1] - dy * 1.2).max(-5.0);
     let limit_max_y = data_max[1] + dy * 1.5;
 
-    let mut cx = (min[0] + max[0]) * 0.5;
-    let mut cy = (min[1] + max[1]) * 0.5;
+    let mut cx = if (min[0] + max[0]).is_finite() { (min[0] + max[0]) * 0.5 } else { (limit_min_x + limit_max_x) * 0.5 };
+    let mut cy = if (min[1] + max[1]).is_finite() { (min[1] + max[1]) * 0.5 } else { (limit_min_y + limit_max_y) * 0.5 };
 
-    cx = cx.clamp(limit_min_x + w * 0.5, limit_max_x - w * 0.5);
-    cy = cy.clamp(limit_min_y + h * 0.5, limit_max_y - h * 0.5);
+    let clamp_min_x = limit_min_x + w * 0.5;
+    let clamp_max_x = limit_max_x - w * 0.5;
+    cx = if clamp_min_x <= clamp_max_x {
+        cx.clamp(clamp_min_x, clamp_max_x)
+    } else {
+        (limit_min_x + limit_max_x) * 0.5
+    };
+
+    let clamp_min_y = limit_min_y + h * 0.5;
+    let clamp_max_y = limit_max_y - h * 0.5;
+    cy = if clamp_min_y <= clamp_max_y {
+        cy.clamp(clamp_min_y, clamp_max_y)
+    } else {
+        (limit_min_y + limit_max_y) * 0.5
+    };
 
     let new_min = [cx - w * 0.5, cy - h * 0.5];
     let new_max = [cx + w * 0.5, cy + h * 0.5];

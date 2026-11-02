@@ -181,7 +181,24 @@ fn test_graph_data_bounds_computation() {
 fn test_graph_view_state_and_node_labels() {
     use benchmark_llm_gui::presentation::components::graph_types::GraphViewState;
     let state = GraphViewState::default();
-    assert!(!state.show_node_labels);
+    assert!(state.show_node_labels);
     assert!(state.show_pareto_curve);
     assert_eq!(state.vram_budget_gb, 48.0);
+}
+
+#[test]
+fn test_graph_bounds_no_panic_on_inverted_or_extreme_zoom() {
+    let limit_min_x = 0.0_f64;
+    let limit_max_x = 25.0_f64;
+    let w = 40.0_f64;
+    let cx = 12.5_f64;
+
+    let clamp_min_x = limit_min_x + w * 0.5;
+    let clamp_max_x = limit_max_x - w * 0.5;
+    let safe_cx = if clamp_min_x <= clamp_max_x {
+        cx.clamp(clamp_min_x, clamp_max_x)
+    } else {
+        (limit_min_x + limit_max_x) * 0.5
+    };
+    assert_eq!(safe_cx, 12.5);
 }

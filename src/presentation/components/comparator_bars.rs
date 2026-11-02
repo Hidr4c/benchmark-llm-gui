@@ -196,27 +196,27 @@ fn render_theme_card(
             let pct1 = (val1 / common_max).clamp(0.0, 1.0);
             let pct2 = (val2 / common_max).clamp(0.0, 1.0);
 
-            let col0_w = 240.0;
-            let col1_w = 175.0;
-            let bar_w = (ui.available_width() - col0_w - col1_w - 32.0).max(140.0);
+            let col0_w = 205.0;
+            let col1_w = 165.0;
+            let spacing_x = 10.0;
+            let bar_w = (ui.available_width() - col0_w - col1_w - spacing_x * 2.0 - 4.0).max(100.0);
 
             // Row 1: Model #1 (Cyan)
             ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing = egui::vec2(10.0, 0.0);
-                ui.allocate_ui_with_layout(egui::vec2(col0_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                    ui.set_max_width(col0_w);
-                    ui.label(egui::RichText::new("[#1]").color(ThemeTokens::CYAN_EDGE).strong().size(12.5));
-                    let short_name1 = if name1.len() > 18 { format!("{}...", &name1[..16]) } else { name1.to_string() };
-                    ui.label(egui::RichText::new(short_name1).strong().size(12.0)).on_hover_text(name1);
-                    if w1 {
-                        ui.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(10.5));
-                    }
-                });
+                ui.spacing_mut().item_spacing = egui::vec2(spacing_x, 0.0);
 
-                ui.allocate_ui_with_layout(egui::vec2(col1_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                    ui.set_max_width(col1_w);
-                    ui.label(egui::RichText::new(&text1).size(12.0).color(ThemeTokens::CYAN_EDGE).strong());
-                });
+                let (rect0, _) = ui.allocate_exact_size(egui::vec2(col0_w, 20.0), egui::Sense::hover());
+                let mut ui0 = ui.new_child(egui::UiBuilder::new().max_rect(rect0).layout(egui::Layout::left_to_right(egui::Align::Center)));
+                ui0.label(egui::RichText::new("[#1]").color(ThemeTokens::CYAN_EDGE).strong().size(12.5));
+                let short_name1 = if name1.len() > 16 { format!("{}...", &name1[..14]) } else { name1.to_string() };
+                ui0.label(egui::RichText::new(short_name1).strong().size(12.0)).on_hover_text(name1);
+                if w1 {
+                    ui0.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(10.0));
+                }
+
+                let (rect1, _) = ui.allocate_exact_size(egui::vec2(col1_w, 20.0), egui::Sense::hover());
+                let mut ui1 = ui.new_child(egui::UiBuilder::new().max_rect(rect1).layout(egui::Layout::left_to_right(egui::Align::Center)));
+                ui1.label(egui::RichText::new(&text1).size(11.5).color(ThemeTokens::CYAN_EDGE).strong());
 
                 ui.add(
                     egui::ProgressBar::new(pct1)
@@ -230,21 +230,20 @@ fn render_theme_card(
 
             // Row 2: Model #2 (Gold)
             ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing = egui::vec2(10.0, 0.0);
-                ui.allocate_ui_with_layout(egui::vec2(col0_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                    ui.set_max_width(col0_w);
-                    ui.label(egui::RichText::new("[#2]").color(ThemeTokens::GOLD_5090).strong().size(12.5));
-                    let short_name2 = if name2.len() > 18 { format!("{}...", &name2[..16]) } else { name2.to_string() };
-                    ui.label(egui::RichText::new(short_name2).strong().size(12.0)).on_hover_text(name2);
-                    if w2 {
-                        ui.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(10.5));
-                    }
-                });
+                ui.spacing_mut().item_spacing = egui::vec2(spacing_x, 0.0);
 
-                ui.allocate_ui_with_layout(egui::vec2(col1_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                    ui.set_max_width(col1_w);
-                    ui.label(egui::RichText::new(&text2).size(12.0).color(ThemeTokens::GOLD_5090).strong());
-                });
+                let (rect0, _) = ui.allocate_exact_size(egui::vec2(col0_w, 20.0), egui::Sense::hover());
+                let mut ui0 = ui.new_child(egui::UiBuilder::new().max_rect(rect0).layout(egui::Layout::left_to_right(egui::Align::Center)));
+                ui0.label(egui::RichText::new("[#2]").color(ThemeTokens::GOLD_5090).strong().size(12.5));
+                let short_name2 = if name2.len() > 16 { format!("{}...", &name2[..14]) } else { name2.to_string() };
+                ui0.label(egui::RichText::new(short_name2).strong().size(12.0)).on_hover_text(name2);
+                if w2 {
+                    ui0.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(10.0));
+                }
+
+                let (rect1, _) = ui.allocate_exact_size(egui::vec2(col1_w, 20.0), egui::Sense::hover());
+                let mut ui1 = ui.new_child(egui::UiBuilder::new().max_rect(rect1).layout(egui::Layout::left_to_right(egui::Align::Center)));
+                ui1.label(egui::RichText::new(&text2).size(11.5).color(ThemeTokens::GOLD_5090).strong());
 
                 ui.add(
                     egui::ProgressBar::new(pct2)
