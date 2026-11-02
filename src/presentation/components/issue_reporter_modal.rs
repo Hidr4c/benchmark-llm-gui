@@ -20,7 +20,7 @@ pub fn render_sync_error_modal(
         .open(&mut win_open)
         .collapsible(false)
         .resizable(true)
-        .default_size(egui::vec2(540.0, 380.0))
+        .default_size(egui::vec2(540.0, 390.0))
         .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
         .show(ctx, |ui| {
             ui.label(egui::RichText::new(t.dialog_desc).color(ThemeTokens::TEXT_PRIMARY).size(12.0));
@@ -32,12 +32,14 @@ pub fn render_sync_error_modal(
                 .inner_margin(8.0)
                 .rounding(4.0)
                 .show(ui, |ui| {
-                    egui::ScrollArea::vertical().max_height(160.0).show(ui, |ui| {
+                    egui::ScrollArea::vertical().max_height(140.0).show(ui, |ui| {
                         ui.label(egui::RichText::new(&err_msg).monospace().size(10.5).color(ThemeTokens::WARNING));
                     });
                 });
 
-            ui.add_space(10.0);
+            ui.add_space(8.0);
+            ui.label(egui::RichText::new("ℹ️ En cliquant ci-dessous, la page GitHub s'ouvre avec le rapport d'incident 100% pré-rempli. Vous n'avez qu'à cliquer sur « Submit new issue ».").size(11.0).color(ThemeTokens::TEXT_MUTED));
+            ui.add_space(8.0);
 
             let copy_key = egui::Id::new("copy_sync_report_time");
             let last_copy = ui.ctx().memory_mut(|m| m.data.get_temp::<f64>(copy_key)).unwrap_or(0.0);
@@ -59,6 +61,7 @@ pub fn render_sync_error_modal(
                         url_encode(&title),
                         url_encode(&report_body)
                     );
+                    ui.ctx().copy_text(report_body.clone());
                     let _ = open::that(url);
                 }
 
@@ -99,67 +102,64 @@ pub fn render_contact_modal(
         .open(&mut win_open)
         .collapsible(false)
         .resizable(true)
-        .default_size(egui::vec2(500.0, 360.0))
+        .default_size(egui::vec2(520.0, 420.0))
         .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
         .show(ctx, |ui| {
             ui.label(egui::RichText::new(t.dialog_desc).color(ThemeTokens::TEXT_PRIMARY).size(12.0));
             ui.add_space(8.0);
 
-            // GitHub section
-            ui.label(egui::RichText::new(t.section_github).strong().color(ThemeTokens::GOLD_5090).size(12.0));
-            ui.horizontal(|ui| {
-                if ui.button(egui::RichText::new(t.btn_suggest_feature).color(ThemeTokens::CYAN_EDGE)).clicked() {
-                    let title = "[Feature / Model Request] ";
-                    let body = "**Description de l'idée / Nouveau modèle :**\n\n**Bénéfice utilisateur :**\n";
-                    let url = format!(
-                        "https://github.com/Hidr4c/benchmark-llm-gui/issues/new?title={}&body={}",
-                        url_encode(title),
-                        url_encode(body)
-                    );
-                    let _ = open::that(url);
-                }
+            // In-app text draft
+            let draft_key = egui::Id::new("contact_feedback_draft_text");
+            let mut draft_text = ui.ctx().memory_mut(|m| m.data.get_temp::<String>(draft_key)).unwrap_or_default();
 
-                if ui.button(egui::RichText::new(t.btn_report_bug).color(ThemeTokens::DANGER)).clicked() {
-                    let title = "[Bug Report] ";
-                    let body = format!(
-                        "**Comportement attendu :**\n\n**Comportement observé :**\n\n- Version: v{}\n- OS: {}\n",
-                        env!("CARGO_PKG_VERSION"),
-                        std::env::consts::OS
-                    );
-                    let url = format!(
-                        "https://github.com/Hidr4c/benchmark-llm-gui/issues/new?title={}&body={}",
-                        url_encode(title),
-                        url_encode(&body)
-                    );
-                    let _ = open::that(url);
-                }
-            });
+            ui.label(egui::RichText::new("Rédigez votre message ou idée directement ici :").strong().size(11.5).color(ThemeTokens::GOLD_5090));
+            let edit_resp = ui.add(
+                egui::TextEdit::multiline(&mut draft_text)
+                    .hint_text("Décrivez votre idée, nouveau modèle souhaité ou anomalie rencontrée...")
+                    .desired_rows(5)
+                    .desired_width(f32::INFINITY)
+            );
+            if edit_resp.changed() {
+                ui.ctx().memory_mut(|m| m.data.insert_temp(draft_key, draft_text.clone()));
+            }
 
-            ui.add_space(10.0);
-            ui.separator();
-            ui.add_space(10.0);
-
-            // Anonymous feedback section (without GitHub account)
-            ui.label(egui::RichText::new(t.section_anonymous).strong().color(ThemeTokens::SUCCESS).size(12.0));
-            ui.label(egui::RichText::new(t.anonymous_desc).color(ThemeTokens::TEXT_SECONDARY).size(11.0));
             ui.add_space(6.0);
+            ui.label(egui::RichText::new("ℹ️ En cliquant ci-dessous, la page GitHub s'ouvre avec votre message déjà 100% pré-rempli. Vous n'avez qu'à vous connecter et cliquer sur « Submit new issue ».").size(11.0).color(ThemeTokens::TEXT_MUTED));
+            ui.add_space(10.0);
 
-            let copy_key = egui::Id::new("copy_feedback_time");
-            let last_copy = ui.ctx().memory_mut(|m| m.data.get_temp::<f64>(copy_key)).unwrap_or(0.0);
-            let is_recent = ui.input(|i| i.time) - last_copy < 2.5;
-
-            let feedback_template = format!(
-                "--- Retour Utilisateur Benchmark LLM ---\nDate: {}\nVersion: v{}\nOS: {}\n\n[Votre message / idée / retour ici]\n",
-                chrono::Local::now().to_rfc3339(),
+            // Action buttons
+            let full_body = format!(
+                "{}\n\n---\n- Application: Benchmark LLM Explorer v{}\n- OS: {}\n- Date: {}",
+                if draft_text.trim().is_empty() { "(Aucun message rédigé)" } else { draft_text.trim() },
                 env!("CARGO_PKG_VERSION"),
-                std::env::consts::OS
+                std::env::consts::OS,
+                chrono::Local::now().to_rfc3339()
             );
 
             ui.horizontal(|ui| {
-                let btn_text = if is_recent { t.copied_feedback } else { t.btn_copy_anonymous_feedback };
+                if ui.button(egui::RichText::new("🐙 Ouvrir sur GitHub (Pré-rempli)").strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
+                    let title = if draft_text.trim().is_empty() {
+                        "[Retour Utilisateur / Suggestion] ".to_string()
+                    } else {
+                        format!("[Retour] {}", draft_text.lines().next().unwrap_or("Suggestion"))
+                    };
+                    let url = format!(
+                        "https://github.com/Hidr4c/benchmark-llm-gui/issues/new?title={}&body={}",
+                        url_encode(&title),
+                        url_encode(&full_body)
+                    );
+                    ui.ctx().copy_text(full_body.clone());
+                    let _ = open::that(url);
+                }
+
+                let copy_key = egui::Id::new("copy_feedback_time");
+                let last_copy = ui.ctx().memory_mut(|m| m.data.get_temp::<f64>(copy_key)).unwrap_or(0.0);
+                let is_recent = ui.input(|i| i.time) - last_copy < 2.5;
+
+                let btn_text = if is_recent { t.copied_feedback } else { "📋 Copier dans le presse-papier" };
                 let btn_color = if is_recent { ThemeTokens::SUCCESS } else { ThemeTokens::PRIMARY };
-                if ui.button(egui::RichText::new(btn_text).color(btn_color).strong()).clicked() {
-                    ui.ctx().copy_text(feedback_template);
+                if ui.button(egui::RichText::new(btn_text).color(btn_color)).clicked() {
+                    ui.ctx().copy_text(full_body);
                     ui.ctx().memory_mut(|m| m.data.insert_temp(copy_key, ui.input(|i| i.time)));
                 }
 
