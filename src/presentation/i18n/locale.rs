@@ -1,51 +1,19 @@
-use serde::{Deserialize, Serialize};
-use super::en::EN_TRANSLATIONS;
-use super::fr::FR_TRANSLATIONS;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum Language {
-    #[default]
-    French,
-    English,
-}
-
-impl Language {
-    pub fn all() -> [Self; 2] {
-        [Self::French, Self::English]
-    }
-
-    pub fn code(&self) -> &'static str {
-        match self {
-            Self::French => "fr",
-            Self::English => "en",
-        }
-    }
-
-    pub fn label(&self) -> &'static str {
-        match self {
-            Self::French => "FR",
-            Self::English => "EN",
-        }
-    }
-
-    pub fn t(&self) -> &'static Translations {
-        match self {
-            Self::French => &FR_TRANSLATIONS,
-            Self::English => &EN_TRANSLATIONS,
-        }
-    }
-}
-
+pub use super::sub_translations::{ComparatorTranslations, UpdateTranslations};
+pub use super::sub_translations_tutorial::TutorialGuideTranslations;
 #[derive(Debug, Clone, Copy)]
 pub struct Translations {
     // Navigation & Tabs
     pub app_title: &'static str,
     pub tab_table: &'static str,
     pub tab_graph: &'static str,
+    pub tab_comparator: &'static str,
     pub tab_simulator: &'static str,
     pub tab_sources: &'static str,
     pub tab_tutorial: &'static str,
     pub snapshot_active: &'static str,
+    pub comp: ComparatorTranslations,
+    pub update: UpdateTranslations,
+    pub tut_guide: TutorialGuideTranslations,
 
     // Filter Bar & Scopes
     pub scope_label: &'static str,
@@ -255,6 +223,8 @@ pub struct Translations {
     pub tour_s6_desc: &'static str,
     pub tour_s7_title: &'static str,
     pub tour_s7_desc: &'static str,
+    pub tour_s8_title: &'static str,
+    pub tour_s8_desc: &'static str,
     pub tour_action_label: &'static str,
     pub tour_s1_action: &'static str,
     pub tour_s2_action: &'static str,
@@ -263,6 +233,7 @@ pub struct Translations {
     pub tour_s5_action: &'static str,
     pub tour_s6_action: &'static str,
     pub tour_s7_action: &'static str,
+    pub tour_s8_action: &'static str,
     pub tour_s1_target: &'static str,
     pub tour_s2_target: &'static str,
     pub tour_s3_target: &'static str,
@@ -270,6 +241,7 @@ pub struct Translations {
     pub tour_s5_target: &'static str,
     pub tour_s6_target: &'static str,
     pub tour_s7_target: &'static str,
+    pub tour_s8_target: &'static str,
     pub advanced_more: &'static str,
     pub advanced_less: &'static str,
     pub tour_guide_title: &'static str,
@@ -277,6 +249,7 @@ pub struct Translations {
     pub tour_guide_btn: &'static str,
     pub tour_step_validated: &'static str,
     pub tour_skip_transition: &'static str,
+    pub tour_validate_btn: &'static str,
 
     // Tutorial View & Guides
     pub tut_hero_title: &'static str,

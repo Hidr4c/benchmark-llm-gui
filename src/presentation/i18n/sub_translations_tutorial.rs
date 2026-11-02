@@ -1,0 +1,81 @@
+#[derive(Debug, Clone, Copy)]
+pub struct TutorialGuideTranslations {
+    pub table_guide_title: &'static str,
+    pub table_guide_desc: &'static str,
+    pub col_essential_badge: &'static str,
+    pub col_essential_desc: &'static str,
+    pub col_adv_badge: &'static str,
+    pub col_adv_desc: &'static str,
+    pub col_raw_badge: &'static str,
+    pub col_raw_desc: &'static str,
+    pub btn_try_cols: &'static str,
+
+    pub filters_guide_title: &'static str,
+    pub filters_guide_desc: &'static str,
+    pub filter_ram_title: &'static str,
+    pub filter_ram_desc: &'static str,
+    pub filter_rel_title: &'static str,
+    pub filter_rel_desc: &'static str,
+    pub filter_license_title: &'static str,
+    pub filter_license_desc: &'static str,
+    pub btn_try_filters: &'static str,
+
+    pub tour_s3b_title: &'static str,
+    pub tour_s3b_desc: &'static str,
+    pub tour_s3b_action: &'static str,
+    pub tour_s3b_target: &'static str,
+}
+
+pub const FR_TUTORIAL_GUIDE: TutorialGuideTranslations = TutorialGuideTranslations {
+    table_guide_title: "Comprendre le Tableau & les Colonnes",
+    table_guide_desc: "Le tableau comparatif propose 3 niveaux de granularité adaptés à vos besoins :",
+    col_essential_badge: "Vue Essentielle (Défaut)",
+    col_essential_desc: "Les 7 métriques indispensables : Rang (#), Nom du modèle, Matériel Cible (profil VRAM), Taille (Go), Score Calibré unifié (0-100), Débit réel mesuré (tok/s) et Tarif API Cloud ($/1M tokens).",
+    col_adv_badge: "Colonnes Avancées [x] Avancé",
+    col_adv_desc: "Déploie 4 colonnes d'expertise : Année de parution, Efficacité (points d'intelligence par Go de RAM), Valeur Réelle / Éco (benchmarks métiers réels RLI/SWE-Lancer), et Popularité (téléchargements).",
+    col_raw_badge: "Sources Brutes [x] Sources Brutes",
+    col_raw_desc: "Affiche les notes scientifiques brutes sans pondération : OpenLLM 2, SWE-Bench (résolution de bugs logiciels), Agentic/BFCL (appels d'outils) et MMLU-PRO (raisonnement complexe).",
+    btn_try_cols: "Essayer dans le Tableau",
+
+    filters_guide_title: "Maîtriser les Filtres & la Fiabilité",
+    filters_guide_desc: "Affinez vos recherches et sécurisez vos choix matériels avec les filtres avancés :",
+    filter_ram_title: "Curseur de RAM Max",
+    filter_ram_desc: "Définit le plafond strict de mémoire vive ou VRAM disponible sur votre machine. Les modèles dont le poids dépasse ce seuil sont immédiatement masqués pour éliminer tout risque de débordement mémoire (OOM).",
+    filter_rel_title: "Niveaux d'Indice de Confiance",
+    filter_rel_desc: "• Faible [!] : Source isolée ou divergence >20 pts entre bancs. Décote de prudence appliquée.\n• Moyenne [~] : Au moins 2 benchmarks indépendants concordants avec faible variance.\n• Haute [OK] : 3+ sources croisées validées, note consolidée maximale.",
+    filter_license_title: "Licences & Modalités",
+    filter_license_desc: "Isolez les modèles commercialement libres (Apache 2.0 / MIT) des modèles soumis à restrictions d'usage, et filtrez par modalité (LLM Texte vs Vision Multimodale).",
+    btn_try_filters: "Ouvrir les Filtres Avancés",
+
+    tour_s3b_title: "Colonnes Avancées & Filtres de Fiabilité",
+    tour_s3b_desc: "Cochez [Avancé] pour révéler l'Efficacité et la Popularité, ou [Sources Brutes] pour les notes détaillées. Ouvrez [Filtres Avancés] pour filtrer par niveau de confiance (Moyenne+, Haute 3+).",
+    tour_s3b_action: "Cochez [Avancé] ou ouvrez les filtres avancés.",
+    tour_s3b_target: "Colonnes & Filtres",
+};
+
+pub const EN_TUTORIAL_GUIDE: TutorialGuideTranslations = TutorialGuideTranslations {
+    table_guide_title: "Understanding the Table & Columns",
+    table_guide_desc: "The comparison table provides 3 levels of granularity tailored to your analysis needs:",
+    col_essential_badge: "Essential View (Default)",
+    col_essential_desc: "The 7 indispensable metrics: Rank (#), Model Name, Target Hardware (VRAM tier), Size (GB), Unified Calibrated Score (0-100), Measured Throughput (tok/s), and Cloud API Price ($/1M tokens).",
+    col_adv_badge: "Advanced Columns [x] Advanced",
+    col_adv_desc: "Reveals 4 deep-dive columns: Release Year, Efficiency (intelligence points per GB of RAM), Real-World / Economic Value (RLI & SWE-Lancer field tasks), and Popularity (downloads).",
+    col_raw_badge: "Raw Benchmark Sources [x] Raw Sources",
+    col_raw_desc: "Displays unweighted raw scientific scores directly from benchmark suites: OpenLLM 2, SWE-Bench (software bug resolving), Agentic/BFCL (tool calling), and MMLU-PRO (complex reasoning).",
+    btn_try_cols: "Try in Table",
+
+    filters_guide_title: "Mastering Filters & Reliability",
+    filters_guide_desc: "Refine your searches and safe-guard your hardware deployment using advanced filters:",
+    filter_ram_title: "Maximum RAM / VRAM Slider",
+    filter_ram_desc: "Sets a strict ceiling for system RAM or VRAM available on your target machine. Models exceeding this threshold are instantly excluded to prevent out-of-memory crashes (OOM).",
+    filter_rel_title: "Confidence & Reliability Levels",
+    filter_rel_desc: "• Low [!] : Single isolated source or variance >20 pts across benchmarks. Prudence discount applied.\n• Medium [~] : At least 2 independent corroborating benchmarks with low variance.\n• High [OK] : 3+ cross-referenced verified sources, maximal score reliability.",
+    filter_license_title: "Licenses & Modalities",
+    filter_license_desc: "Isolate commercially permissible open-weights models (Apache 2.0 / MIT) from usage-restricted licenses, and filter by modality (Text LLM vs Multimodal Vision).",
+    btn_try_filters: "Open Advanced Filters",
+
+    tour_s3b_title: "Advanced Columns & Reliability Filters",
+    tour_s3b_desc: "Check [Advanced] to reveal Efficiency and Popularity, or [Raw Sources] for breakdown scores. Open [Advanced Filters] to filter by confidence level (Medium+, High 3+).",
+    tour_s3b_action: "Check [Advanced] or open advanced filters.",
+    tour_s3b_target: "Columns & Filters",
+};
