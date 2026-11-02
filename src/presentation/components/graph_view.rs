@@ -12,6 +12,7 @@ pub use crate::presentation::components::graph_types::{
 use crate::presentation::filtering::ModelScope;
 use crate::presentation::i18n::Language;
 use crate::presentation::theme::ThemeTokens;
+use crate::presentation::components::model_search_picker::render_graph_search_picker;
 
 pub fn render_graph_view(
     ui: &mut egui::Ui,
@@ -49,7 +50,7 @@ pub fn render_graph_view(
                 (GraphMetric::SizeGb, GraphMetric::Efficiency) => t.preset_embedded_efficiency,
                 (GraphMetric::VramRecGb, GraphMetric::CodingScore) => t.preset_code_vram,
                 (GraphMetric::VramRecGb, GraphMetric::AgenticScore) => t.preset_agent_vram,
-                _ => "🎯 Custom",
+                _ => " Custom",
             };
             egui::ComboBox::from_id_salt("graph_preset_combo")
                 .selected_text(current_preset_lbl)
@@ -120,10 +121,13 @@ pub fn render_graph_view(
             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_recenter_btn"), recenter_resp.rect));
             if recenter_resp.clicked() {
                 state.reset_requested = true;
+                ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_evt_recenter_clicked"), true));
             }
         });
 
-        ui.add_space(4.0);
+        ui.add_space(3.0);
+        render_graph_search_picker(ui, &mut state.search_query, all_models, selected_model_id, lang);
+        ui.add_space(3.0);
 
         // --- 2. Prepare plotted points and Pareto frontier ---
         let mut plotted: Vec<PlottedPoint> = Vec::new();
@@ -217,7 +221,7 @@ pub fn render_graph_view(
             if let Some(sel_id) = sel_id_clone.as_deref() {
                 if let Some(p) = plotted.iter().find(|p| all_models[p.index].id == sel_id) {
                     plot_ui.points(Points::new(PlotPoints::new(vec![[p.x, p.y]])).radius(11.0).color(ThemeTokens::GOLD_5090).name("Cible"));
-                    let txt = egui::RichText::new(format!("🎯 {}", p.name))
+                    let txt = egui::RichText::new(format!("[Cible] {}", p.name))
                         .size(dynamic_font_size)
                         .color(ThemeTokens::GOLD_5090)
                         .strong();

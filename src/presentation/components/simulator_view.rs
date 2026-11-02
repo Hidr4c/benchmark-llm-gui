@@ -127,7 +127,7 @@ pub fn render_simulator_view(
             // Card 1: Memory & VRAM
             render_card(
                 &mut cols[0],
-                "💾 MÉMOIRE ALLOUÉE",
+                "[VRAM] MEMOIRE ALLOUEE",
                 &format!("{:.1} Go", sim.usable_vram_gb),
                 &format!("RAM : {:.1} Go | IA Total : {:.1} Go", sim.usable_ram_gb, sim.total_ai_capacity_gb),
                 ThemeTokens::TEXT_PRIMARY,
@@ -138,7 +138,7 @@ pub fn render_simulator_view(
             let speed_level = if sim.projected_speed_tps >= 50.0 { "Très Fluide" } else if sim.projected_speed_tps >= 20.0 { "Interactif" } else { "Lent (Offload)" };
             render_card(
                 &mut cols[1],
-                "⚡ DÉBIT INFERENCE",
+                "[~] DEBIT INFERENCE",
                 &format!("{:.0} tok/s", sim.projected_speed_tps),
                 &format!("{} | Bandwidth : {:.0} Go/s", speed_level, sim.effective_bandwidth_gbps),
                 speed_color,
@@ -149,7 +149,7 @@ pub fn render_simulator_view(
             let oom_verdict = if sim.stability_percent >= 80.0 { "Stable & Fluide" } else if sim.stability_percent >= 50.0 { "Marge Restreinte" } else { "Risque OOM !" };
             render_card(
                 &mut cols[2],
-                "🛡️ STABILITÉ / RISQUE OOM",
+                " STABILITE / RISQUE OOM",
                 &format!("{:.0}%", sim.stability_percent),
                 &format!("{} (Marge: {:.1} Go)", oom_verdict, sim.ram_headroom_gb),
                 oom_color,
@@ -158,7 +158,7 @@ pub fn render_simulator_view(
             // Card 4: Economic ROI
             render_card(
                 &mut cols[3],
-                "💰 ÉCONOMIE VS CLOUD",
+                " ECONOMIE VS CLOUD",
                 &format!("-{:.1}%", sim.savings_percent),
                 &format!("{:.3} € local vs {:.2} € Cloud (100 tâches)", sim.cost_per_100_tasks_local_eur, sim.cost_per_100_tasks_cloud_eur),
                 ThemeTokens::SUCCESS,
@@ -215,7 +215,7 @@ fn render_recommended_models_grid(
 ) {
     ui.horizontal(|ui| {
         ui.label(egui::RichText::new(t.sim_rec_models_title).strong().color(ThemeTokens::GOLD_5090).size(14.0));
-        ui.label(egui::RichText::new(format!("(Modèles compatibles ≤ {:.1} Go)", sim.total_ai_capacity_gb)).color(ThemeTokens::TEXT_MUTED));
+        ui.label(egui::RichText::new(format!("(Modèles compatibles <= {:.1} Go)", sim.total_ai_capacity_gb)).color(ThemeTokens::TEXT_MUTED));
     });
 
     let mut rec_models: Vec<&ModelBenchmark> = all_models.iter()
@@ -253,13 +253,13 @@ fn render_recommended_models_grid(
                 .show(col, |ui| {
                     ui.label(egui::RichText::new(&m.name).strong().size(13.0).color(ThemeTokens::TEXT_PRIMARY));
                     ui.add_space(2.0);
-                    ui.label(egui::RichText::new(format!("🏆 Score : {:.1} pts", sc)).strong().color(ThemeTokens::GOLD_5090));
-                    ui.label(egui::RichText::new(format!("💾 VRAM : {:.1} Go", m.vram_rec_gb)).color(ThemeTokens::CYAN_EDGE));
+                    ui.label(egui::RichText::new(format!(" Score : {:.1} pts", sc)).strong().color(ThemeTokens::GOLD_5090));
+                    ui.label(egui::RichText::new(format!("[VRAM] VRAM : {:.1} Go", m.vram_rec_gb)).color(ThemeTokens::CYAN_EDGE));
                     if let Some(tps) = m.tokens_per_sec {
-                        ui.label(egui::RichText::new(format!("🚀 Débit : {:.0} tok/s", tps)).color(ThemeTokens::SUCCESS));
+                        ui.label(egui::RichText::new(format!(" Débit : {:.0} tok/s", tps)).color(ThemeTokens::SUCCESS));
                     }
                     ui.add_space(4.0);
-                    if ui.button(egui::RichText::new("🔍 Inspecter").strong()).clicked() {
+                    if ui.button(egui::RichText::new(" Inspecter").strong()).clicked() {
                         *selected_model_id = Some(m.id.clone());
                     }
                 });

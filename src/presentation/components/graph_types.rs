@@ -33,7 +33,7 @@ impl GraphMetric {
             GraphMetric::Efficiency => "Efficiency Ratio (pts/GB)",
             GraphMetric::PriceUsd => {
                 if include_electricity {
-                    "Coût Global ($/1M | API & Élec)"
+                    "Coût Global ($/1M | API & Elec)"
                 } else {
                     "Tarif Cloud ($/1M tokens)"
                 }
@@ -72,6 +72,7 @@ pub struct GraphViewState {
     pub reset_requested: bool,
     pub vram_budget_gb: f32,
     pub include_electricity_cost: bool,
+    pub search_query: String,
 }
 
 impl Default for GraphViewState {
@@ -84,6 +85,7 @@ impl Default for GraphViewState {
             reset_requested: false,
             vram_budget_gb: 48.0,
             include_electricity_cost: true,
+            search_query: String::new(),
         }
     }
 }
@@ -140,7 +142,7 @@ pub fn render_inspection_card(
         .inner_margin(8.0)
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.heading(eframe::egui::RichText::new(format!("🎯 {}", m.name)).color(crate::presentation::theme::ThemeTokens::TEXT_PRIMARY).strong());
+                ui.heading(eframe::egui::RichText::new(format!("[Cible] {}", m.name)).color(crate::presentation::theme::ThemeTokens::TEXT_PRIMARY).strong());
                 ui.label(eframe::egui::RichText::new(format!("({}, {})", m.family, m.release_year_label())).color(crate::presentation::theme::ThemeTokens::CYAN_EDGE).strong());
                 ui.with_layout(eframe::egui::Layout::right_to_left(eframe::egui::Align::Center), |ui| {
                     if ui.button(t.close_inspection).clicked() { *selected_model_id = None; }
@@ -154,21 +156,21 @@ pub fn render_inspection_card(
             });
             ui.horizontal(|ui| {
                 let sc = m.score_for_sources(&filters.sources).unwrap_or(0.0);
-                ui.label(eframe::egui::RichText::new(format!("⭐ {} : {:.1} pts", t.col_score, sc)).strong().color(crate::presentation::theme::ThemeTokens::GOLD_5090));
+                ui.label(eframe::egui::RichText::new(format!("* {} : {:.1} pts", t.col_score, sc)).strong().color(crate::presentation::theme::ThemeTokens::GOLD_5090));
                 ui.separator();
                 if m.is_cloud {
                     let p_in = m.pricing_input_usd.map(|p| format!("${:.2}", p)).unwrap_or_else(|| "N/A".to_string());
                     let p_out = m.pricing_output_usd.map(|p| format!("${:.2}", p)).unwrap_or_else(|| "N/A".to_string());
-                    ui.label(eframe::egui::RichText::new(format!("💰 In: {p_in}/1M | Out: {p_out}/1M ({})", m.provider.as_deref().unwrap_or("API"))).color(crate::presentation::theme::ThemeTokens::GOLD_5090));
+                    ui.label(eframe::egui::RichText::new(format!(" In: {p_in}/1M | Out: {p_out}/1M ({})", m.provider.as_deref().unwrap_or("API"))).color(crate::presentation::theme::ThemeTokens::GOLD_5090));
                 } else {
                     let elec = m.estimated_electricity_cost_usd_per_1m();
-                    ui.label(eframe::egui::RichText::new(format!("💰 0$ API | ⚡ Élec: ~${:.2}/1M", elec)).color(crate::presentation::theme::ThemeTokens::SUCCESS));
+                    ui.label(eframe::egui::RichText::new(format!(" 0$ API | [~] Elec: ~${:.2}/1M", elec)).color(crate::presentation::theme::ThemeTokens::SUCCESS));
                     ui.separator();
-                    ui.label(eframe::egui::RichText::new(format!("💾 VRAM: {:.1} GB", m.vram_rec_gb)).color(crate::presentation::theme::ThemeTokens::TEXT_SECONDARY));
+                    ui.label(eframe::egui::RichText::new(format!("[VRAM] VRAM: {:.1} GB", m.vram_rec_gb)).color(crate::presentation::theme::ThemeTokens::TEXT_SECONDARY));
                 }
                 ui.separator();
                 if let Some(tps) = m.tokens_per_sec {
-                    ui.label(eframe::egui::RichText::new(format!("⚡ {:.0} tok/s ({})", tps, m.tps_hardware.as_deref().unwrap_or("GPU"))).color(crate::presentation::theme::ThemeTokens::SUCCESS));
+                    ui.label(eframe::egui::RichText::new(format!("[~] {:.0} tok/s ({})", tps, m.tps_hardware.as_deref().unwrap_or("GPU"))).color(crate::presentation::theme::ThemeTokens::SUCCESS));
                 }
                 ui.separator();
                 ui.label(eframe::egui::RichText::new(m.embedded_recommendation()).color(crate::presentation::theme::ThemeTokens::CYAN_EDGE));
@@ -183,7 +185,7 @@ pub fn render_inspection_card(
                 if co_located.len() > 1 {
                     ui.add_space(4.0);
                     ui.horizontal_wrapped(|ui| {
-                        ui.label(eframe::egui::RichText::new(format!("📦 {} modèles co-localisés à ce point :", co_located.len())).strong().color(crate::presentation::theme::ThemeTokens::CYAN_EDGE));
+                        ui.label(eframe::egui::RichText::new(format!(" {} modèles co-localisés à ce point :", co_located.len())).strong().color(crate::presentation::theme::ThemeTokens::CYAN_EDGE));
                         for cp in co_located {
                             let is_cur = all_models[cp.index].id == m.id;
                             let chip_txt = format!("{} ({:.1} pts)", cp.name, cp.score);
@@ -224,7 +226,7 @@ pub fn render_champion_bar(
         if filters.scope == crate::presentation::filtering::ModelScope::CloudOnly || state.x_metric == GraphMetric::PriceUsd {
             let best_cost = plotted.iter().max_by(|a, b| a.y.partial_cmp(&b.y).unwrap_or(std::cmp::Ordering::Equal));
             if let Some(b) = best_cost {
-                let champ_lbl = format!("🏆 Best Score : {} ({:.1} pts, ${:.2}/1M)", b.name, b.y, b.x);
+                let champ_lbl = format!(" Best Score : {} ({:.1} pts, ${:.2}/1M)", b.name, b.y, b.x);
                 if ui.button(eframe::egui::RichText::new(champ_lbl).strong().color(crate::presentation::theme::ThemeTokens::GOLD_5090)).clicked() {
                     *selected_model_id = Some(all_models[b.index].id.clone());
                 }

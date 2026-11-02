@@ -21,7 +21,7 @@ pub fn render_detail_panel(
                     ui.heading(egui::RichText::new(&model.name).color(ThemeTokens::TEXT_PRIMARY).strong());
                     let (mr, mg, mb) = model.modality.badge_color_rgb();
                     ui.label(egui::RichText::new(model.modality.label()).color(egui::Color32::from_rgb(mr, mg, mb)).strong());
-                    let year_badge = format!("📅 {}", model.release_year_label());
+                    let year_badge = format!(" {}", model.release_year_label());
                     let year_color = if model.is_very_recent() { ThemeTokens::CYAN_EDGE } else { ThemeTokens::TEXT_MUTED };
                     ui.label(egui::RichText::new(year_badge).color(year_color).strong());
 
@@ -50,7 +50,7 @@ pub fn render_detail_panel(
                         .inner_margin(6.0)
                         .show(ui, |ui| {
                             ui.horizontal(|ui| {
-                                ui.label(egui::RichText::new("⚠️").color(ThemeTokens::WARNING));
+                                ui.label(egui::RichText::new("[!]").color(ThemeTokens::WARNING));
                                 ui.label(egui::RichText::new(title).strong().color(ThemeTokens::WARNING));
                                 ui.label(egui::RichText::new(desc).size(11.5).color(ThemeTokens::TEXT_SECONDARY));
                             });
@@ -77,7 +77,7 @@ pub fn render_detail_panel(
                         let tps_str = model.tokens_per_sec.map(|v| format!("{v:.0} tok/s")).unwrap_or_else(|| "N/A".into());
                         ui.horizontal(|ui| {
                             ui.label(egui::RichText::new(format!(
-                                "{} : {:.1} GB ({:.0} MB)  |  {} : {:.1} GB  |  {} : {} ({})  |  {} : {:.1} ★",
+                                "{} : {:.1} GB ({:.0} MB)  |  {} : {:.1} GB  |  {} : {} ({})  |  {} : {:.1} *",
                                 t.col_size, model.size_gb, model.size_mb(),
                                 t.col_hardware, model.vram_rec_gb,
                                 t.col_speed, tps_str, hw,
@@ -98,34 +98,14 @@ pub fn render_detail_panel(
                             ui.label(egui::RichText::new(t.pricing_section_title).strong().color(ThemeTokens::GOLD_5090));
                             if model.is_cloud {
                                 let prov = model.provider.as_deref().unwrap_or("Cloud API");
-                                ui.label(egui::RichText::new(format!("☁️ {prov}")).color(ThemeTokens::CYAN_EDGE).strong());
+                                ui.label(egui::RichText::new(format!(" {prov}")).color(ThemeTokens::CYAN_EDGE).strong());
                             } else {
                                 ui.label(egui::RichText::new(t.pricing_local_free).color(ThemeTokens::SUCCESS).strong());
                             }
                         });
                         ui.add_space(2.0);
 
-                        if model.is_cloud {
-                            let p_in = model.pricing_input_usd.map(|v| format!("${:.2} / 1M", v)).unwrap_or_else(|| "N/A".to_string());
-                            let p_out = model.pricing_output_usd.map(|v| format!("${:.2} / 1M", v)).unwrap_or_else(|| "N/A".to_string());
-                            let est_tasks = format!("${:.3}", model.estimated_cost_100_tasks());
-                            ui.label(egui::RichText::new(format!(
-                                "{} {}  |  {} {}  |  {} {}",
-                                t.pricing_prompt_input, p_in,
-                                t.pricing_completion_output, p_out,
-                                t.pricing_tasks_est, est_tasks
-                            )).size(12.0).color(ThemeTokens::TEXT_SECONDARY));
-                        } else {
-                            let elec_cost = model.estimated_electricity_cost_usd_per_1m();
-                            let elec_kwh = model.estimated_kwh_per_1m();
-                            let watts = model.estimated_hardware_tdp_watts();
-                            let est_tasks = format!("${:.3}", model.estimated_cost_100_tasks());
-                            ui.label(egui::RichText::new(format!(
-                                "{} ~${:.3} / 1M tokens (~{:.2} kWh @ {:.0}W)  |  {} {} (~98% économie)",
-                                t.pricing_local_elec, elec_cost, elec_kwh, watts,
-                                t.pricing_local_tasks_est, est_tasks
-                            )).size(12.0).color(ThemeTokens::TEXT_SECONDARY));
-                        }
+                        crate::presentation::components::detail_roi::render_roi_simulation_card(ui, model, lang);
                     });
 
                 ui.add_space(8.0);
@@ -136,10 +116,17 @@ pub fn render_detail_panel(
                 if let Some(breakdown) = model.score_breakdown(&crate::domain::model::SourceSelection::default()) {
                     let (cr, cg, cb) = breakdown.confidence.color_rgb();
                     let conf_color = egui::Color32::from_rgb(cr, cg, cb);
+                    let conf = lang.confidence();
+                    let (conf_lbl, conf_tip) = match breakdown.confidence {
+                        crate::domain::scoring::ScoreConfidence::High => (conf.ok_label, conf.ok_tooltip),
+                        crate::domain::scoring::ScoreConfidence::Medium => (conf.med_label, conf.med_tooltip),
+                        crate::domain::scoring::ScoreConfidence::Low => (conf.low_label, conf.low_tooltip),
+                    };
 
                     ui.horizontal(|ui| {
                         ui.label(egui::RichText::new(t.score_confidence_level).strong());
-                        ui.label(egui::RichText::new(format!("{} {:?}", breakdown.confidence.badge(), breakdown.confidence)).color(conf_color).strong());
+                        ui.label(egui::RichText::new(format!("{} {}", breakdown.confidence.badge(), conf_lbl)).color(conf_color).strong())
+                            .on_hover_text(conf_tip);
                         ui.label(egui::RichText::new(format!("| {} {:.1} pts", t.score_variance_label, breakdown.variance)).color(ThemeTokens::TEXT_SECONDARY));
                     });
                     ui.label(egui::RichText::new(format!("{} {}", t.score_calibrated_formula, breakdown.formula)).size(11.5).color(ThemeTokens::TEXT_MUTED).monospace());
@@ -176,7 +163,7 @@ pub fn render_detail_panel(
                             ui.horizontal(|ui| {
                                 ui.label(egui::RichText::new(t.economic_section_title).strong().color(ThemeTokens::CYAN_EDGE));
                                 if let Some(comp) = econ.composite_score() {
-                                    ui.label(egui::RichText::new(format!("⭐ Composite: {comp:.1} / 100")).strong().color(ThemeTokens::GOLD_5090));
+                                    ui.label(egui::RichText::new(format!("* Composite: {comp:.1} / 100")).strong().color(ThemeTokens::GOLD_5090));
                                 }
                             });
                             ui.add_space(3.0);
@@ -258,20 +245,12 @@ pub fn render_detail_panel(
 
                 ui.add_space(8.0);
 
-                // Actions & Ollama
-                ui.horizontal(|ui| {
-                    if let Some(tag) = &model.ollama_tag {
-                        let cmd = format!("ollama run {tag}");
-                        ui.label(egui::RichText::new(&cmd).color(ThemeTokens::SUCCESS).monospace());
-                        if ui.button(t.copy_ollama).clicked() {
-                            ui.output_mut(|o| o.copied_text = cmd);
-                        }
-                    }
-
-                    if ui.button(t.view_online).clicked() {
-                        let _ = open::that(&model.hf_url);
-                    }
-                });
+                // Actions, Direct Execution & Online View
+                crate::presentation::components::detail_runner::render_runner_card(ui, model, lang);
+                ui.add_space(4.0);
+                if ui.button(t.view_online).clicked() {
+                    let _ = open::that(&model.hf_url);
+                }
             });
         });
 }
