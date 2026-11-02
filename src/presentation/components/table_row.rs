@@ -24,10 +24,7 @@ pub fn render_table_row(
     row.set_selected(is_selected);
     let columns = filters.table_prefs.column_order.clone();
     for col in columns {
-        if col.is_advanced() && !filters.show_advanced_columns {
-            continue;
-        }
-        if col.is_raw_source() && !filters.show_raw_sources {
+        if !filters.table_prefs.is_visible(col) {
             continue;
         }
         render_cell_by_column(

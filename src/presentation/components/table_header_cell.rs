@@ -14,6 +14,42 @@ pub fn render_header_cell(
     filters: &mut FilterState,
     lang: Language,
 ) -> egui::Response {
+    let is_dragging_any_col = egui::DragAndDrop::has_payload_of_type::<TableColumnId>(ui.ctx());
+
+    let (drop_resp, dropped_col) = ui.dnd_drop_zone::<TableColumnId, _>(
+        egui::Frame::none(),
+        |ui| {
+            render_header_cell_content(ui, col_id, label, sort_field, default_order, filters, lang)
+        },
+    );
+
+    if let Some(source_payload) = dropped_col {
+        let source_col = *source_payload;
+        if source_col != col_id {
+            filters.table_prefs.reorder_column(source_col, col_id);
+        }
+    }
+
+    if is_dragging_any_col && drop_resp.response.hovered() {
+        ui.painter().rect_stroke(
+            drop_resp.response.rect,
+            3.0,
+            egui::Stroke::new(2.0, ThemeTokens::CYAN_EDGE),
+        );
+    }
+
+    drop_resp.inner
+}
+
+fn render_header_cell_content(
+    ui: &mut egui::Ui,
+    col_id: TableColumnId,
+    label: &str,
+    sort_field: Option<SortField>,
+    default_order: SortOrder,
+    filters: &mut FilterState,
+    lang: Language,
+) -> egui::Response {
     let t = lang.t();
     let is_sorted = sort_field == Some(filters.sort_field);
     let arrow = if is_sorted {
@@ -30,24 +66,35 @@ pub fn render_header_cell(
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 2.0);
 
-        // --- Row 1: Column Title & Sort Button (Fixed Height 22.0px) ---
+        // --- Row 1: Column Title & Drag Source (Fixed Height 22.0px) ---
         let title_resp = ui.allocate_ui_with_layout(
             egui::vec2(ui.available_width(), 22.0),
             egui::Layout::left_to_right(egui::Align::Center),
             |ui| {
-                ui.spacing_mut().item_spacing = egui::vec2(3.0, 0.0);
+                ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
 
-                let mut title_text = egui::RichText::new(format!("{label}{arrow}")).size(12.0);
-                if has_filter {
-                    title_text = title_text.color(ThemeTokens::CYAN_EDGE).strong();
-                } else if is_sorted {
-                    title_text = title_text.color(ThemeTokens::GOLD_5090).strong();
-                }
+                let dnd_id = egui::Id::new("col_header_dnd").with(col_id);
+                let drag_source = ui.dnd_drag_source(dnd_id, col_id, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
+                        let grab_icon = egui::RichText::new("⠿").size(10.0).color(ThemeTokens::TEXT_MUTED);
+                        ui.label(grab_icon);
 
-                let btn = ui.add(egui::Button::new(title_text).frame(false));
-                let btn = btn.on_hover_text("Clic gauche pour trier | Clic droit pour options & sélecteur de colonnes");
+                        let mut title_text = egui::RichText::new(format!("{label}{arrow}")).size(12.0);
+                        if has_filter {
+                            title_text = title_text.color(ThemeTokens::CYAN_EDGE).strong();
+                        } else if is_sorted {
+                            title_text = title_text.color(ThemeTokens::GOLD_5090).strong();
+                        }
+                        ui.label(title_text);
+                    });
+                });
 
-                if btn.clicked() {
+                let btn_resp = drag_source.response
+                    .on_hover_cursor(egui::CursorIcon::Grab)
+                    .on_hover_text(t.table_menu.header_tooltip);
+
+                if btn_resp.clicked() {
                     if let Some(sf) = sort_field {
                         if filters.sort_field == sf {
                             filters.sort_order = match filters.sort_order {
@@ -73,7 +120,7 @@ pub fn render_header_cell(
                     }
                 }
 
-                btn
+                btn_resp
             },
         ).inner;
 
@@ -128,6 +175,7 @@ pub fn render_header_cell(
                     if ui.small_button("×").on_hover_text("Effacer le filtre").clicked() {
                         cf.pattern.clear();
                         cf.active = false;
+                        cf.operator = FilterOperator::Contains;
                     }
                 }
             },
@@ -146,7 +194,7 @@ pub fn render_header_cell(
 
             // Sorting
             if let Some(sf) = sort_field {
-                ui.label(egui::RichText::new("TRI DE COLONNE").size(10.0).color(ThemeTokens::TEXT_MUTED));
+                ui.label(egui::RichText::new(t.table_menu.section_sort).size(10.0).color(ThemeTokens::TEXT_MUTED));
                 if ui.button(t.table_menu.menu_sort_asc).clicked() {
                     filters.sort_field = sf;
                     filters.sort_order = SortOrder::Ascending;
@@ -172,7 +220,7 @@ pub fn render_header_cell(
             }
 
             // Column Reordering
-            ui.label(egui::RichText::new("ORDRE DE LA COLONNE").size(10.0).color(ThemeTokens::TEXT_MUTED));
+            ui.label(egui::RichText::new(t.table_menu.section_order).size(10.0).color(ThemeTokens::TEXT_MUTED));
             let col_pos = filters.table_prefs.column_order.iter().position(|&c| c == col_id).unwrap_or(0);
             let max_pos = filters.table_prefs.column_order.len().saturating_sub(1);
 

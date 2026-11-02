@@ -22,7 +22,8 @@ pub fn render_column_chooser_modal(
         .collapsible(false)
         .resizable(true)
         .default_size(egui::vec2(440.0, 480.0))
-        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+        .default_pos(ctx.screen_rect().center())
+        .pivot(egui::Align2::CENTER_CENTER)
         .show(ctx, |ui| {
             ui.label(egui::RichText::new("Cochez les colonnes à afficher et utilisez les flèches pour modifier leur ordre d'apparition :").size(11.5).color(ThemeTokens::TEXT_SECONDARY));
             ui.add_space(8.0);
@@ -71,8 +72,10 @@ pub fn render_column_chooser_modal(
 
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                if ui.button(egui::RichText::new("↺ Rétablir tout").size(11.0)).on_hover_text("Rétablir l'ordre d'origine et réafficher toutes les colonnes").clicked() {
-                    prefs.reset_order();
+                if ui.button(egui::RichText::new("↺ Vue par défaut").size(11.0)).on_hover_text("Rétablir l'ordre d'origine et la sélection de colonnes essentielle").clicked() {
+                    prefs.reset_defaults();
+                }
+                if ui.button(egui::RichText::new("Tout cocher").size(11.0)).on_hover_text("Cocher et afficher l'ensemble des colonnes").clicked() {
                     prefs.show_all_columns();
                 }
 

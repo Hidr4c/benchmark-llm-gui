@@ -38,8 +38,9 @@ impl IPreferencesRepository for SqlitePreferencesRepository {
 
         if let Some(row) = rows.next().map_err(|e| e.to_string())? {
             let json_str: String = row.get(0).map_err(|e| e.to_string())?;
-            let prefs: TablePreferences = serde_json::from_str(&json_str)
+            let mut prefs: TablePreferences = serde_json::from_str(&json_str)
                 .map_err(|e| e.to_string())?;
+            prefs.sanitize();
             Ok(Some(prefs))
         } else {
             Ok(None)

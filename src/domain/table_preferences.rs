@@ -16,9 +16,15 @@ pub struct TablePreferences {
 
 impl Default for TablePreferences {
     fn default() -> Self {
+        let mut hidden = HashSet::new();
+        for &col in TableColumnId::all() {
+            if col.is_advanced() || col.is_raw_source() {
+                hidden.insert(col);
+            }
+        }
         Self {
             column_order: TableColumnId::default_order(),
-            hidden_columns: HashSet::new(),
+            hidden_columns: hidden,
             column_filters: HashMap::new(),
             sort_field: SortField::Intelligence,
             sort_order: SortOrder::Descending,
@@ -32,6 +38,26 @@ impl TablePreferences {
     }
 
     pub fn reset_filters(&mut self) {
+        self.column_filters.clear();
+    }
+
+    pub fn sanitize(&mut self) {
+        for filter in self.column_filters.values_mut() {
+            if !filter.active && filter.pattern.trim().is_empty() {
+                filter.operator = FilterOperator::Contains;
+            }
+        }
+    }
+
+    pub fn reset_defaults(&mut self) {
+        self.column_order = TableColumnId::default_order();
+        let mut hidden = HashSet::new();
+        for &col in TableColumnId::all() {
+            if col.is_advanced() || col.is_raw_source() {
+                hidden.insert(col);
+            }
+        }
+        self.hidden_columns = hidden;
         self.column_filters.clear();
     }
 
@@ -51,12 +77,56 @@ impl TablePreferences {
         self.hidden_columns.clear();
     }
 
+    pub fn set_advanced_columns_visible(&mut self, visible: bool) {
+        for &col in TableColumnId::all() {
+            if col.is_advanced() {
+                if visible {
+                    self.hidden_columns.remove(&col);
+                } else {
+                    self.hidden_columns.insert(col);
+                }
+            }
+        }
+    }
+
+    pub fn set_raw_sources_visible(&mut self, visible: bool) {
+        for &col in TableColumnId::all() {
+            if col.is_raw_source() {
+                if visible {
+                    self.hidden_columns.remove(&col);
+                } else {
+                    self.hidden_columns.insert(col);
+                }
+            }
+        }
+    }
+
+    pub fn are_advanced_columns_visible(&self) -> bool {
+        TableColumnId::all().iter().filter(|c| c.is_advanced()).all(|c| self.is_visible(*c))
+    }
+
+    pub fn are_raw_sources_visible(&self) -> bool {
+        TableColumnId::all().iter().filter(|c| c.is_raw_source()).all(|c| self.is_visible(*c))
+    }
+
     pub fn move_column(&mut self, col: TableColumnId, delta: isize) {
         if let Some(pos) = self.column_order.iter().position(|&c| c == col) {
             let new_pos = (pos as isize + delta).clamp(0, (self.column_order.len() - 1) as isize) as usize;
             if new_pos != pos {
                 let item = self.column_order.remove(pos);
                 self.column_order.insert(new_pos, item);
+            }
+        }
+    }
+
+    pub fn reorder_column(&mut self, source: TableColumnId, target: TableColumnId) {
+        if source == target {
+            return;
+        }
+        if let Some(src_pos) = self.column_order.iter().position(|&c| c == source) {
+            if let Some(tgt_pos) = self.column_order.iter().position(|&c| c == target) {
+                let item = self.column_order.remove(src_pos);
+                self.column_order.insert(tgt_pos, item);
             }
         }
     }

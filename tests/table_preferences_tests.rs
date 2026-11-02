@@ -93,12 +93,24 @@ fn test_column_visibility_and_reset() {
     let mut prefs = TablePreferences::default();
     assert!(prefs.is_visible(TableColumnId::Model));
     assert!(prefs.is_visible(TableColumnId::CloudPrice));
+    assert!(!prefs.is_visible(TableColumnId::Year));
+    assert!(!prefs.is_visible(TableColumnId::MmluPro));
+    assert!(!prefs.are_advanced_columns_visible());
+
+    prefs.set_advanced_columns_visible(true);
+    assert!(prefs.is_visible(TableColumnId::Year));
+    assert!(prefs.are_advanced_columns_visible());
 
     prefs.toggle_visibility(TableColumnId::CloudPrice);
     assert!(!prefs.is_visible(TableColumnId::CloudPrice));
 
     prefs.show_all_columns();
     assert!(prefs.is_visible(TableColumnId::CloudPrice));
+    assert!(prefs.is_visible(TableColumnId::MmluPro));
+
+    prefs.reset_defaults();
+    assert!(prefs.is_visible(TableColumnId::Model));
+    assert!(!prefs.is_visible(TableColumnId::MmluPro));
 }
 
 #[test]
@@ -196,4 +208,57 @@ fn test_sqlite_preferences_persistence() {
     let loaded = repo.load_table_preferences().expect("Load failed").expect("Preferences not found");
     assert_eq!(loaded.column_order, prefs.column_order);
     assert_eq!(loaded.column_filters, prefs.column_filters);
+}
+
+#[test]
+fn test_table_column_reorder_drag_drop() {
+    let mut prefs = TablePreferences::default();
+    assert_eq!(prefs.column_order[0], TableColumnId::Rank);
+    assert_eq!(prefs.column_order[1], TableColumnId::Model);
+
+    // Reorder Score to Model
+    prefs.reorder_column(TableColumnId::Score, TableColumnId::Model);
+    assert_eq!(prefs.column_order[1], TableColumnId::Score);
+    assert_eq!(prefs.column_order[2], TableColumnId::Model);
+
+    // Reorder Model to Rank
+    prefs.reorder_column(TableColumnId::Model, TableColumnId::Rank);
+    assert_eq!(prefs.column_order[0], TableColumnId::Model);
+    assert_eq!(prefs.column_order[1], TableColumnId::Rank);
+    assert_eq!(prefs.column_order[2], TableColumnId::Score);
+}
+
+#[test]
+fn test_preferences_sanitize_inactive_filters() {
+    let mut prefs = TablePreferences::default();
+    prefs.column_filters.insert(
+        TableColumnId::Rank,
+        ColumnFilter {
+            operator: FilterOperator::LessEqual,
+            pattern: String::new(),
+            active: false,
+        },
+    );
+    prefs.column_filters.insert(
+        TableColumnId::CloudPrice,
+        ColumnFilter {
+            operator: FilterOperator::LessEqual,
+            pattern: String::new(),
+            active: false,
+        },
+    );
+    prefs.column_filters.insert(
+        TableColumnId::Score,
+        ColumnFilter {
+            operator: FilterOperator::GreaterEqual,
+            pattern: "70".into(),
+            active: true,
+        },
+    );
+
+    prefs.sanitize();
+
+    assert_eq!(prefs.column_filters[&TableColumnId::Rank].operator, FilterOperator::Contains);
+    assert_eq!(prefs.column_filters[&TableColumnId::CloudPrice].operator, FilterOperator::Contains);
+    assert_eq!(prefs.column_filters[&TableColumnId::Score].operator, FilterOperator::GreaterEqual);
 }

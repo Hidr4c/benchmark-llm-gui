@@ -166,7 +166,8 @@ impl UpdaterState {
             .open(&mut is_open)
             .resizable(false)
             .collapsible(false)
-            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .default_pos(ctx.screen_rect().center())
+            .pivot(egui::Align2::CENTER_CENTER)
             .fixed_size([500.0, 340.0])
             .show(ctx, |ui| {
                 ui.add_space(4.0);

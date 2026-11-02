@@ -30,36 +30,34 @@ pub fn render_table(
         return;
     }
 
-    // Active column filters & column chooser bar
-    ui.horizontal(|ui| {
-        if filters.table_prefs.active_filter_count() > 0 {
-            ui.label(egui::RichText::new(format!("🔍 {} ({} active)", t.table_menu.active_filters_summary, filters.table_prefs.active_filter_count()))
+    // Active column filters indicator bar (only shown when filters are active)
+    if filters.table_prefs.active_filter_count() > 0 {
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new(format!("{} ({} active)", t.table_menu.active_filters_summary, filters.table_prefs.active_filter_count()))
                 .color(ThemeTokens::CYAN_EDGE).size(11.5).strong());
             if ui.button(egui::RichText::new(t.table_menu.menu_clear_all_filters).color(ThemeTokens::DANGER).size(11.0)).clicked() {
                 filters.table_prefs.reset_filters();
             }
-            ui.separator();
-        }
-        if ui.button(egui::RichText::new(format!("⚙ {}", t.table_menu.btn_column_chooser)).size(11.0)).clicked() {
-            filters.column_chooser_open = true;
-        }
-    });
-    ui.add_space(2.0);
+        });
+        ui.add_space(2.0);
+    }
 
     let items = build_display_items(all_models, filtered_indices, filters);
     let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
 
     let visible_cols: Vec<TableColumnId> = filters.table_prefs.column_order.iter()
         .copied()
-        .filter(|c| filters.table_prefs.is_visible(*c) && (!c.is_advanced() || filters.show_advanced_columns) && (!c.is_raw_source() || filters.show_raw_sources))
+        .filter(|c| filters.table_prefs.is_visible(*c))
         .collect();
 
     egui::ScrollArea::horizontal()
         .auto_shrink([false, false])
         .show(ui, |ui| {
-            let min_w = if filters.show_raw_sources && filters.show_advanced_columns {
+            let any_raw = visible_cols.iter().any(|c| c.is_raw_source());
+            let any_adv = visible_cols.iter().any(|c| c.is_advanced());
+            let min_w = if any_raw && any_adv {
                 1450.0
-            } else if filters.show_raw_sources || filters.show_advanced_columns {
+            } else if any_raw || any_adv {
                 1220.0
             } else {
                 950.0
