@@ -176,15 +176,17 @@ fn render_theme_card(
             let pct1 = (val1 / common_max).clamp(0.0, 1.0);
             let pct2 = (val2 / common_max).clamp(0.0, 1.0);
 
-            // Using egui::Grid guarantees that all columns (names, scores, and bars)
-            // align with 100% pixel-perfect precision on the exact same X coordinate!
+            // Strict fixed column allocation guarantees 100% horizontal alignment
+            let col0_w = 250.0;
+            let col1_w = 160.0;
+            let bar_w = (ui.available_width() - col0_w - col1_w - 30.0).max(140.0);
+
             egui::Grid::new(title)
                 .num_columns(3)
-                .spacing(egui::vec2(12.0, 5.0))
-                .min_col_width(80.0)
+                .spacing(egui::vec2(10.0, 5.0))
                 .show(ui, |ui| {
                     // Row 1: Model #1 (Cyan)
-                    ui.horizontal(|ui| {
+                    ui.allocate_ui_with_layout(egui::vec2(col0_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
                         ui.label(egui::RichText::new("[#1]").color(ThemeTokens::CYAN_EDGE).strong().size(11.5));
                         ui.label(egui::RichText::new(name1).strong().size(11.5));
                         if w1 {
@@ -192,9 +194,10 @@ fn render_theme_card(
                         }
                     });
 
-                    ui.label(egui::RichText::new(&text1).size(11.0).color(ThemeTokens::CYAN_EDGE).strong());
+                    ui.allocate_ui_with_layout(egui::vec2(col1_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                        ui.label(egui::RichText::new(&text1).size(11.0).color(ThemeTokens::CYAN_EDGE).strong());
+                    });
 
-                    let bar_w = (ui.available_width() - 10.0).max(120.0);
                     ui.add(
                         egui::ProgressBar::new(pct1)
                             .desired_width(bar_w)
@@ -204,7 +207,7 @@ fn render_theme_card(
                     ui.end_row();
 
                     // Row 2: Model #2 (Gold)
-                    ui.horizontal(|ui| {
+                    ui.allocate_ui_with_layout(egui::vec2(col0_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
                         ui.label(egui::RichText::new("[#2]").color(ThemeTokens::GOLD_5090).strong().size(11.5));
                         ui.label(egui::RichText::new(name2).strong().size(11.5));
                         if w2 {
@@ -212,9 +215,10 @@ fn render_theme_card(
                         }
                     });
 
-                    ui.label(egui::RichText::new(&text2).size(11.0).color(ThemeTokens::GOLD_5090).strong());
+                    ui.allocate_ui_with_layout(egui::vec2(col1_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                        ui.label(egui::RichText::new(&text2).size(11.0).color(ThemeTokens::GOLD_5090).strong());
+                    });
 
-                    let bar_w = (ui.available_width() - 10.0).max(120.0);
                     ui.add(
                         egui::ProgressBar::new(pct2)
                             .desired_width(bar_w)

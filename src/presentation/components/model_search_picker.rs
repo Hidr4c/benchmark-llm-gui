@@ -1,5 +1,8 @@
 use eframe::egui;
+use crate::domain::comparator::ModelHardwareMetrics;
 use crate::domain::model::{ModelBenchmark, SourceSelection};
+use crate::domain::simulator::HardwareRigConfig;
+use crate::presentation::components::comparator_verdict::render_model_hardware_specs_grid;
 use crate::presentation::i18n::Language;
 use crate::presentation::theme::ThemeTokens;
 
@@ -71,6 +74,8 @@ pub fn render_slot_model_card(
     slot_id: &mut Option<String>,
     query: &mut String,
     all_models: &[ModelBenchmark],
+    metrics: Option<&ModelHardwareMetrics>,
+    rig: &HardwareRigConfig,
     color: egui::Color32,
     _lang: Language,
 ) {
@@ -102,16 +107,13 @@ pub fn render_slot_model_card(
             // Search input field with auto-completion
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new("Recherche :").size(11.0).color(ThemeTokens::TEXT_MUTED));
-                let resp = ui.add(
+                ui.add(
                     egui::TextEdit::singleline(query)
                         .hint_text("Taper un nom ou taille...")
                         .desired_width(240.0),
                 );
                 if !query.is_empty() && ui.small_button("X").clicked() {
                     query.clear();
-                }
-                if resp.changed() {
-                    // typing
                 }
             });
 
@@ -154,6 +156,12 @@ pub fn render_slot_model_card(
                 let year = m.release_year_label();
                 let text = format!("Empreinte : {}  |  Année : {}  |  Famille : {}  |  Score : {:.1} pts", size_text, year, m.family, score);
                 ui.label(egui::RichText::new(text).size(10.5).color(ThemeTokens::TEXT_SECONDARY));
+
+                // Unified Hardware Diagnostic Specs
+                if let Some(met) = metrics {
+                    ui.add_space(3.0);
+                    render_model_hardware_specs_grid(ui, met, rig, color);
+                }
             }
         });
 }

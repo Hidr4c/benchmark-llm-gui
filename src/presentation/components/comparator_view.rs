@@ -6,7 +6,7 @@ use crate::domain::model::ModelBenchmark;
 use crate::domain::simulator::HardwareRigConfig;
 use crate::presentation::components::comparator_bars::render_thematic_dual_bars;
 use crate::presentation::components::comparator_modes::{apply_detected_to_rig, apply_preset_fast_vs_deep};
-use crate::presentation::components::comparator_verdict::render_comparator_verdict;
+use crate::presentation::components::comparator_verdict::render_machine_fitness_box;
 use crate::presentation::components::model_search_picker::render_slot_model_card;
 use crate::presentation::components::top_bar::AppTab;
 use crate::presentation::filtering::FilterState;
@@ -55,62 +55,59 @@ pub fn render_comparator_view(
 
     ui.add_space(6.0);
 
-    // 2. Side-by-Side Model Pickers (Model #1 and Model #2)
-    ui.columns(2, |cols| {
-        cols[0].vertical(|ui| {
-            render_slot_model_card(
-                ui,
-                1,
-                &mut state.slots[0],
-                &mut state.search_query_1,
-                all_models,
-                ThemeTokens::CYAN_EDGE,
-                lang,
-            );
-        });
-        cols[1].vertical(|ui| {
-            render_slot_model_card(
-                ui,
-                2,
-                &mut state.slots[1],
-                &mut state.search_query_2,
-                all_models,
-                ThemeTokens::GOLD_5090,
-                lang,
-            );
-        });
-    });
-
-    ui.add_space(6.0);
-
-    // 3. Gather Metrics for Selected Models
+    // 2. Gather Metrics for Selected Models
     let m1_obj = state.slots[0].as_ref().and_then(|id| all_models.iter().find(|m| &m.id == id));
     let m2_obj = state.slots[1].as_ref().and_then(|id| all_models.iter().find(|m| &m.id == id));
 
     let m1_metrics = m1_obj.map(|m| HardwareComparator::compute_metrics(m, &state.rig, &filters.sources));
     let m2_metrics = m2_obj.map(|m| HardwareComparator::compute_metrics(m, &state.rig, &filters.sources));
 
-    // 4. Thematic Dual Bars (2 columns per theme)
     let p1 = m1_obj.zip(m1_metrics.as_ref());
     let p2 = m2_obj.zip(m2_metrics.as_ref());
 
     let scroll_resp = egui::ScrollArea::vertical()
         .auto_shrink([false, false])
         .show(ui, |ui| {
-            render_thematic_dual_bars(ui, p1, p2, &state.rig);
+            // 3. Side-by-Side Model Pickers & Unified Specs Cards (Model #1 and Model #2)
+            ui.columns(2, |cols| {
+                cols[0].vertical(|ui| {
+                    render_slot_model_card(
+                        ui,
+                        1,
+                        &mut state.slots[0],
+                        &mut state.search_query_1,
+                        all_models,
+                        m1_metrics.as_ref(),
+                        &state.rig,
+                        ThemeTokens::CYAN_EDGE,
+                        lang,
+                    );
+                });
+                cols[1].vertical(|ui| {
+                    render_slot_model_card(
+                        ui,
+                        2,
+                        &mut state.slots[1],
+                        &mut state.search_query_2,
+                        all_models,
+                        m2_metrics.as_ref(),
+                        &state.rig,
+                        ThemeTokens::GOLD_5090,
+                        lang,
+                    );
+                });
+            });
 
             ui.add_space(6.0);
 
-            // 5. Machine Fitness & Usage Verdict
-            let mut metrics_list = Vec::new();
-            if let Some(ref met) = m1_metrics {
-                metrics_list.push(met.clone());
-            }
-            if let Some(ref met) = m2_metrics {
-                metrics_list.push(met.clone());
+            // 4. Machine Fitness Recommendation Box (Directly under model cards!)
+            if let (Some(met1), Some(met2)) = (&m1_metrics, &m2_metrics) {
+                render_machine_fitness_box(ui, met1, met2, &state.rig);
+                ui.add_space(6.0);
             }
 
-            render_comparator_verdict(ui, &metrics_list, &state.rig);
+            // 5. Thematic Dual Bars (Barres Superposées - Perfectly Aligned)
+            render_thematic_dual_bars(ui, p1, p2, &state.rig);
 
             // 6. Return Button at the Bottom
             ui.add_space(14.0);
