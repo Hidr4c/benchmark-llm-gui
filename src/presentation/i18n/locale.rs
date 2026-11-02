@@ -23,8 +23,8 @@ impl Language {
 
     pub fn label(&self) -> &'static str {
         match self {
-            Self::French => "🇫🇷 Français",
-            Self::English => "🇬🇧 English",
+            Self::French => "FR",
+            Self::English => "EN",
         }
     }
 
@@ -73,6 +73,7 @@ pub struct Translations {
 
     // Dropdowns
     pub hw_label: &'static str,
+    pub hw_all: &'static str,
     pub hw_tooltip: &'static str,
     pub mod_label: &'static str,
     pub mod_all: &'static str,
@@ -111,6 +112,7 @@ pub struct Translations {
     pub price_free_local: &'static str,
     pub col_mode_label: &'static str,
     pub col_mode_global: &'static str,
+    pub col_mode_strict: &'static str,
     pub col_mode_raw: &'static str,
     pub col_open_llm: &'static str,
     pub col_swe_bench: &'static str,
@@ -253,6 +255,28 @@ pub struct Translations {
     pub tour_s6_desc: &'static str,
     pub tour_s7_title: &'static str,
     pub tour_s7_desc: &'static str,
+    pub tour_action_label: &'static str,
+    pub tour_s1_action: &'static str,
+    pub tour_s2_action: &'static str,
+    pub tour_s3_action: &'static str,
+    pub tour_s4_action: &'static str,
+    pub tour_s5_action: &'static str,
+    pub tour_s6_action: &'static str,
+    pub tour_s7_action: &'static str,
+    pub tour_s1_target: &'static str,
+    pub tour_s2_target: &'static str,
+    pub tour_s3_target: &'static str,
+    pub tour_s4_target: &'static str,
+    pub tour_s5_target: &'static str,
+    pub tour_s6_target: &'static str,
+    pub tour_s7_target: &'static str,
+    pub advanced_more: &'static str,
+    pub advanced_less: &'static str,
+    pub tour_guide_title: &'static str,
+    pub tour_guide_progress: &'static str,
+    pub tour_guide_btn: &'static str,
+    pub tour_step_validated: &'static str,
+    pub tour_skip_transition: &'static str,
 
     // Tutorial View & Guides
     pub tut_hero_title: &'static str,

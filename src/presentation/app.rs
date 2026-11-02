@@ -175,6 +175,7 @@ impl eframe::App for BenchmarkApp {
             render_top_header(
                 ui,
                 &mut self.active_tab,
+                &mut self.filters.column_mode,
                 &mut self.language,
                 self.is_syncing,
                 &self.snapshots,
@@ -209,7 +210,7 @@ impl eframe::App for BenchmarkApp {
                     if let Some(vram) = hw.gpu_vram_gb {
                         self.graph_state.vram_budget_gb = vram;
                     }
-                    let msg = format!("🎯 {} : {}", self.language.t().btn_auto_detect, hw.summary());
+                    let msg = format!("{}: {}", self.language.t().btn_auto_detect, hw.summary());
                     self.status_message = Some((msg, false));
                     self.detected_hardware = Some(hw);
                 }
@@ -217,6 +218,7 @@ impl eframe::App for BenchmarkApp {
                     self.status_message = Some((format!("Detection notice: {e}"), true));
                 }
             }
+            self.tour_state.on_auto_detect_clicked();
         }
 
         let selected_model = self.selected_model_id.as_ref().and_then(|id| {
@@ -224,11 +226,12 @@ impl eframe::App for BenchmarkApp {
         });
 
         if let Some(model) = selected_model {
-            egui::TopBottomPanel::bottom("detail_panel").resizable(true).default_height(240.0).min_height(180.0).show(ctx, |ui| {
+            let panel_resp = egui::TopBottomPanel::bottom("detail_panel").resizable(true).default_height(240.0).min_height(180.0).show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     render_detail_panel(ui, &model, &mut self.selected_model_id, self.language);
                 });
             });
+            ctx.memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_result_detail_panel"), panel_resp.response.rect));
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -251,6 +254,9 @@ impl eframe::App for BenchmarkApp {
                     }
                     AppTab::Graph => {
                         render_graph_view(ui, &mut self.graph_state, &self.all_models, &filtered_indices, &self.filters, &mut self.selected_model_id, self.language);
+                        if self.graph_state.reset_requested {
+                            self.tour_state.on_recenter_clicked();
+                        }
                     }
                     AppTab::Simulator => {
                         egui::ScrollArea::vertical().show(ui, |ui| {
@@ -264,6 +270,7 @@ impl eframe::App for BenchmarkApp {
                                 self.language,
                             );
                         });
+                        self.tour_state.check_and_update_sim_progress(&self.sim_config);
                     }
                     AppTab::Sources => {
                         render_sources_view(ui, self.language);
@@ -276,6 +283,17 @@ impl eframe::App for BenchmarkApp {
         });
 
         // Interactive guided walkthrough tour overlay
-        render_tour_overlay(ctx, &mut self.tour_state, &mut self.active_tab, self.language);
+        render_tour_overlay(
+            ctx,
+            &mut self.tour_state,
+            &mut self.active_tab,
+            &self.filters,
+            self.selected_model_id.as_deref(),
+            self.detected_hardware.as_ref(),
+            &self.all_models,
+            matching_count,
+            total_count,
+            self.language,
+        );
     }
 }

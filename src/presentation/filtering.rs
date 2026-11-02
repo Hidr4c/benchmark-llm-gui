@@ -50,6 +50,7 @@ impl ModalityFilter {
 pub enum TableColumnMode {
     #[default]
     GlobalEvaluation,
+    StrictVerified,
     RawBenchmarkSources,
 }
 
@@ -206,6 +207,16 @@ impl FilterService {
 
             if filters.selected_family != "All" && filters.selected_family != "Tous" && m.family != filters.selected_family {
                 return None;
+            }
+
+            if filters.column_mode == TableColumnMode::StrictVerified {
+                if let Some(breakdown) = m.score_breakdown(&filters.sources) {
+                    if breakdown.confidence == crate::domain::scoring::ScoreConfidence::Low {
+                        return None;
+                    }
+                } else {
+                    return None;
+                }
             }
 
             Some(idx)

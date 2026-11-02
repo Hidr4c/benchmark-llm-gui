@@ -6,7 +6,20 @@ use benchmark_llm_gui::infrastructure::repository::sqlite_repo::{SqliteRepositor
 use benchmark_llm_gui::presentation::app::BenchmarkApp;
 use benchmark_llm_gui::presentation::theme::ThemeTokens;
 
+#[cfg(target_os = "windows")]
+unsafe extern "system" {
+    fn SetProcessDpiAwarenessContext(value: isize) -> i32;
+}
+
+#[cfg(target_os = "windows")]
+const DPI_AWARENESS_CONTEXT_SYSTEM_AWARE: isize = -2;
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(target_os = "windows")]
+    unsafe {
+        let _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
+    }
+
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
         .enable_all()
@@ -89,8 +102,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         viewport: egui::ViewportBuilder::default()
             .with_title("LLM Benchmark Explorer - Edge & Domestic GPU Profiler")
             .with_inner_size([1240.0, 840.0])
-            .with_min_inner_size([960.0, 640.0])
+            .with_min_inner_size([640.0, 480.0])
             .with_active(true),
+        persist_window: false,
         ..Default::default()
     };
 

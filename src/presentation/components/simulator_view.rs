@@ -20,6 +20,15 @@ pub fn render_simulator_view(
     let sim = config.simulate();
 
     ui.vertical(|ui| {
+        let sim_hdr_rect = ui.available_rect_before_wrap();
+        ui.ctx().memory_mut(|m| {
+            let area = egui::Rect::from_min_size(
+                sim_hdr_rect.min,
+                egui::vec2(sim_hdr_rect.width(), 46.0),
+            );
+            m.data.insert_temp(egui::Id::new("tour_target_sim_area"), area);
+        });
+
         // --- 1. Header & Quick Actions ---
         ui.horizontal(|ui| {
             ui.heading(egui::RichText::new(t.sim_title).strong().color(ThemeTokens::TEXT_PRIMARY));
@@ -74,14 +83,15 @@ pub fn render_simulator_view(
                     SimTargetMode::WorkstationPc => {
                         ui.horizontal(|ui| {
                             ui.label(egui::RichText::new(t.sim_gpu_label).strong());
-                            egui::ComboBox::from_id_salt("sim_gpu_combo")
+                            let gpu_resp = egui::ComboBox::from_id_salt("sim_gpu_combo")
                                 .selected_text(config.gpu.label())
                                 .width(310.0)
                                 .show_ui(ui, |ui| {
                                     for g in GpuTier::all() {
                                         if ui.selectable_label(config.gpu == g, g.label()).clicked() { config.gpu = g; }
                                     }
-                                });
+                                }).response;
+                            ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_sim_gpu"), gpu_resp.rect));
 
                             ui.separator();
                             ui.label(egui::RichText::new(t.sim_ram_label).strong());
@@ -104,6 +114,15 @@ pub fn render_simulator_view(
         ui.add_space(10.0);
 
         // --- 3. Visual 4-Card KPI Dashboard (Replaces raw text wall) ---
+        let kpi_rect = ui.available_rect_before_wrap();
+        ui.ctx().memory_mut(|m| {
+            let area = egui::Rect::from_min_size(
+                kpi_rect.min,
+                egui::vec2(kpi_rect.width(), 70.0),
+            );
+            m.data.insert_temp(egui::Id::new("tour_result_sim_kpi"), area);
+        });
+
         ui.columns(4, |cols| {
             // Card 1: Memory & VRAM
             render_card(

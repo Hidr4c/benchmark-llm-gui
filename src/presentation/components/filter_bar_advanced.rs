@@ -6,13 +6,13 @@ use crate::presentation::theme::ThemeTokens;
 pub fn render_contextual_hardware_advice(ui: &mut egui::Ui, filters: &FilterState) {
     if filters.scope != ModelScope::CloudOnly {
         let advice = match filters.hardware {
-            HardwarePlatform::Gpu32Gb => Some("💡 RTX 5090 (32 GB VRAM): Peak memory bandwidth for 32B/35B high-parameter models."),
-            HardwarePlatform::Gpu24Gb => Some("💡 RTX 4090 (24 GB VRAM): Ideal for 32B Q4 or 14B Q8 high-accuracy models."),
-            HardwarePlatform::Gpu16Gb => Some("💡 RTX 4080 (16 GB VRAM): Great balance for 14B Q4 or 8B high-speed generation."),
-            HardwarePlatform::Gpu8Gb => Some("💡 RTX 4060 (8 GB VRAM): Recommended for 7B-8B models (Llama 3.1, Qwen 2.5, Mistral 7B)."),
-            HardwarePlatform::RaspberryPi4 => Some("💡 Raspberry Pi 4 (2-4 GB): Compact models (< 2 GB like SmolLM2 or Qwen 1.5B)."),
-            HardwarePlatform::RaspberryPi5 => Some("💡 Raspberry Pi 5 / RK3588 (8 GB): Capable of running up to 3B-4B models with good fluidity."),
-            HardwarePlatform::MicroIoT => Some("💡 Micro-IoT (< 1 GB RAM): Sub-500 MB ultra-compact models with high efficiency ratio."),
+            HardwarePlatform::Gpu32Gb => Some("💡 GPU 32 Go VRAM : Bande passante maximale pour modèles 32B/35B haute précision."),
+            HardwarePlatform::Gpu24Gb => Some("💡 GPU 24 Go VRAM : Idéal pour modèles 32B Q4 ou 14B Q8 haute précision."),
+            HardwarePlatform::Gpu16Gb => Some("💡 GPU 16 Go VRAM : Excellent équilibre pour 14B Q4 ou 8B haute vitesse."),
+            HardwarePlatform::Gpu8Gb => Some("💡 GPU 8 Go VRAM : Recommandé pour modèles 7B-8B (Llama 3, Qwen 2.5, Mistral 7B)."),
+            HardwarePlatform::RaspberryPi4 => Some("💡 Raspberry Pi 4 (2-4 Go) : Modèles compacts (< 2 Go comme SmolLM2 ou Qwen 1.5B)."),
+            HardwarePlatform::RaspberryPi5 => Some("💡 Raspberry Pi 5 / RK3588 (8 Go) : Adapté aux modèles jusqu'à 3B-4B avec bonne fluidité."),
+            HardwarePlatform::MicroIoT => Some("💡 Micro-IoT (< 1 Go RAM) : Modèles ultra-compacts (< 500 Mo) à haut ratio d'efficacité."),
             _ => None,
         };
         if let Some(msg) = advice {

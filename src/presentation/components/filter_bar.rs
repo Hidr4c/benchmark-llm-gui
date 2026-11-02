@@ -26,14 +26,16 @@ pub fn render_filter_bar(
                 ModelScope::CloudOnly => t.scope_cloud,
                 ModelScope::All => t.scope_all,
             };
-            egui::ComboBox::from_id_salt("scope_combo")
+            let scope_resp = egui::ComboBox::from_id_salt("scope_combo")
                 .selected_text(scope_label)
                 .width(135.0)
                 .show_ui(ui, |ui| {
+                    if ui.selectable_label(filters.scope == ModelScope::All, t.scope_all).clicked() { filters.scope = ModelScope::All; }
                     if ui.selectable_label(filters.scope == ModelScope::LocalOnly, t.scope_local).clicked() { filters.scope = ModelScope::LocalOnly; }
                     if ui.selectable_label(filters.scope == ModelScope::CloudOnly, t.scope_cloud).clicked() { filters.scope = ModelScope::CloudOnly; }
-                    if ui.selectable_label(filters.scope == ModelScope::All, t.scope_all).clicked() { filters.scope = ModelScope::All; }
-                }).response.on_hover_text(t.scope_tooltip);
+                }).response;
+            ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_scope"), scope_resp.rect));
+            scope_resp.on_hover_text(t.scope_tooltip);
 
             ui.separator();
 
@@ -50,61 +52,46 @@ pub fn render_filter_bar(
 
             ui.separator();
 
-            // 3. Hardware Dropdown & Auto-detect (if local/all)
-            if filters.scope != ModelScope::CloudOnly {
-                let hw_label = filters.hardware.label();
-                egui::ComboBox::from_id_salt("hardware_combo")
-                    .selected_text(hw_label)
-                    .width(145.0)
-                    .show_ui(ui, |ui| {
-                        let gpus = [HardwarePlatform::All, HardwarePlatform::Gpu8Gb, HardwarePlatform::Gpu12Gb, HardwarePlatform::Gpu16Gb, HardwarePlatform::Gpu24Gb, HardwarePlatform::Gpu32Gb, HardwarePlatform::Workstation];
-                        for hw in gpus {
-                            if ui.selectable_label(filters.hardware == hw, hw.label()).clicked() { filters.hardware = hw; }
+            // 3. Hardware Dropdown & Auto-detect (Always visible to maintain rock-solid UI stability)
+            let hw_label = if filters.hardware == HardwarePlatform::All { t.hw_all } else { filters.hardware.label() };
+            let hw_resp = egui::ComboBox::from_id_salt("hardware_combo")
+                .selected_text(hw_label)
+                .width(145.0)
+                .show_ui(ui, |ui| {
+                    let gpus = [HardwarePlatform::All, HardwarePlatform::Gpu8Gb, HardwarePlatform::Gpu12Gb, HardwarePlatform::Gpu16Gb, HardwarePlatform::Gpu24Gb, HardwarePlatform::Gpu32Gb, HardwarePlatform::Workstation];
+                    for hw in gpus {
+                        let lbl = if hw == HardwarePlatform::All { t.hw_all } else { hw.label() };
+                        if ui.selectable_label(filters.hardware == hw, lbl).clicked() {
+                            filters.hardware = hw;
+                            if filters.scope == ModelScope::CloudOnly { filters.scope = ModelScope::All; }
                         }
-                        ui.separator();
-                        let edges = [HardwarePlatform::MicroIoT, HardwarePlatform::RaspberryPi4, HardwarePlatform::RaspberryPi5, HardwarePlatform::JetsonOrinNano, HardwarePlatform::MiniPcCpu];
-                        for hw in edges {
-                            if ui.selectable_label(filters.hardware == hw, hw.label()).clicked() { filters.hardware = hw; }
+                    }
+                    ui.separator();
+                    let edges = [HardwarePlatform::MicroIoT, HardwarePlatform::RaspberryPi4, HardwarePlatform::RaspberryPi5, HardwarePlatform::JetsonOrinNano, HardwarePlatform::MiniPcCpu];
+                    for hw in edges {
+                        if ui.selectable_label(filters.hardware == hw, hw.label()).clicked() {
+                            filters.hardware = hw;
+                            if filters.scope == ModelScope::CloudOnly { filters.scope = ModelScope::All; }
                         }
-                    }).response.on_hover_text(t.hw_tooltip);
+                    }
+                }).response;
+            ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_hardware"), hw_resp.rect));
+            hw_resp.on_hover_text(t.hw_tooltip);
 
-                let detect_btn = egui::Button::new(
-                    egui::RichText::new(t.btn_auto_detect).color(ThemeTokens::CYAN_EDGE).strong()
-                );
-                if ui.add(detect_btn).on_hover_text(t.tooltip_auto_detect).clicked() {
-                    *on_auto_detect = true;
-                }
-
-                ui.separator();
+            let detect_btn = egui::Button::new(
+                egui::RichText::new(t.btn_auto_detect).color(ThemeTokens::CYAN_EDGE).strong()
+            );
+            let detect_resp = ui.add(detect_btn).on_hover_text(t.tooltip_auto_detect);
+            ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_detect"), detect_resp.rect));
+            if detect_resp.clicked() {
+                *on_auto_detect = true;
+                if filters.scope == ModelScope::CloudOnly { filters.scope = ModelScope::All; }
             }
 
-            // 4. Column View Mode Dropdown (Directly accessible on main toolbar)
-            let col_mode_lbl = match filters.column_mode {
-                TableColumnMode::GlobalEvaluation => "📊 Évaluation Globale",
-                TableColumnMode::RawBenchmarkSources => "🔬 Sources Brutes",
-            };
-            egui::ComboBox::from_id_salt("table_col_mode_main_combo")
-                .selected_text(egui::RichText::new(col_mode_lbl).strong().color(ThemeTokens::CYAN_EDGE))
-                .width(160.0)
-                .show_ui(ui, |ui| {
-                    if ui.selectable_label(filters.column_mode == TableColumnMode::GlobalEvaluation, "📊 Évaluation Globale").clicked() {
-                        filters.column_mode = TableColumnMode::GlobalEvaluation;
-                    }
-                    if ui.selectable_label(filters.column_mode == TableColumnMode::RawBenchmarkSources, "🔬 Sources Brutes").clicked() {
-                        filters.column_mode = TableColumnMode::RawBenchmarkSources;
-                    }
-                }).response.on_hover_text(t.col_mode_label);
-
             ui.separator();
 
-            // 5. Grouping Checkbox (Directly accessible on main toolbar)
-            ui.checkbox(&mut filters.group_by_root, egui::RichText::new(t.group_roots).strong())
-                .on_hover_text(t.group_tooltip);
-
-            ui.separator();
-
-            // 6. Advanced Filters Toggle Button
-            let adv_text = if filters.show_advanced { "⚙️ Moins de filtres" } else { "⚙️ Plus de filtres" };
+            // 4. Advanced Filters Toggle Button
+            let adv_text = if filters.show_advanced { t.advanced_less } else { t.advanced_more };
             if ui.selectable_label(filters.show_advanced, adv_text).on_hover_text(t.advanced_tooltip).clicked() {
                 filters.show_advanced = !filters.show_advanced;
             }
@@ -115,12 +102,16 @@ pub fn render_filter_bar(
 
             ui.separator();
 
-            // 7. Counter badge
-            ui.label(
+            // 5. Counter badge (with tour result anchor)
+            let counter_resp = ui.label(
                 egui::RichText::new(format!("{matching_count} / {total_count}"))
                     .color(if matching_count > 0 { ThemeTokens::SUCCESS } else { ThemeTokens::WARNING })
                     .strong()
             );
+            ui.ctx().memory_mut(|m| {
+                m.data.insert_temp(egui::Id::new("tour_result_scope"), counter_resp.rect);
+                m.data.insert_temp(egui::Id::new("tour_result_hardware"), counter_resp.rect);
+            });
         });
 
         // --- Row 2: Secondary / Advanced filters (only when expanded) ---
