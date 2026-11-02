@@ -11,6 +11,7 @@ use crate::presentation::components::comparator_view::{render_comparator_view, C
 use crate::presentation::components::detail_view::render_detail_panel;
 use crate::presentation::components::filter_bar::{render_filter_bar, FilterState};
 use crate::presentation::components::graph_view::{render_graph_view, GraphViewState};
+use crate::presentation::components::issue_reporter_modal::{render_contact_modal, render_sync_error_modal};
 use crate::presentation::components::simulator_view::render_simulator_view;
 use crate::presentation::components::sources_view::render_sources_view;
 use crate::presentation::components::table_view::render_table;
@@ -43,6 +44,8 @@ pub struct BenchmarkApp {
     pub zoom_factor: f32,
     pub language: Language,
     pub updater: UpdaterState,
+    pub sync_error_dialog: Option<String>,
+    pub contact_dialog_open: bool,
     last_saved_prefs: Option<crate::domain::table_preferences::TablePreferences>,
 }
 
@@ -66,28 +69,14 @@ impl BenchmarkApp {
         let last_saved_prefs = Some(filters.table_prefs.clone());
 
         Self {
-            repo,
-            fetcher,
-            detector: Box::new(SystemHardwareDetector::new()),
-            detected_hardware: None,
-            sim_config: HardwareRigConfig::default(),
-            snapshots,
-            selected_snapshot_id: selected_id,
-            all_models: models,
-            filters,
-            selected_model_id: None,
-            active_tab: AppTab::Table,
-            comp_state: ComparatorState::default(),
-            graph_state: GraphViewState::default(),
-            tour_state: TourState::default(),
-            is_syncing: false,
-            status_message: initial_msg,
-            sync_sender: tx,
-            sync_receiver: rx,
-            zoom_factor: 1.0,
-            language: Language::French,
+            repo, fetcher, detector: Box::new(SystemHardwareDetector::new()), detected_hardware: None,
+            sim_config: HardwareRigConfig::default(), snapshots, selected_snapshot_id: selected_id,
+            all_models: models, filters, selected_model_id: None, active_tab: AppTab::Table,
+            comp_state: ComparatorState::default(), graph_state: GraphViewState::default(),
+            tour_state: TourState::default(), is_syncing: false, status_message: initial_msg,
+            sync_sender: tx, sync_receiver: rx, zoom_factor: 1.0, language: Language::French,
             updater: UpdaterState::new(Arc::new(GitHubReleaseAdapter::new("Hidr4c", "benchmark-llm-gui"))),
-            last_saved_prefs,
+            sync_error_dialog: None, contact_dialog_open: false, last_saved_prefs,
         }
     }
 
@@ -95,10 +84,8 @@ impl BenchmarkApp {
         if self.is_syncing { return; }
         self.is_syncing = true;
         self.status_message = Some(("Synchronizing with Hugging Face, Benchmarks & LiteLLM...".into(), false));
-
         let tx = self.sync_sender.clone();
         let fetcher = self.fetcher.clone();
-
         tokio::spawn(async move {
             let res = fetcher.fetch_and_unify().await;
             let _ = tx.send(res);
@@ -108,11 +95,7 @@ impl BenchmarkApp {
 
     pub fn switch_snapshot(&mut self, snapshot_id: i64) {
         match self.repo.load_snapshot_models(snapshot_id) {
-            Ok(models) => {
-                self.selected_snapshot_id = Some(snapshot_id);
-                self.all_models = models;
-                self.status_message = None;
-            }
+            Ok(models) => { self.selected_snapshot_id = Some(snapshot_id); self.all_models = models; self.status_message = None; }
             Err(e) => { self.status_message = Some((format!("Error: {e}"), true)); }
         }
     }
@@ -150,41 +133,28 @@ impl eframe::App for BenchmarkApp {
                     self.all_models = new_models;
                     self.status_message = Some((msg, is_err));
                 }
-                Err(err) => self.status_message = Some((format!("Download error: {err}"), true)),
+                Err(err) => {
+                    self.sync_error_dialog = Some(err.clone());
+                    self.status_message = Some((format!("Download error: {err}"), true));
+                }
             }
         }
 
         let filtered_indices = FilterService::compute_filtered_indices(&self.all_models, &self.filters);
         let total_count = self.all_models.len();
         let matching_count = filtered_indices.len();
-
         let (mut trigger_sync, mut trigger_auto_detect, mut trigger_export, mut trigger_launch_tour) = (false, false, false, false);
         let mut trigger_switch_snapshot = None;
 
         egui::TopBottomPanel::top("top_header_panel").show(ctx, |ui| {
             render_top_header(
-                ui,
-                &mut self.active_tab,
-                &mut self.language,
-                &mut self.zoom_factor,
-                self.is_syncing,
-                &self.snapshots,
-                self.selected_snapshot_id,
-                self.status_message.as_ref(),
-                &mut self.updater,
-                &mut trigger_sync,
-                &mut trigger_switch_snapshot,
-                &mut trigger_launch_tour,
+                ui, &mut self.active_tab, &mut self.language, &mut self.zoom_factor, self.is_syncing,
+                &self.snapshots, self.selected_snapshot_id, self.status_message.as_ref(), &mut self.updater,
+                &mut trigger_sync, &mut trigger_switch_snapshot, &mut trigger_launch_tour, &mut self.contact_dialog_open,
             );
-
             if self.active_tab == AppTab::Table || self.active_tab == AppTab::Graph {
-                ui.add_space(2.0);
-                ui.separator();
-                ui.add_space(2.0);
-                render_filter_bar(
-                    ui, &mut self.filters, total_count, matching_count,
-                    &mut trigger_auto_detect, &mut trigger_export, self.language,
-                );
+                ui.add_space(2.0); ui.separator(); ui.add_space(2.0);
+                render_filter_bar(ui, &mut self.filters, total_count, matching_count, &mut trigger_auto_detect, &mut trigger_export, self.language);
             }
             ui.add_space(3.0);
         });
@@ -195,7 +165,7 @@ impl eframe::App for BenchmarkApp {
         if trigger_export { self.export_indices_to_csv(&filtered_indices); }
         if ctx.memory_mut(|m| m.data.get_temp::<bool>(egui::Id::new("req_tab_switch_comparator"))).unwrap_or(false) {
             ctx.memory_mut(|m| m.data.insert_temp(egui::Id::new("req_tab_switch_comparator"), false));
-            if let Some(id0) = self.filters.compared_model_ids.get(0) { self.comp_state.slots[0] = Some(id0.clone()); }
+            if let Some(id0) = self.filters.compared_model_ids.first() { self.comp_state.slots[0] = Some(id0.clone()); }
             if let Some(id1) = self.filters.compared_model_ids.get(1) { self.comp_state.slots[1] = Some(id1.clone()); }
             self.active_tab = AppTab::Comparator;
         }
@@ -220,7 +190,6 @@ impl eframe::App for BenchmarkApp {
         let selected_model = self.selected_model_id.as_ref().and_then(|id| {
             self.all_models.iter().find(|m| &m.id == id).cloned()
         });
-
         if let Some(model) = selected_model {
             let panel_resp = egui::TopBottomPanel::bottom("detail_panel").resizable(true).default_height(240.0).min_height(180.0).show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
@@ -234,11 +203,8 @@ impl eframe::App for BenchmarkApp {
             let t = self.language.t();
             if self.all_models.is_empty() && !self.is_syncing && self.active_tab != AppTab::Sources && self.active_tab != AppTab::Tutorial {
                 ui.vertical_centered(|ui| {
-                    ui.add_space(60.0);
-                    ui.heading("LLM Benchmark Explorer");
-                    ui.add_space(10.0);
-                    ui.label(t.no_matching_models);
-                    ui.add_space(15.0);
+                    ui.add_space(60.0); ui.heading("LLM Benchmark Explorer"); ui.add_space(10.0);
+                    ui.label(t.no_matching_models); ui.add_space(15.0);
                     if ui.button(egui::RichText::new(t.sync_refresh.to_string()).size(15.0).strong()).clicked() {
                         self.trigger_live_sync(ctx.clone());
                     }
@@ -273,21 +239,14 @@ impl eframe::App for BenchmarkApp {
             }
         }
 
-        // Application Update Modal Popup
         self.updater.render_modal(ctx, self.language);
+        render_sync_error_modal(ctx, &mut self.sync_error_dialog, self.language);
+        render_contact_modal(ctx, &mut self.contact_dialog_open, self.language);
 
-        // Interactive guided walkthrough tour overlay
         render_tour_overlay(
-            ctx,
-            &mut self.tour_state,
-            &mut self.active_tab,
-            &self.filters,
-            self.selected_model_id.as_deref(),
-            self.detected_hardware.as_ref(),
-            &self.all_models,
-            matching_count,
-            total_count,
-            self.language,
+            ctx, &mut self.tour_state, &mut self.active_tab, &self.filters,
+            self.selected_model_id.as_deref(), self.detected_hardware.as_ref(),
+            &self.all_models, matching_count, total_count, self.language,
         );
     }
 }

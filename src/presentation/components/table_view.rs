@@ -30,24 +30,28 @@ pub fn render_table(
         return;
     }
 
-    // Active column filters summary banner
-    if filters.table_prefs.active_filter_count() > 0 {
-        ui.horizontal(|ui| {
+    // Active column filters & column chooser bar
+    ui.horizontal(|ui| {
+        if filters.table_prefs.active_filter_count() > 0 {
             ui.label(egui::RichText::new(format!("🔍 {} ({} active)", t.table_menu.active_filters_summary, filters.table_prefs.active_filter_count()))
                 .color(ThemeTokens::CYAN_EDGE).size(11.5).strong());
             if ui.button(egui::RichText::new(t.table_menu.menu_clear_all_filters).color(ThemeTokens::DANGER).size(11.0)).clicked() {
                 filters.table_prefs.reset_filters();
             }
-        });
-        ui.add_space(2.0);
-    }
+            ui.separator();
+        }
+        if ui.button(egui::RichText::new(format!("⚙ {}", t.table_menu.btn_column_chooser)).size(11.0)).clicked() {
+            filters.column_chooser_open = true;
+        }
+    });
+    ui.add_space(2.0);
 
     let items = build_display_items(all_models, filtered_indices, filters);
     let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
 
     let visible_cols: Vec<TableColumnId> = filters.table_prefs.column_order.iter()
         .copied()
-        .filter(|c| (!c.is_advanced() || filters.show_advanced_columns) && (!c.is_raw_source() || filters.show_raw_sources))
+        .filter(|c| filters.table_prefs.is_visible(*c) && (!c.is_advanced() || filters.show_advanced_columns) && (!c.is_raw_source() || filters.show_raw_sources))
         .collect();
 
     egui::ScrollArea::horizontal()
@@ -71,7 +75,7 @@ pub fn render_table(
                 table = table.column(column_spec(col));
             }
 
-            table.header(28.0, |mut header| {
+            table.header(52.0, |mut header| {
                 for &col in &visible_cols {
                     header.col(|ui| {
                         if col == TableColumnId::Model {
@@ -118,6 +122,13 @@ pub fn render_table(
 
     crate::presentation::components::compare_floating_dock::render_floating_compare_dock(
         ui.ctx(), filters, all_models, lang,
+    );
+
+    crate::presentation::components::column_chooser_modal::render_column_chooser_modal(
+        ui.ctx(),
+        &mut filters.column_chooser_open,
+        &mut filters.table_prefs,
+        lang,
     );
 }
 

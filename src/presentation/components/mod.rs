@@ -1,3 +1,4 @@
+pub mod column_chooser_modal;
 pub mod comparator_bars;
 pub mod comparator_modes;
 pub mod comparator_verdict;
@@ -8,9 +9,11 @@ pub mod detail_runner;
 pub mod detail_view;
 pub mod filter_bar;
 pub mod filter_bar_advanced;
+pub mod graph_bounds;
 pub mod graph_clustering;
 pub mod graph_types;
 pub mod graph_view;
+pub mod issue_reporter_modal;
 pub mod local_ai_tools_view;
 pub mod model_search_picker;
 pub mod simulator_view;

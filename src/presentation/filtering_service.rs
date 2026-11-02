@@ -121,6 +121,20 @@ impl FilterService {
             SortField::Agentic => indices.sort_by(|&a, &b| cmp_f32(models[a].scores.agentic.unwrap_or(0.0), models[b].scores.agentic.unwrap_or(0.0), order)),
         }
 
+        if let Some(rank_filter) = filters.table_prefs.column_filters.get(&crate::domain::table_preferences::TableColumnId::Rank) {
+            if rank_filter.active && !rank_filter.pattern.trim().is_empty() {
+                let mut filtered_by_rank = Vec::new();
+                for (pos, idx) in indices.into_iter().enumerate() {
+                    let rank_num = (pos + 1).to_string();
+                    let rank_str = format!("#{rank_num}");
+                    if rank_filter.matches(&rank_num) || rank_filter.matches(&rank_str) {
+                        filtered_by_rank.push(idx);
+                    }
+                }
+                indices = filtered_by_rank;
+            }
+        }
+
         indices
     }
 

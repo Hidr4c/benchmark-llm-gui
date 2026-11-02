@@ -41,6 +41,7 @@ pub fn render_top_header(
     on_sync: &mut bool,
     on_switch_snapshot: &mut Option<i64>,
     on_launch_tour: &mut bool,
+    on_contact: &mut bool,
 ) {
     let t = language.t();
     ui.add_space(4.0);
@@ -118,6 +119,16 @@ pub fn render_top_header(
                         }
                     }
                 });
+
+            ui.separator();
+
+            // 2.5. Contact / Feedback Dialog Button
+            if ui.button(egui::RichText::new(language.contact().btn_contact).size(12.0))
+                .on_hover_text(language.contact().dialog_desc)
+                .clicked()
+            {
+                *on_contact = true;
+            }
 
             ui.separator();
 

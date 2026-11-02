@@ -26,154 +26,170 @@ pub fn render_header_cell(
     };
 
     let has_filter = filters.table_prefs.has_active_filter(col_id);
-    let filter_badge = if has_filter { " 🔍" } else { "" };
-    let text = format!("{label}{arrow}{filter_badge}");
 
-    let mut text_widget = egui::RichText::new(text);
-    if has_filter {
-        text_widget = text_widget.color(ThemeTokens::CYAN_EDGE).strong();
-    } else if is_sorted {
-        text_widget = text_widget.color(ThemeTokens::GOLD_5090).strong();
-    }
-
-    let resp = ui.button(text_widget);
-
-    let hover_text = if has_filter {
-        if let Some(cf) = filters.table_prefs.column_filters.get(&col_id) {
-            format!("{} : \"{}\" (Clic droit pour éditer)", operator_label(cf.operator, lang), cf.pattern)
-        } else {
-            "Clic droit pour filtrer / réordonner".into()
-        }
-    } else {
-        "Clic gauche pour trier | Clic droit pour filtrer & ordonner".into()
-    };
-    let resp = resp.on_hover_text(hover_text);
-
-    // Left click: Toggle sort
-    if resp.clicked() {
-        if let Some(sf) = sort_field {
-            if filters.sort_field == sf {
-                filters.sort_order = match filters.sort_order {
-                    SortOrder::Ascending => SortOrder::Descending,
-                    SortOrder::Descending => SortOrder::Ascending,
-                };
-            } else {
-                filters.sort_field = sf;
-                filters.sort_order = default_order;
-            }
-            filters.table_prefs.sort_field = filters.sort_field;
-            filters.table_prefs.sort_order = filters.sort_order;
-        }
-    }
-
-    // Right click: Context menu for Filter & Column Operations
-    resp.context_menu(|ui| {
-        ui.set_min_width(220.0);
-
-        // --- SECTION 1: SORTING ---
-        if let Some(sf) = sort_field {
-            ui.label(egui::RichText::new("TRI DE COLONNE").size(10.5).color(ThemeTokens::TEXT_MUTED));
-            if ui.button(t.table_menu.menu_sort_asc).clicked() {
-                filters.sort_field = sf;
-                filters.sort_order = SortOrder::Ascending;
-                filters.table_prefs.sort_field = sf;
-                filters.table_prefs.sort_order = SortOrder::Ascending;
-                ui.close_menu();
-            }
-            if ui.button(t.table_menu.menu_sort_desc).clicked() {
-                filters.sort_field = sf;
-                filters.sort_order = SortOrder::Descending;
-                filters.table_prefs.sort_field = sf;
-                filters.table_prefs.sort_order = SortOrder::Descending;
-                ui.close_menu();
-            }
-            if ui.button(t.table_menu.menu_reset_sort).clicked() {
-                filters.sort_field = SortField::Intelligence;
-                filters.sort_order = SortOrder::Descending;
-                filters.table_prefs.sort_field = SortField::Intelligence;
-                filters.table_prefs.sort_order = SortOrder::Descending;
-                ui.close_menu();
-            }
-            ui.separator();
+    ui.vertical(|ui| {
+        // --- Row 1: Column Title & Sort Button ---
+        let mut title_text = egui::RichText::new(format!("{label}{arrow}"));
+        if has_filter {
+            title_text = title_text.color(ThemeTokens::CYAN_EDGE).strong();
+        } else if is_sorted {
+            title_text = title_text.color(ThemeTokens::GOLD_5090).strong();
         }
 
-        // --- SECTION 2: FILTERING ---
-        ui.label(egui::RichText::new(t.table_menu.menu_filter_title).strong().color(ThemeTokens::CYAN_EDGE).size(11.5));
-        let cf = filters.table_prefs.column_filters.entry(col_id).or_insert_with(ColumnFilter::default);
+        let title_btn = ui.add(egui::Button::new(title_text).frame(false));
+        let title_btn = title_btn.on_hover_text("Clic gauche pour trier | Clic droit pour options & sélecteur de colonnes");
+
+        if title_btn.clicked() {
+            if let Some(sf) = sort_field {
+                if filters.sort_field == sf {
+                    filters.sort_order = match filters.sort_order {
+                        SortOrder::Ascending => SortOrder::Descending,
+                        SortOrder::Descending => SortOrder::Ascending,
+                    };
+                } else {
+                    filters.sort_field = sf;
+                    filters.sort_order = default_order;
+                }
+                filters.table_prefs.sort_field = filters.sort_field;
+                filters.table_prefs.sort_order = filters.sort_order;
+            }
+        }
+
+        // --- Row 2: Continuous Inline Filter ---
+        let default_op = col_id.default_operator();
+        let cf = filters.table_prefs.column_filters.entry(col_id).or_insert_with(|| ColumnFilter {
+            operator: default_op,
+            pattern: String::new(),
+            active: false,
+        });
 
         ui.horizontal(|ui| {
-            ui.label(t.table_menu.menu_operator_label);
-            egui::ComboBox::from_id_salt(format!("op_combo_{:?}", col_id))
-                .selected_text(operator_label(cf.operator, lang))
-                .show_ui(ui, |ui| {
-                    for &op in FilterOperator::all() {
-                        ui.selectable_value(&mut cf.operator, op, operator_label(op, lang));
+            ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
+
+            // Operator selector button
+            let op_btn_text = egui::RichText::new(cf.operator.symbol())
+                .size(10.5)
+                .color(if cf.active { ThemeTokens::CYAN_EDGE } else { ThemeTokens::TEXT_MUTED });
+
+            ui.menu_button(op_btn_text, |ui| {
+                ui.set_min_width(180.0);
+                ui.label(egui::RichText::new(t.table_menu.menu_operator_label).size(10.5).color(ThemeTokens::TEXT_MUTED));
+                ui.separator();
+                for &op in FilterOperator::all() {
+                    let label = format!("{:>3}  {}", op.symbol(), operator_label(op, lang));
+                    if ui.selectable_value(&mut cf.operator, op, label).clicked() {
+                        cf.active = !cf.pattern.trim().is_empty();
+                        ui.close_menu();
                     }
-                });
-        });
+                }
+            }).response.on_hover_text(format!("Règle : {} (Cliquer pour changer)", operator_label(cf.operator, lang)));
 
-        ui.add_space(3.0);
-        let text_edit = ui.text_edit_singleline(&mut cf.pattern);
-        if text_edit.changed() {
-            cf.active = !cf.pattern.trim().is_empty();
-        }
+            // Input field
+            let hint = col_id.placeholder();
+            let edit_w = (ui.available_width() - if !cf.pattern.is_empty() { 18.0 } else { 0.0 }).max(35.0);
+            let text_edit = ui.add(
+                egui::TextEdit::singleline(&mut cf.pattern)
+                    .hint_text(hint)
+                    .desired_width(edit_w)
+                    .font(egui::TextStyle::Small)
+            );
 
-        ui.horizontal(|ui| {
-            if ui.button(egui::RichText::new(t.table_menu.menu_apply_filter).strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
+            if text_edit.changed() {
                 cf.active = !cf.pattern.trim().is_empty();
-                ui.close_menu();
-            }
-            if cf.active && ui.button(t.table_menu.menu_clear_filter).clicked() {
-                cf.pattern.clear();
-                cf.active = false;
-                ui.close_menu();
-            }
-        });
-
-        ui.separator();
-
-        // --- SECTION 3: REORDERING ---
-        ui.label(egui::RichText::new("ORDRE DE LA COLONNE").size(10.5).color(ThemeTokens::TEXT_MUTED));
-        let col_pos = filters.table_prefs.column_order.iter().position(|&c| c == col_id).unwrap_or(0);
-        let max_pos = filters.table_prefs.column_order.len().saturating_sub(1);
-
-        ui.horizontal(|ui| {
-            let left_btn = ui.add_enabled(col_pos > 0, egui::Button::new(t.table_menu.menu_move_left));
-            if left_btn.clicked() {
-                filters.table_prefs.move_column(col_id, -1);
-                ui.close_menu();
             }
 
-            let right_btn = ui.add_enabled(col_pos < max_pos, egui::Button::new(t.table_menu.menu_move_right));
-            if right_btn.clicked() {
-                filters.table_prefs.move_column(col_id, 1);
-                ui.close_menu();
+            // Quick clear button
+            if !cf.pattern.is_empty() {
+                if ui.small_button("×").on_hover_text("Effacer le filtre").clicked() {
+                    cf.pattern.clear();
+                    cf.active = false;
+                }
             }
         });
 
-        if ui.button(t.table_menu.menu_reset_columns).clicked() {
-            filters.table_prefs.reset_order();
-            ui.close_menu();
-        }
+        // Context Menu (Right Click on Title/Cell)
+        title_btn.context_menu(|ui| {
+            ui.set_min_width(220.0);
 
-        // --- SECTION 4: GLOBAL RESET IF ANY ACTIVE ---
-        if filters.table_prefs.active_filter_count() > 0 {
+            // Column Chooser
+            if ui.button(egui::RichText::new(format!("⚙ {}", t.table_menu.btn_column_chooser)).strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
+                filters.column_chooser_open = true;
+                ui.close_menu();
+            }
             ui.separator();
-            if ui.button(egui::RichText::new(t.table_menu.menu_clear_all_filters).color(ThemeTokens::DANGER)).clicked() {
-                filters.table_prefs.reset_filters();
+
+            // Sorting
+            if let Some(sf) = sort_field {
+                ui.label(egui::RichText::new("TRI DE COLONNE").size(10.0).color(ThemeTokens::TEXT_MUTED));
+                if ui.button(t.table_menu.menu_sort_asc).clicked() {
+                    filters.sort_field = sf;
+                    filters.sort_order = SortOrder::Ascending;
+                    filters.table_prefs.sort_field = sf;
+                    filters.table_prefs.sort_order = SortOrder::Ascending;
+                    ui.close_menu();
+                }
+                if ui.button(t.table_menu.menu_sort_desc).clicked() {
+                    filters.sort_field = sf;
+                    filters.sort_order = SortOrder::Descending;
+                    filters.table_prefs.sort_field = sf;
+                    filters.table_prefs.sort_order = SortOrder::Descending;
+                    ui.close_menu();
+                }
+                if ui.button(t.table_menu.menu_reset_sort).clicked() {
+                    filters.sort_field = SortField::Intelligence;
+                    filters.sort_order = SortOrder::Descending;
+                    filters.table_prefs.sort_field = SortField::Intelligence;
+                    filters.table_prefs.sort_order = SortOrder::Descending;
+                    ui.close_menu();
+                }
+                ui.separator();
+            }
+
+            // Column Reordering
+            ui.label(egui::RichText::new("ORDRE DE LA COLONNE").size(10.0).color(ThemeTokens::TEXT_MUTED));
+            let col_pos = filters.table_prefs.column_order.iter().position(|&c| c == col_id).unwrap_or(0);
+            let max_pos = filters.table_prefs.column_order.len().saturating_sub(1);
+
+            ui.horizontal(|ui| {
+                let left_btn = ui.add_enabled(col_pos > 0, egui::Button::new(t.table_menu.menu_move_left));
+                if left_btn.clicked() {
+                    filters.table_prefs.move_column(col_id, -1);
+                    ui.close_menu();
+                }
+
+                let right_btn = ui.add_enabled(col_pos < max_pos, egui::Button::new(t.table_menu.menu_move_right));
+                if right_btn.clicked() {
+                    filters.table_prefs.move_column(col_id, 1);
+                    ui.close_menu();
+                }
+            });
+
+            if ui.button(t.table_menu.menu_reset_columns).clicked() {
+                filters.table_prefs.reset_order();
                 ui.close_menu();
             }
-        }
-    });
 
-    resp
+            // Reset filters
+            if filters.table_prefs.active_filter_count() > 0 {
+                ui.separator();
+                if ui.button(egui::RichText::new(t.table_menu.menu_clear_all_filters).color(ThemeTokens::DANGER)).clicked() {
+                    filters.table_prefs.reset_filters();
+                    ui.close_menu();
+                }
+            }
+        });
+
+        title_btn
+    }).inner
 }
 
-fn operator_label(op: FilterOperator, lang: Language) -> &'static str {
+pub fn operator_label(op: FilterOperator, lang: Language) -> &'static str {
     let t = lang.t();
     match op {
         FilterOperator::Contains => t.table_menu.op_contains,
         FilterOperator::Exact => t.table_menu.op_exact,
+        FilterOperator::LessEqual => t.table_menu.op_less_equal,
+        FilterOperator::GreaterEqual => t.table_menu.op_greater_equal,
         FilterOperator::NotContains => t.table_menu.op_not_contains,
         FilterOperator::MatchRegex => t.table_menu.op_match_regex,
         FilterOperator::NotMatchRegex => t.table_menu.op_not_match_regex,

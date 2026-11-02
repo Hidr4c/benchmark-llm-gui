@@ -2,6 +2,7 @@ use benchmark_llm_gui::domain::model::{BenchmarkScores, ModelBenchmark};
 use benchmark_llm_gui::domain::table_preferences::{
     ColumnFilter, FilterOperator, TableColumnId, TablePreferences,
 };
+use benchmark_llm_gui::presentation::filtering::{FilterService, FilterState};
 
 #[test]
 fn test_filter_operator_contains_and_exact() {
@@ -27,12 +28,77 @@ fn test_filter_operator_regex_and_not_regex() {
     let op_re = FilterOperator::MatchRegex;
     assert!(op_re.matches("Qwen2.5-Coder-32B-Instruct", r"^qwen.*coder.*"));
     assert!(!op_re.matches("Llama-3.3-70B", r"^qwen.*coder.*"));
-    // Invalid regex should not panic and return false
     assert!(!op_re.matches("Llama-3.3-70B", r"[invalid("));
 
     let op_not_re = FilterOperator::NotMatchRegex;
     assert!(op_not_re.matches("Llama-3.3-70B", r"^qwen.*"));
     assert!(!op_not_re.matches("Qwen2.5-7B", r"^qwen.*"));
+}
+
+#[test]
+fn test_filter_operator_numeric_and_prefixes() {
+    let le = FilterOperator::LessEqual;
+    assert!(le.matches("6", "6"));
+    assert!(le.matches("3", "6"));
+    assert!(!le.matches("7", "6"));
+    assert!(le.matches("14.5 Go", "16"));
+    assert!(!le.matches("18.2 Go", "16"));
+
+    let ge = FilterOperator::GreaterEqual;
+    assert!(ge.matches("75.4", "70"));
+    assert!(!ge.matches("68.2", "70"));
+
+    // User typing leading symbols
+    assert!(FilterOperator::Contains.matches("5", "<= 6"));
+    assert!(!FilterOperator::Contains.matches("8", "<= 6"));
+    assert!(FilterOperator::Contains.matches("82.0", ">= 80"));
+    assert!(!FilterOperator::Contains.matches("74.0", ">= 80"));
+    assert!(FilterOperator::Contains.matches("#3", "= 3"));
+}
+
+#[test]
+fn test_top_n_rank_filtering_in_service() {
+    let mut models = Vec::new();
+    for i in 1..=10 {
+        models.push(ModelBenchmark {
+            id: format!("m{i}"),
+            name: format!("Model-{i}"),
+            scores: BenchmarkScores {
+                open_llm: Some(100.0 - (i as f32) * 5.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+    }
+
+    let mut filters = FilterState::default();
+    // Default: all 10 models returned
+    let indices = FilterService::compute_filtered_indices(&models, &filters);
+    assert_eq!(indices.len(), 10);
+
+    // Apply Rank filter: "6" (default operator is LessEqual <= 6)
+    filters.table_prefs.column_filters.insert(
+        TableColumnId::Rank,
+        ColumnFilter::new(FilterOperator::LessEqual, "6"),
+    );
+
+    let top6_indices = FilterService::compute_filtered_indices(&models, &filters);
+    assert_eq!(top6_indices.len(), 6);
+    assert_eq!(top6_indices[0], 0); // Rank #1
+    assert_eq!(top6_indices[5], 5); // Rank #6
+}
+
+#[test]
+fn test_column_visibility_and_reset() {
+    let mut prefs = TablePreferences::default();
+    assert!(prefs.is_visible(TableColumnId::Model));
+    assert!(prefs.is_visible(TableColumnId::CloudPrice));
+
+    prefs.toggle_visibility(TableColumnId::CloudPrice);
+    assert!(!prefs.is_visible(TableColumnId::CloudPrice));
+
+    prefs.show_all_columns();
+    assert!(prefs.is_visible(TableColumnId::CloudPrice));
 }
 
 #[test]
@@ -42,16 +108,13 @@ fn test_table_column_order_and_movement() {
     assert_eq!(prefs.column_order[0], TableColumnId::Rank);
     assert_eq!(prefs.column_order[1], TableColumnId::Model);
 
-    // Move Model left by 1 (swap with Rank)
     prefs.move_column(TableColumnId::Model, -1);
     assert_eq!(prefs.column_order[0], TableColumnId::Model);
     assert_eq!(prefs.column_order[1], TableColumnId::Rank);
 
-    // Move Model right by 2
     prefs.move_column(TableColumnId::Model, 2);
     assert_eq!(prefs.column_order[2], TableColumnId::Model);
 
-    // Reset order
     prefs.reset_order();
     assert_eq!(prefs.column_order[0], TableColumnId::Rank);
     assert_eq!(prefs.column_order[1], TableColumnId::Model);
@@ -63,29 +126,21 @@ fn test_preferences_model_filtering() {
     let model1 = ModelBenchmark {
         id: "m1".into(),
         name: "Qwen2.5-Coder-32B".into(),
-        scores: BenchmarkScores {
-            open_llm: Some(85.0),
-            ..Default::default()
-        },
+        scores: BenchmarkScores { open_llm: Some(85.0), ..Default::default() },
         size_gb: 19.5,
         ..Default::default()
     };
     let model2 = ModelBenchmark {
         id: "m2".into(),
         name: "Llama-3.3-70B-Instruct".into(),
-        scores: BenchmarkScores {
-            open_llm: Some(88.0),
-            ..Default::default()
-        },
+        scores: BenchmarkScores { open_llm: Some(88.0), ..Default::default() },
         size_gb: 42.0,
         ..Default::default()
     };
 
-    // No filter: both match
     assert!(prefs.matches_model(&model1, "#1"));
     assert!(prefs.matches_model(&model2, "#2"));
 
-    // Add filter: Name contains "coder"
     prefs.column_filters.insert(
         TableColumnId::Model,
         ColumnFilter::new(FilterOperator::Contains, "coder"),
@@ -95,14 +150,12 @@ fn test_preferences_model_filtering() {
     assert!(prefs.matches_model(&model1, "#1"));
     assert!(!prefs.matches_model(&model2, "#2"));
 
-    // Add filter: Size regex match "19"
     prefs.column_filters.insert(
         TableColumnId::Size,
         ColumnFilter::new(FilterOperator::MatchRegex, r"19\.\d"),
     );
     assert!(prefs.matches_model(&model1, "#1"));
 
-    // Clear filters
     prefs.reset_filters();
     assert_eq!(prefs.active_filter_count(), 0);
     assert!(prefs.matches_model(&model2, "#2"));
@@ -130,7 +183,6 @@ fn test_sqlite_preferences_persistence() {
     use benchmark_llm_gui::infrastructure::preferences::SqlitePreferencesRepository;
 
     let repo = SqlitePreferencesRepository::open(":memory:").expect("Failed to open in-memory SQLite");
-    // Initially empty
     assert!(repo.load_table_preferences().expect("Load failed").is_none());
 
     let mut prefs = TablePreferences::default();
@@ -140,10 +192,7 @@ fn test_sqlite_preferences_persistence() {
         ColumnFilter::new(FilterOperator::MatchRegex, "^mistral"),
     );
 
-    // Save
     repo.save_table_preferences(&prefs).expect("Save failed");
-
-    // Load back and verify parity
     let loaded = repo.load_table_preferences().expect("Load failed").expect("Preferences not found");
     assert_eq!(loaded.column_order, prefs.column_order);
     assert_eq!(loaded.column_filters, prefs.column_filters);
