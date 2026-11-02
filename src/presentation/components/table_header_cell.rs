@@ -77,9 +77,6 @@ fn render_header_cell_content(
                 let drag_source = ui.dnd_drag_source(dnd_id, col_id, |ui| {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
-                        let grab_icon = egui::RichText::new("⠿").size(10.0).color(ThemeTokens::TEXT_MUTED);
-                        ui.label(grab_icon);
-
                         let mut title_text = egui::RichText::new(format!("{label}{arrow}")).size(12.0);
                         if has_filter {
                             title_text = title_text.color(ThemeTokens::CYAN_EDGE).strong();
