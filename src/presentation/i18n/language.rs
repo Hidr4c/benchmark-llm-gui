@@ -12,6 +12,9 @@ use super::sub_translations_features::{
     EN_COL_MODES, EN_ROI, EN_RUNNER,
     FR_COL_MODES, FR_ROI, FR_RUNNER,
 };
+use super::sub_translations_tools::{
+    EN_TOOLS_GUIDE, FR_TOOLS_GUIDE, LocalToolsTranslations,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Language {
@@ -85,6 +88,13 @@ impl Language {
         match self {
             Self::French => &FR_ROI,
             Self::English => &EN_ROI,
+        }
+    }
+
+    pub fn tools(&self) -> &'static LocalToolsTranslations {
+        match self {
+            Self::French => &FR_TOOLS_GUIDE,
+            Self::English => &EN_TOOLS_GUIDE,
         }
     }
 }

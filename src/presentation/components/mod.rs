@@ -11,6 +11,7 @@ pub mod filter_bar_advanced;
 pub mod graph_clustering;
 pub mod graph_types;
 pub mod graph_view;
+pub mod local_ai_tools_view;
 pub mod model_search_picker;
 pub mod simulator_view;
 pub mod sources_view;

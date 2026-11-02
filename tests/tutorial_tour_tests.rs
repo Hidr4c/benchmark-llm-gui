@@ -101,6 +101,24 @@ fn test_tutorial_tab_localization() {
     assert_eq!(t_en.tut_guide.filters_guide_title, "Mastering Filters & Reliability");
     assert!(!t_fr.tut_guide.filter_ram_desc.is_empty());
     assert!(!t_fr.tut_guide.filter_rel_desc.is_empty());
+
+    // Tools Guide & Multi-Runner Verification
+    let tools_fr = Language::French.tools();
+    let tools_en = Language::English.tools();
+    assert!(!tools_fr.hero_title.is_empty());
+    assert!(!tools_en.hero_title.is_empty());
+    assert_eq!(benchmark_llm_gui::presentation::i18n::TOOLS_LIST.len(), 7);
+    for tool in &benchmark_llm_gui::presentation::i18n::TOOLS_LIST {
+        assert!(!tool.name.is_empty());
+        assert!(tool.url.starts_with("https://"));
+        assert!(!tool.command.is_empty());
+    }
+
+    let runner_fr = Language::French.runner();
+    let runner_en = Language::English.runner();
+    assert_eq!(runner_fr.tab_lm_studio, "🚀 LM Studio");
+    assert_eq!(runner_en.tab_lm_studio, "🚀 LM Studio");
+    assert!(!runner_fr.hint_lms.is_empty());
 }
 
 #[test]
