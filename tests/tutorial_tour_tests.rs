@@ -76,6 +76,10 @@ fn test_tutorial_tab_localization() {
 
     assert_eq!(t_fr.tab_tutorial, "Guide & Tutoriels");
     assert_eq!(t_en.tab_tutorial, "Guide & Tutorials");
+    assert_eq!(t_fr.tab_table, "Benchmark & Top Modèles");
+    assert_eq!(t_en.tab_table, "Benchmark & Leaderboard");
+    assert_eq!(t_fr.comp.btn_back, "Retour au Classement (Benchmark)");
+    assert_eq!(t_en.comp.btn_back, "Back to Model Leaderboard");
 
     assert!(!t_fr.tut_hero_title.is_empty());
     assert!(!t_en.tut_hero_title.is_empty());
@@ -85,8 +89,8 @@ fn test_tutorial_tab_localization() {
     assert!(!t_en.tour_s8_title.is_empty());
 
     // Tutorial Guide Sections Verification
-    assert_eq!(t_fr.tut_guide.table_guide_title, "Comprendre le Tableau & les Colonnes");
-    assert_eq!(t_en.tut_guide.table_guide_title, "Understanding the Table & Columns");
+    assert_eq!(t_fr.tut_guide.table_guide_title, "Comprendre le Classement & les Colonnes");
+    assert_eq!(t_en.tut_guide.table_guide_title, "Understanding Model Rankings & Columns");
     assert!(!t_fr.tut_guide.col_essential_desc.is_empty());
     assert!(!t_en.tut_guide.col_essential_desc.is_empty());
     assert!(!t_fr.tut_guide.col_adv_desc.is_empty());

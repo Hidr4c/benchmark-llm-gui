@@ -138,7 +138,7 @@ fn render_practical_guides(ui: &mut egui::Ui, tour_state: &mut TourState, lang: 
 
     let card_w = (ui.available_width() - 12.0) * 0.5;
     ui.horizontal(|ui| {
-        render_card(ui, card_w, "", t.tut_card1_title, t.tut_card1_desc, " Voir le Tableau Materiel", || tour_state.jump_to(2));
+        render_card(ui, card_w, "", t.tut_card1_title, t.tut_card1_desc, " Voir le Classement des Modeles", || tour_state.jump_to(2));
         ui.add_space(12.0);
         render_card(ui, card_w, "[~]", t.tut_card2_title, t.tut_card2_desc, " Voir le Graphique Pareto", || tour_state.jump_to(6));
     });

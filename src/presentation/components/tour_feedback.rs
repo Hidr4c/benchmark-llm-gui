@@ -127,7 +127,7 @@ pub fn render_transition_feedback(
                         ui.label(egui::RichText::new("Graphe recentré : la frontière de Pareto met en valeur les meilleurs rapports qualité/prix.").color(ThemeTokens::CYAN_EDGE).size(11.5));
                     }
                     7 => {
-                        ui.label(egui::RichText::new("Comparaison Face-à-Face active : observez les barres côte-à-côte pour chaque pilier de test.").color(ThemeTokens::GOLD_5090).size(11.5));
+                        ui.label(egui::RichText::new("Comparaison Face-à-Face active : observez les barres superposées pour comparer instantanément les écarts.").color(ThemeTokens::GOLD_5090).size(11.5));
                     }
                     _ => {
                         ui.label(egui::RichText::new("Simulation actualisée : l'occupation VRAM et la marge système sont recalculées en temps réel.").color(ThemeTokens::SUCCESS).size(11.5));
@@ -154,8 +154,8 @@ pub fn get_callout_label(step: usize, is_result: bool, lang: Language) -> &'stat
             (5, true) => "[OK] Fiche technique détaillée ouverte !",
             (6, false) => "[Action] Cliquez sur [ Recentrer ]",
             (6, true) => "[OK] Courbe de Pareto des champions !",
-            (7, false) => "[Action] Cliquez sur un Duo Recommandé",
-            (7, true) => "[OK] Comparateur Face-à-Face sur 5 piliers !",
+            (7, false) => "[Action] Observez le duel Face-à-Face",
+            (7, true) => "[OK] Duel Face-à-Face sur 5 piliers superposés !",
             (8, false) => "[Action] Changez de GPU dans la liste",
             (8, true) => "[OK] Risque de crash OOM calculé en direct !",
             _ => "Regardez ici",
@@ -175,8 +175,8 @@ pub fn get_callout_label(step: usize, is_result: bool, lang: Language) -> &'stat
             (5, true) => "[OK] Detail panel opened below!",
             (6, false) => "[Action] Click [ Recenter ]",
             (6, true) => "[OK] Pareto efficiency curve framed!",
-            (7, false) => "[Action] Click a Recommended Duo",
-            (7, true) => "[OK] 2-Model Side-by-Side comparison across 5 pillars!",
+            (7, false) => "[Action] Observe the Face-to-Face duel",
+            (7, true) => "[OK] Face-to-Face duel across 5 stacked pillars!",
             (8, false) => "[Action] Switch GPU tier in dropdown",
             (8, true) => "[OK] Simulator verdict: real-time OOM risk!",
             _ => "Look here",

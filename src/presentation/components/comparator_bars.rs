@@ -22,7 +22,7 @@ pub fn render_thematic_dual_bars(
     ui.group(|ui| {
         ui.horizontal(|ui| {
             ui.label(
-                egui::RichText::new("COMPARAISON THEMATIQUE COTE-A-COTE (2 COLONNES PAR PILIER)")
+                egui::RichText::new("COMPARAISON THEMATIQUE DUEL FACE-A-FACE (BARRES SUPERPOSEES)")
                     .strong()
                     .size(13.0)
                     .color(ThemeTokens::PRIMARY),
@@ -167,42 +167,76 @@ fn render_theme_card(
     egui::Frame::group(ui.style())
         .fill(ThemeTokens::BG_CARD)
         .stroke(egui::Stroke::new(1.0, ThemeTokens::BG_PANEL))
-        .inner_margin(egui::Margin::symmetric(10.0, 6.0))
+        .inner_margin(egui::Margin::symmetric(10.0, 7.0))
         .show(ui, |ui| {
             ui.label(egui::RichText::new(title).strong().size(11.5).color(ThemeTokens::TEXT_PRIMARY));
-            ui.add_space(2.0);
+            ui.add_space(4.0);
 
-            ui.columns(2, |cols| {
-                // Column 1 (Cyan)
-                cols[0].vertical(|ui| {
+            let common_max = max1.max(max2).max(0.1);
+            let pct1 = (val1 / common_max).clamp(0.0, 1.0);
+            let pct2 = (val2 / common_max).clamp(0.0, 1.0);
+
+            let total_w = ui.available_width();
+            let label_col_w = (total_w * 0.38).clamp(220.0, 360.0);
+            let score_text_w = 155.0;
+
+            // Row 1: Model #1 (Cyan)
+            ui.horizontal(|ui| {
+                ui.allocate_ui(egui::vec2(label_col_w, 20.0), |ui| {
                     ui.horizontal(|ui| {
                         ui.label(egui::RichText::new("[#1]").color(ThemeTokens::CYAN_EDGE).strong().size(11.5));
-                        ui.label(egui::RichText::new(name1).strong().size(11.0));
+                        ui.label(egui::RichText::new(name1).strong().size(11.5));
                         if w1 {
                             ui.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(10.0));
                         }
                     });
-                    ui.label(egui::RichText::new(&text1).size(11.0).color(ThemeTokens::CYAN_EDGE).strong());
-                    let pct1 = (val1 / max1.max(1.0)).clamp(0.0, 1.0);
-                    ui.add(egui::ProgressBar::new(pct1).fill(ThemeTokens::CYAN_EDGE).animate(false));
                 });
 
-                // Column 2 (Gold)
-                cols[1].vertical(|ui| {
+                ui.allocate_ui(egui::vec2(score_text_w, 20.0), |ui| {
+                    ui.label(egui::RichText::new(&text1).size(11.0).color(ThemeTokens::CYAN_EDGE).strong());
+                });
+
+                let bar_w = ui.available_width() - 8.0;
+                if bar_w > 40.0 {
+                    ui.add(
+                        egui::ProgressBar::new(pct1)
+                            .desired_width(bar_w)
+                            .fill(ThemeTokens::CYAN_EDGE)
+                            .animate(false)
+                    );
+                }
+            });
+
+            ui.add_space(3.0);
+
+            // Row 2: Model #2 (Gold)
+            ui.horizontal(|ui| {
+                ui.allocate_ui(egui::vec2(label_col_w, 20.0), |ui| {
                     ui.horizontal(|ui| {
                         ui.label(egui::RichText::new("[#2]").color(ThemeTokens::GOLD_5090).strong().size(11.5));
-                        ui.label(egui::RichText::new(name2).strong().size(11.0));
+                        ui.label(egui::RichText::new(name2).strong().size(11.5));
                         if w2 {
                             ui.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(10.0));
                         }
                     });
-                    ui.label(egui::RichText::new(&text2).size(11.0).color(ThemeTokens::GOLD_5090).strong());
-                    let pct2 = (val2 / max2.max(1.0)).clamp(0.0, 1.0);
-                    ui.add(egui::ProgressBar::new(pct2).fill(ThemeTokens::GOLD_5090).animate(false));
                 });
+
+                ui.allocate_ui(egui::vec2(score_text_w, 20.0), |ui| {
+                    ui.label(egui::RichText::new(&text2).size(11.0).color(ThemeTokens::GOLD_5090).strong());
+                });
+
+                let bar_w = ui.available_width() - 8.0;
+                if bar_w > 40.0 {
+                    ui.add(
+                        egui::ProgressBar::new(pct2)
+                            .desired_width(bar_w)
+                            .fill(ThemeTokens::GOLD_5090)
+                            .animate(false)
+                    );
+                }
             });
 
-            ui.add_space(2.0);
+            ui.add_space(3.0);
             ui.label(egui::RichText::new(winner_text).color(ThemeTokens::TEXT_MUTED).size(10.5));
         });
 }

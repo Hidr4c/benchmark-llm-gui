@@ -23,6 +23,7 @@ pub struct ComparatorTranslations {
     pub pipeline_gain: &'static str,
     pub fast_router_label: &'static str,
     pub heavy_reasoner_label: &'static str,
+    pub btn_back: &'static str,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -162,7 +163,7 @@ pub const EN_ADV_FILTER: AdvFilterTranslations = AdvFilterTranslations {
 
 pub const FR_DOCK: DockTranslations = DockTranslations {
     prompt_pick_second: "(Cochez un 2ème modèle pour lancer)",
-    btn_launch: "Lancer le Face-à-Face >",
+    btn_launch: "Lancer le Face-à-Face",
     btn_waiting: "Face-à-Face (1/2)",
     tooltip_vs: "Cliquer pour comparer en Face-à-Face",
     zoom_label: "Taille :",
@@ -170,7 +171,7 @@ pub const FR_DOCK: DockTranslations = DockTranslations {
 
 pub const EN_DOCK: DockTranslations = DockTranslations {
     prompt_pick_second: "(Select a 2nd model to launch)",
-    btn_launch: "Launch Face-to-Face >",
+    btn_launch: "Launch Face-to-Face",
     btn_waiting: "Face-to-Face (1/2)",
     tooltip_vs: "Click to compare Face-to-Face",
     zoom_label: "Size :",

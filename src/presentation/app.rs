@@ -186,6 +186,8 @@ impl eframe::App for BenchmarkApp {
         if trigger_export { self.export_indices_to_csv(&filtered_indices); }
         if ctx.memory_mut(|m| m.data.get_temp::<bool>(egui::Id::new("req_tab_switch_comparator"))).unwrap_or(false) {
             ctx.memory_mut(|m| m.data.insert_temp(egui::Id::new("req_tab_switch_comparator"), false));
+            if let Some(id0) = self.filters.compared_model_ids.get(0) { self.comp_state.slots[0] = Some(id0.clone()); }
+            if let Some(id1) = self.filters.compared_model_ids.get(1) { self.comp_state.slots[1] = Some(id1.clone()); }
             self.active_tab = AppTab::Comparator;
         }
         if trigger_auto_detect {
@@ -247,7 +249,7 @@ impl eframe::App for BenchmarkApp {
                     AppTab::Comparator => {
                         render_comparator_view(
                             ui, &mut self.comp_state, self.detected_hardware.as_ref(),
-                            &self.all_models, &self.filters, self.language,
+                            &self.all_models, &self.filters, &mut self.active_tab, self.language,
                         );
                         self.tour_state.check_and_update_comp_progress(&self.comp_state.slots);
                     }

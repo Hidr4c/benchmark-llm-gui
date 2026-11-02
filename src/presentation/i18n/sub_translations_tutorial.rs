@@ -27,15 +27,15 @@ pub struct TutorialGuideTranslations {
 }
 
 pub const FR_TUTORIAL_GUIDE: TutorialGuideTranslations = TutorialGuideTranslations {
-    table_guide_title: "Comprendre le Tableau & les Colonnes",
-    table_guide_desc: "Le tableau comparatif propose 3 niveaux de granularité adaptés à vos besoins :",
+    table_guide_title: "Comprendre le Classement & les Colonnes",
+    table_guide_desc: "Le classement des modèles (Benchmark) propose 3 niveaux de granularité adaptés à vos besoins :",
     col_essential_badge: "Vue Essentielle (Défaut)",
     col_essential_desc: "Les 7 métriques indispensables : Rang (#), Nom du modèle, Matériel Cible (profil VRAM), Taille (Go), Score Calibré unifié (0-100), Débit réel mesuré (tok/s) et Tarif API Cloud ($/1M tokens).",
     col_adv_badge: "Colonnes Avancées [x] Avancé",
     col_adv_desc: "Déploie 4 colonnes d'expertise : Année de parution, Efficacité (points d'intelligence par Go de RAM), Valeur Réelle / Éco (benchmarks métiers réels RLI/SWE-Lancer), et Popularité (téléchargements).",
     col_raw_badge: "Sources Brutes [x] Sources Brutes",
     col_raw_desc: "Affiche les notes scientifiques brutes sans pondération : OpenLLM 2, SWE-Bench (résolution de bugs logiciels), Agentic/BFCL (appels d'outils) et MMLU-PRO (raisonnement complexe).",
-    btn_try_cols: "Essayer dans le Tableau",
+    btn_try_cols: "Voir dans le Classement",
 
     filters_guide_title: "Maîtriser les Filtres & la Fiabilité",
     filters_guide_desc: "Affinez vos recherches et sécurisez vos choix matériels avec les filtres avancés :",
@@ -54,15 +54,15 @@ pub const FR_TUTORIAL_GUIDE: TutorialGuideTranslations = TutorialGuideTranslatio
 };
 
 pub const EN_TUTORIAL_GUIDE: TutorialGuideTranslations = TutorialGuideTranslations {
-    table_guide_title: "Understanding the Table & Columns",
-    table_guide_desc: "The comparison table provides 3 levels of granularity tailored to your analysis needs:",
+    table_guide_title: "Understanding Model Rankings & Columns",
+    table_guide_desc: "The model benchmark leaderboard provides 3 levels of granularity tailored to your analysis needs:",
     col_essential_badge: "Essential View (Default)",
     col_essential_desc: "The 7 indispensable metrics: Rank (#), Model Name, Target Hardware (VRAM tier), Size (GB), Unified Calibrated Score (0-100), Measured Throughput (tok/s), and Cloud API Price ($/1M tokens).",
     col_adv_badge: "Advanced Columns [x] Advanced",
     col_adv_desc: "Reveals 4 deep-dive columns: Release Year, Efficiency (intelligence points per GB of RAM), Real-World / Economic Value (RLI & SWE-Lancer field tasks), and Popularity (downloads).",
     col_raw_badge: "Raw Benchmark Sources [x] Raw Sources",
     col_raw_desc: "Displays unweighted raw scientific scores directly from benchmark suites: OpenLLM 2, SWE-Bench (software bug resolving), Agentic/BFCL (tool calling), and MMLU-PRO (complex reasoning).",
-    btn_try_cols: "Try in Table",
+    btn_try_cols: "View in Leaderboard",
 
     filters_guide_title: "Mastering Filters & Reliability",
     filters_guide_desc: "Refine your searches and safe-guard your hardware deployment using advanced filters:",
