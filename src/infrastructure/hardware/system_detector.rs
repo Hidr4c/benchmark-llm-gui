@@ -42,8 +42,12 @@ impl SystemHardwareDetector {
 
     #[cfg(target_os = "windows")]
     fn query_registry_string(key: &str, value_name: &str) -> Option<String> {
-        let output = Command::new("reg")
-            .args(["query", key, "/v", value_name])
+        #[cfg(target_os = "windows")]
+        use std::os::windows::process::CommandExt;
+        let mut cmd = Command::new("reg");
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(0x08000000);
+        let output = cmd.args(["query", key, "/v", value_name])
             .output()
             .ok()?;
 
@@ -85,8 +89,12 @@ impl SystemHardwareDetector {
 
     #[cfg(target_os = "windows")]
     fn query_registry_qw_vram(key: &str) -> Option<f32> {
-        let output = Command::new("reg")
-            .args(["query", key, "/v", "HardwareInformation.qwMemorySize"])
+        #[cfg(target_os = "windows")]
+        use std::os::windows::process::CommandExt;
+        let mut cmd = Command::new("reg");
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(0x08000000);
+        let output = cmd.args(["query", key, "/v", "HardwareInformation.qwMemorySize"])
             .output()
             .ok()?;
 
@@ -112,22 +120,39 @@ impl SystemHardwareDetector {
 
     #[cfg(target_os = "windows")]
     fn query_windows_ram() -> Option<f32> {
-        let output = Command::new("powershell")
-            .args([
-                "-NoProfile",
-                "-NonInteractive",
-                "-Command",
-                "[math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 1)",
-            ])
-            .output()
-            .ok()?;
+        #[repr(C)]
+        struct MemoryStatusEx {
+            dw_length: u32,
+            dw_memory_load: u32,
+            ull_total_phys: u64,
+            ull_avail_phys: u64,
+            ull_total_page_file: u64,
+            ull_avail_page_file: u64,
+            ull_total_virtual: u64,
+            ull_avail_virtual: u64,
+            ull_avail_extended_virtual: u64,
+        }
 
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let cleaned = stdout.trim().replace(',', ".");
-            if let Ok(ram) = cleaned.parse::<f32>() {
-                return Some(ram);
-            }
+        unsafe extern "system" {
+            fn GlobalMemoryStatusEx(lp_buffer: *mut MemoryStatusEx) -> i32;
+        }
+
+        let mut mem = MemoryStatusEx {
+            dw_length: std::mem::size_of::<MemoryStatusEx>() as u32,
+            dw_memory_load: 0,
+            ull_total_phys: 0,
+            ull_avail_phys: 0,
+            ull_total_page_file: 0,
+            ull_avail_page_file: 0,
+            ull_total_virtual: 0,
+            ull_avail_virtual: 0,
+            ull_avail_extended_virtual: 0,
+        };
+
+        let ok = unsafe { GlobalMemoryStatusEx(&mut mem) };
+        if ok != 0 {
+            let gb = mem.ull_total_phys as f64 / (1024.0 * 1024.0 * 1024.0);
+            return Some((gb * 10.0).round() as f32 / 10.0);
         }
         None
     }
