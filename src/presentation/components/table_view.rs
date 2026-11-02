@@ -75,26 +75,13 @@ pub fn render_table(
                 table = table.column(column_spec(col));
             }
 
-            table.header(52.0, |mut header| {
+            table.header(50.0, |mut header| {
                 for &col in &visible_cols {
                     header.col(|ui| {
-                        if col == TableColumnId::Model {
-                            ui.horizontal(|ui| {
-                                let (label, sf, def_order) = column_header_info(col, lang);
-                                render_header_cell(ui, col, label, sf, def_order, filters, lang);
-                                let folder_icon = if filters.group_by_root { "[+]" } else { "[-]" };
-                                let folder_resp = ui.small_button(folder_icon).on_hover_text(t.group_tooltip);
-                                ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_grouped"), folder_resp.rect));
-                                if folder_resp.clicked() {
-                                    filters.group_by_root = !filters.group_by_root;
-                                }
-                            });
-                        } else {
-                            let (label, sf, def_order) = column_header_info(col, lang);
-                            let resp = render_header_cell(ui, col, label, sf, def_order, filters, lang);
-                            if col == TableColumnId::Score {
-                                resp.on_hover_text(lang.confidence().col_tooltip);
-                            }
+                        let (label, sf, def_order) = column_header_info(col, lang);
+                        let resp = render_header_cell(ui, col, label, sf, def_order, filters, lang);
+                        if col == TableColumnId::Score {
+                            resp.on_hover_text(lang.confidence().col_tooltip);
                         }
                     });
                 }
@@ -134,21 +121,21 @@ pub fn render_table(
 
 fn column_spec(col: TableColumnId) -> Column {
     match col {
-        TableColumnId::Rank => Column::exact(64.0),
+        TableColumnId::Rank => Column::exact(64.0).clip(true),
         TableColumnId::Model => Column::initial(220.0).at_least(160.0).clip(true),
-        TableColumnId::Year => Column::exact(68.0),
-        TableColumnId::TargetHardware => Column::initial(135.0).at_least(105.0),
-        TableColumnId::Size => Column::initial(80.0).at_least(65.0),
-        TableColumnId::Efficiency => Column::initial(95.0).at_least(80.0),
-        TableColumnId::Score => Column::initial(120.0).at_least(100.0),
-        TableColumnId::RealWorld => Column::initial(125.0).at_least(100.0),
-        TableColumnId::Speed => Column::initial(110.0).at_least(90.0),
-        TableColumnId::Popularity => Column::initial(90.0).at_least(75.0),
+        TableColumnId::Year => Column::exact(68.0).clip(true),
+        TableColumnId::TargetHardware => Column::initial(135.0).at_least(105.0).clip(true),
+        TableColumnId::Size => Column::initial(80.0).at_least(65.0).clip(true),
+        TableColumnId::Efficiency => Column::initial(95.0).at_least(80.0).clip(true),
+        TableColumnId::Score => Column::initial(120.0).at_least(100.0).clip(true),
+        TableColumnId::RealWorld => Column::initial(125.0).at_least(100.0).clip(true),
+        TableColumnId::Speed => Column::initial(110.0).at_least(90.0).clip(true),
+        TableColumnId::Popularity => Column::initial(90.0).at_least(75.0).clip(true),
         TableColumnId::MmluPro
         | TableColumnId::SweBench
         | TableColumnId::Agentic
-        | TableColumnId::OpenLlm => Column::initial(80.0).at_least(65.0),
-        TableColumnId::CloudPrice => Column::initial(115.0).at_least(90.0),
+        | TableColumnId::OpenLlm => Column::initial(80.0).at_least(65.0).clip(true),
+        TableColumnId::CloudPrice => Column::initial(115.0).at_least(90.0).clip(true),
     }
 }
 

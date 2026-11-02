@@ -47,28 +47,11 @@ impl TableColumnId {
     }
 
     pub fn default_operator(&self) -> FilterOperator {
-        match self {
-            TableColumnId::Rank | TableColumnId::Size | TableColumnId::CloudPrice => FilterOperator::LessEqual,
-            TableColumnId::Score | TableColumnId::Speed | TableColumnId::Efficiency | TableColumnId::RealWorld => FilterOperator::GreaterEqual,
-            _ => FilterOperator::Contains,
-        }
+        FilterOperator::Contains
     }
 
     pub fn placeholder(&self) -> &'static str {
-        match self {
-            TableColumnId::Rank => "<= 10",
-            TableColumnId::Model => "qwen...",
-            TableColumnId::Year => "2025",
-            TableColumnId::TargetHardware => "GPU...",
-            TableColumnId::Size => "<= 16 Go",
-            TableColumnId::Efficiency => ">= 20",
-            TableColumnId::Score => ">= 75",
-            TableColumnId::RealWorld => ">= 50",
-            TableColumnId::Speed => ">= 60",
-            TableColumnId::Popularity => ">= 1000",
-            TableColumnId::MmluPro | TableColumnId::SweBench | TableColumnId::Agentic | TableColumnId::OpenLlm => ">= 60",
-            TableColumnId::CloudPrice => "<= 1.0$",
-        }
+        "..."
     }
 
     pub fn is_advanced(&self) -> bool {

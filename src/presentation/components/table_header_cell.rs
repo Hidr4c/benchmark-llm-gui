@@ -28,34 +28,56 @@ pub fn render_header_cell(
     let has_filter = filters.table_prefs.has_active_filter(col_id);
 
     ui.vertical(|ui| {
-        // --- Row 1: Column Title & Sort Button ---
-        let mut title_text = egui::RichText::new(format!("{label}{arrow}"));
-        if has_filter {
-            title_text = title_text.color(ThemeTokens::CYAN_EDGE).strong();
-        } else if is_sorted {
-            title_text = title_text.color(ThemeTokens::GOLD_5090).strong();
-        }
+        ui.spacing_mut().item_spacing = egui::vec2(0.0, 2.0);
 
-        let title_btn = ui.add(egui::Button::new(title_text).frame(false));
-        let title_btn = title_btn.on_hover_text("Clic gauche pour trier | Clic droit pour options & sélecteur de colonnes");
+        // --- Row 1: Column Title & Sort Button (Fixed Height 22.0px) ---
+        let title_resp = ui.allocate_ui_with_layout(
+            egui::vec2(ui.available_width(), 22.0),
+            egui::Layout::left_to_right(egui::Align::Center),
+            |ui| {
+                ui.spacing_mut().item_spacing = egui::vec2(3.0, 0.0);
 
-        if title_btn.clicked() {
-            if let Some(sf) = sort_field {
-                if filters.sort_field == sf {
-                    filters.sort_order = match filters.sort_order {
-                        SortOrder::Ascending => SortOrder::Descending,
-                        SortOrder::Descending => SortOrder::Ascending,
-                    };
-                } else {
-                    filters.sort_field = sf;
-                    filters.sort_order = default_order;
+                let mut title_text = egui::RichText::new(format!("{label}{arrow}")).size(12.0);
+                if has_filter {
+                    title_text = title_text.color(ThemeTokens::CYAN_EDGE).strong();
+                } else if is_sorted {
+                    title_text = title_text.color(ThemeTokens::GOLD_5090).strong();
                 }
-                filters.table_prefs.sort_field = filters.sort_field;
-                filters.table_prefs.sort_order = filters.sort_order;
-            }
-        }
 
-        // --- Row 2: Continuous Inline Filter ---
+                let btn = ui.add(egui::Button::new(title_text).frame(false));
+                let btn = btn.on_hover_text("Clic gauche pour trier | Clic droit pour options & sélecteur de colonnes");
+
+                if btn.clicked() {
+                    if let Some(sf) = sort_field {
+                        if filters.sort_field == sf {
+                            filters.sort_order = match filters.sort_order {
+                                SortOrder::Ascending => SortOrder::Descending,
+                                SortOrder::Descending => SortOrder::Ascending,
+                            };
+                        } else {
+                            filters.sort_field = sf;
+                            filters.sort_order = default_order;
+                        }
+                        filters.table_prefs.sort_field = filters.sort_field;
+                        filters.table_prefs.sort_order = filters.sort_order;
+                    }
+                }
+
+                // If this is the Model column, place group [+] / [-] button directly on the title row
+                if col_id == TableColumnId::Model {
+                    let folder_icon = if filters.group_by_root { "[+]" } else { "[-]" };
+                    let folder_resp = ui.small_button(folder_icon).on_hover_text(t.group_tooltip);
+                    ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_grouped"), folder_resp.rect));
+                    if folder_resp.clicked() {
+                        filters.group_by_root = !filters.group_by_root;
+                    }
+                }
+
+                btn
+            },
+        ).inner;
+
+        // --- Row 2: Continuous Inline Filter (Fixed Height 22.0px) ---
         let default_op = col_id.default_operator();
         let cf = filters.table_prefs.column_filters.entry(col_id).or_insert_with(|| ColumnFilter {
             operator: default_op,
@@ -63,52 +85,56 @@ pub fn render_header_cell(
             active: false,
         });
 
-        ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
+        ui.allocate_ui_with_layout(
+            egui::vec2(ui.available_width(), 22.0),
+            egui::Layout::left_to_right(egui::Align::Center),
+            |ui| {
+                ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
 
-            // Operator selector button
-            let op_btn_text = egui::RichText::new(cf.operator.symbol())
-                .size(10.5)
-                .color(if cf.active { ThemeTokens::CYAN_EDGE } else { ThemeTokens::TEXT_MUTED });
+                // Operator selector button
+                let op_btn_text = egui::RichText::new(cf.operator.symbol())
+                    .size(11.0)
+                    .color(if cf.active { ThemeTokens::CYAN_EDGE } else { ThemeTokens::TEXT_MUTED });
 
-            ui.menu_button(op_btn_text, |ui| {
-                ui.set_min_width(180.0);
-                ui.label(egui::RichText::new(t.table_menu.menu_operator_label).size(10.5).color(ThemeTokens::TEXT_MUTED));
-                ui.separator();
-                for &op in FilterOperator::all() {
-                    let label = format!("{:>3}  {}", op.symbol(), operator_label(op, lang));
-                    if ui.selectable_value(&mut cf.operator, op, label).clicked() {
-                        cf.active = !cf.pattern.trim().is_empty();
-                        ui.close_menu();
+                ui.menu_button(op_btn_text, |ui| {
+                    ui.set_min_width(180.0);
+                    ui.label(egui::RichText::new(t.table_menu.menu_operator_label).size(10.5).color(ThemeTokens::TEXT_MUTED));
+                    ui.separator();
+                    for &op in FilterOperator::all() {
+                        let label = format!("{:>3}  {}", op.symbol(), operator_label(op, lang));
+                        if ui.selectable_value(&mut cf.operator, op, label).clicked() {
+                            cf.active = !cf.pattern.trim().is_empty();
+                            ui.close_menu();
+                        }
+                    }
+                }).response.on_hover_text(format!("Règle : {} (Cliquer pour changer)", operator_label(cf.operator, lang)));
+
+                // Input field: always reserve 18px for clear button so column width never oscillates!
+                let edit_w = (ui.available_width() - 18.0).max(18.0);
+                let text_edit = ui.add_sized(
+                    [edit_w, 18.0],
+                    egui::TextEdit::singleline(&mut cf.pattern)
+                        .hint_text("...")
+                        .clip_text(true)
+                        .font(egui::TextStyle::Small),
+                );
+
+                if text_edit.changed() {
+                    cf.active = !cf.pattern.trim().is_empty();
+                }
+
+                // Quick clear button
+                if !cf.pattern.is_empty() {
+                    if ui.small_button("×").on_hover_text("Effacer le filtre").clicked() {
+                        cf.pattern.clear();
+                        cf.active = false;
                     }
                 }
-            }).response.on_hover_text(format!("Règle : {} (Cliquer pour changer)", operator_label(cf.operator, lang)));
-
-            // Input field
-            let hint = col_id.placeholder();
-            let edit_w = (ui.available_width() - if !cf.pattern.is_empty() { 18.0 } else { 0.0 }).max(35.0);
-            let text_edit = ui.add(
-                egui::TextEdit::singleline(&mut cf.pattern)
-                    .hint_text(hint)
-                    .desired_width(edit_w)
-                    .font(egui::TextStyle::Small)
-            );
-
-            if text_edit.changed() {
-                cf.active = !cf.pattern.trim().is_empty();
-            }
-
-            // Quick clear button
-            if !cf.pattern.is_empty() {
-                if ui.small_button("×").on_hover_text("Effacer le filtre").clicked() {
-                    cf.pattern.clear();
-                    cf.active = false;
-                }
-            }
-        });
+            },
+        );
 
         // Context Menu (Right Click on Title/Cell)
-        title_btn.context_menu(|ui| {
+        title_resp.context_menu(|ui| {
             ui.set_min_width(220.0);
 
             // Column Chooser
@@ -179,7 +205,7 @@ pub fn render_header_cell(
             }
         });
 
-        title_btn
+        title_resp
     }).inner
 }
 
