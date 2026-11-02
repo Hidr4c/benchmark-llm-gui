@@ -1,5 +1,6 @@
 use eframe::egui;
 use crate::presentation::components::top_bar::AppTab;
+use crate::presentation::components::tour_feedback::{get_callout_label, render_transition_feedback};
 use crate::presentation::components::tour_quest_log::render_quest_log;
 use crate::presentation::components::tour_spotlight::TourSpotlight;
 pub use crate::presentation::components::tour_state::TourState;
@@ -25,20 +26,15 @@ pub fn render_tour_overlay(
 
     ctx.request_repaint();
 
-    // Render optional Guide Summary checklist (only when explicitly opened)
     render_quest_log(ctx, state, lang);
 
     let t = lang.t();
-    let total_steps = 7;
+    let total_steps = 9;
     let dt = ctx.input(|i| i.stable_dt).min(0.1);
 
-    // Update action observation timer before auto-advancing
     state.update_transition(dt, total_steps);
-
-    // Gamified Auto-Advance: Detect when user interacts with the targeted widget
     state.check_and_update_progress(filters, selected_model_id, total_steps);
 
-    // Advance autoplay timer
     if state.auto_play && state.transition_timer.is_none() {
         state.timer += dt;
         if state.timer >= 7.5 {
@@ -60,7 +56,7 @@ pub fn render_tour_overlay(
         1 => (
             AppTab::Table,
             egui::Id::new("tour_target_detect"),
-            egui::Id::new("tour_result_detect"),
+            egui::Id::new("tour_target_hardware"),
             ThemeTokens::CYAN_EDGE,
             t.tour_s2_title,
             t.tour_s2_desc,
@@ -79,6 +75,16 @@ pub fn render_tour_overlay(
         ),
         3 => (
             AppTab::Table,
+            egui::Id::new("tour_target_adv_cols"),
+            egui::Id::new("tour_result_table_rows"),
+            ThemeTokens::CYAN_EDGE,
+            t.tut_guide.tour_s3b_title,
+            t.tut_guide.tour_s3b_desc,
+            t.tut_guide.tour_s3b_action,
+            t.tut_guide.tour_s3b_target,
+        ),
+        4 => (
+            AppTab::Table,
             egui::Id::new("tour_target_grouped"),
             egui::Id::new("tour_result_grouped"),
             ThemeTokens::CYAN_EDGE,
@@ -87,7 +93,7 @@ pub fn render_tour_overlay(
             t.tour_s4_action,
             t.tour_s4_target,
         ),
-        4 => (
+        5 => (
             AppTab::Table,
             egui::Id::new("tour_target_model_name"),
             egui::Id::new("tour_result_detail_panel"),
@@ -97,7 +103,7 @@ pub fn render_tour_overlay(
             t.tour_s5_action,
             t.tour_s5_target,
         ),
-        5 => (
+        6 => (
             AppTab::Graph,
             egui::Id::new("tour_target_recenter_btn"),
             egui::Id::new("tour_result_graph_plot"),
@@ -107,15 +113,25 @@ pub fn render_tour_overlay(
             t.tour_s6_action,
             t.tour_s6_target,
         ),
-        _ => (
-            AppTab::Simulator,
-            egui::Id::new("tour_target_sim_gpu"),
-            egui::Id::new("tour_result_sim_kpi"),
+        7 => (
+            AppTab::Comparator,
+            egui::Id::new("tour_target_comp_header"),
+            egui::Id::new("tour_result_comp_bars"),
             ThemeTokens::CYAN_EDGE,
             t.tour_s7_title,
             t.tour_s7_desc,
             t.tour_s7_action,
             t.tour_s7_target,
+        ),
+        _ => (
+            AppTab::Simulator,
+            egui::Id::new("tour_target_sim_gpu"),
+            egui::Id::new("tour_result_sim_kpi"),
+            ThemeTokens::CYAN_EDGE,
+            t.tour_s8_title,
+            t.tour_s8_desc,
+            t.tour_s8_action,
+            t.tour_s8_target,
         ),
     };
 
@@ -150,27 +166,19 @@ pub fn render_tour_overlay(
                 .stroke(egui::Stroke::new(2.0, accent))
                 .inner_margin(14.0)
                 .rounding(10.0)
-                .shadow(egui::epaint::Shadow {
-                    offset: egui::vec2(0.0, 8.0),
-                    blur: 20.0,
-                    spread: 2.0,
-                    color: egui::Color32::from_black_alpha(200),
-                })
         )
         .show(ctx, |ui| {
             ui.set_width(card_w);
             ui.vertical(|ui| {
-                // Header: Drag grip, Step badge, localized title, target badge, close cross
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("⠿").color(ThemeTokens::TEXT_SECONDARY).size(14.0))
-                        .on_hover_text("Faites glisser pour déplacer cette boîte de dialogue");
-                    let step_badge = format!("🎬 {} {} / {} :", t.tour_step_prefix, state.current_step + 1, total_steps);
+                    ui.label(egui::RichText::new("[::]").color(ThemeTokens::TEXT_SECONDARY).size(13.0));
+                    let step_badge = format!("{} {} / {} :", t.tour_step_prefix, state.current_step + 1, total_steps);
                     ui.label(egui::RichText::new(step_badge).strong().color(ThemeTokens::GOLD_5090).size(13.5));
                     ui.label(egui::RichText::new(title).strong().color(ThemeTokens::TEXT_PRIMARY).size(14.0));
 
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         let close_btn = egui::Button::new(
-                            egui::RichText::new("×").size(16.0).strong().color(ThemeTokens::TEXT_SECONDARY),
+                            egui::RichText::new("X").size(13.0).strong().color(ThemeTokens::TEXT_SECONDARY),
                         )
                         .fill(egui::Color32::from_rgb(26, 32, 46))
                         .rounding(4.0);
@@ -183,9 +191,8 @@ pub fn render_tour_overlay(
 
                 ui.add_space(6.0);
 
-                // Action Directive Banner OR Rich Observation Confirmation Banner
                 if state.transition_timer.is_some() {
-                    crate::presentation::components::tour_feedback::render_transition_feedback(
+                    render_transition_feedback(
                         ui, state, filters, selected_model_id, detected_hardware, all_models, matching_count, total_count, lang, total_steps,
                     );
                 } else {
@@ -198,6 +205,12 @@ pub fn render_tour_overlay(
                             ui.horizontal(|ui| {
                                 ui.label(egui::RichText::new(t.tour_action_label).strong().color(accent).size(12.5));
                                 ui.label(egui::RichText::new(action_hint).color(ThemeTokens::TEXT_PRIMARY).strong().size(12.5));
+
+                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                    if ui.button(egui::RichText::new(t.tour_validate_btn).strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
+                                        state.validate_current_step();
+                                    }
+                                });
                             });
                         });
                 }
@@ -206,14 +219,13 @@ pub fn render_tour_overlay(
                 ui.label(egui::RichText::new(desc).color(ThemeTokens::TEXT_SECONDARY).size(12.0));
 
                 ui.add_space(8.0);
-                // Bottom Navigation Toolbar
                 ui.horizontal(|ui| {
                     let can_prev = state.current_step > 0;
                     if ui.add_enabled(can_prev, egui::Button::new(t.tour_prev)).clicked() {
                         state.prev();
                     }
 
-                    let next_lbl = if state.current_step + 1 < total_steps { t.tour_next } else { "🏁 Terminer" };
+                    let next_lbl = if state.current_step + 1 < total_steps { t.tour_next } else { "Terminer" };
                     if ui.button(egui::RichText::new(next_lbl).strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
                         state.next(total_steps);
                     }
@@ -230,9 +242,8 @@ pub fn render_tour_overlay(
                         state.timer = 0.0;
                     }
 
-                    // Interactive Guide Summary toggle and step progress indicator
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        let guide_lbl = format!("{} ({}/7)", t.tour_guide_btn, state.completed_count());
+                        let guide_lbl = format!("{} ({}/{})", t.tour_guide_btn, state.completed_count(), total_steps);
                         let guide_btn = egui::Button::new(
                             egui::RichText::new(guide_lbl)
                                 .color(if state.show_guide_summary { ThemeTokens::GOLD_5090 } else { ThemeTokens::CYAN_EDGE })
@@ -252,43 +263,4 @@ pub fn render_tour_overlay(
                 });
             });
         });
-}
-
-fn get_callout_label(step: usize, is_result: bool, lang: Language) -> &'static str {
-    match lang {
-        Language::French => match (step, is_result) {
-            (0, false) => "👉 Cliquez ici : choisissez 'Modèles Locaux'",
-            (0, true) => "👇 Regardez le tableau : modèles locaux affichés !",
-            (1, false) => "👉 Cliquez sur [ Détecter mon PC ]",
-            (1, true) => "👆 Matériel détecté : CPU, RAM et GPU profilés !",
-            (2, false) => "👉 Sélectionnez votre palier VRAM",
-            (2, true) => "👇 Modèles compatibles avec votre budget mémoire !",
-            (3, false) => "👉 Cliquez sur le dossier pour grouper",
-            (3, true) => "👉 Variantes repliées : cliquez sur [▶] !",
-            (4, false) => "👉 Cliquez sur le nom d'un modèle",
-            (4, true) => "👇 Fiche détaillée ouverte en bas !",
-            (5, false) => "👉 Cliquez sur [ 🎯 Recentrer ]",
-            (5, true) => "👉 Courbe de Pareto : modèles champions !",
-            (6, false) => "👉 Changez de GPU dans la liste",
-            (6, true) => "👉 Verdict simulateur : risque de crash OOM !",
-            _ => "Regardez ici",
-        },
-        Language::English => match (step, is_result) {
-            (0, false) => "👉 Click here: select 'Local Models'",
-            (0, true) => "👇 Local models displayed in table!",
-            (1, false) => "👉 Click [ Auto-Detect PC ]",
-            (1, true) => "👆 Hardware detected: CPU, RAM & GPU profiled!",
-            (2, false) => "👉 Select your VRAM budget tier",
-            (2, true) => "👇 Filtered models fitting your memory!",
-            (3, false) => "👉 Click folder icon to group variants",
-            (3, true) => "👉 Collapsed variants: click [▶]!",
-            (4, false) => "👉 Click on any model name",
-            (4, true) => "👇 Detail panel opened below!",
-            (5, false) => "👉 Click [ 🎯 Recenter ]",
-            (5, true) => "👉 Pareto frontier: peak value models!",
-            (6, false) => "👉 Switch GPU tier in dropdown",
-            (6, true) => "👉 Simulator verdict: real-time OOM risk!",
-            _ => "Look here",
-        },
-    }
 }

@@ -1,4 +1,3 @@
-use benchmark_llm_gui::presentation::components::top_bar::AppTab;
 use benchmark_llm_gui::presentation::components::tour_overlay::TourState;
 use benchmark_llm_gui::presentation::i18n::Language;
 
@@ -15,7 +14,7 @@ fn test_tour_state_lifecycle_and_navigation() {
     assert!(!tour.auto_play);
 
     // Next step
-    tour.next(7);
+    tour.next(8);
     assert_eq!(tour.current_step, 1);
 
     // Prev step
@@ -28,12 +27,12 @@ fn test_tour_state_lifecycle_and_navigation() {
     tour.jump_to(5);
     assert_eq!(tour.current_step, 5);
 
-    // Jump clamp to max step
+    // Jump clamp to max step (9 steps -> index 8)
     tour.jump_to(99);
-    assert_eq!(tour.current_step, 6);
+    assert_eq!(tour.current_step, 8);
 
     // Reaching end terminates tour
-    tour.next(7);
+    tour.next(9);
     assert!(!tour.is_active);
 }
 
@@ -54,39 +53,50 @@ fn test_tour_autoplay_mode() {
 fn test_tour_guide_and_gamified_progress() {
     let mut tour = TourState::default();
     tour.start();
-    // Guide summary is closed by default to prevent masking the table content
     assert!(!tour.show_guide_summary);
     tour.show_guide_summary = true;
     assert!(tour.show_guide_summary);
+
+    // Verify initial completed count
     assert_eq!(tour.completed_count(), 0);
 
-    // Auto detect trigger -> sets transition timer
-    tour.jump_to(1);
+    // Trigger action on step 1 (Auto-Detect)
+    tour.current_step = 1;
     tour.on_auto_detect_clicked();
     assert!(tour.completed_steps[1]);
-    assert!(tour.transition_timer.is_some());
-
-    // Advancing through transition
-    tour.update_transition(4.0, 7);
-    assert!(tour.transition_timer.is_none());
-    assert_eq!(tour.current_step, 2);
     assert_eq!(tour.completed_count(), 1);
-
-    // Next step marks current as completed
-    tour.next(7);
-    assert!(tour.completed_steps[2]);
-    assert_eq!(tour.current_step, 3);
-    assert_eq!(tour.completed_count(), 2);
+    assert!(tour.transition_timer.is_some());
+    assert_eq!(tour.transition_feedback.as_deref(), Some("Detection materielle reussie !"));
 }
 
 #[test]
 fn test_tutorial_tab_localization() {
-    let tab = AppTab::Tutorial;
-    let fr_label = tab.label(Language::French);
-    let en_label = tab.label(Language::English);
+    let t_fr = Language::French.t();
+    let t_en = Language::English.t();
 
-    assert!(fr_label.contains("Tutoriel") || fr_label.contains("Guide"));
-    assert!(en_label.contains("Tutorial") || en_label.contains("Guide"));
+    assert_eq!(t_fr.tab_tutorial, "Guide & Tutoriels");
+    assert_eq!(t_en.tab_tutorial, "Guide & Tutorials");
+
+    assert!(!t_fr.tut_hero_title.is_empty());
+    assert!(!t_en.tut_hero_title.is_empty());
+    assert!(!t_fr.tour_s7_title.is_empty());
+    assert!(!t_en.tour_s7_title.is_empty());
+    assert!(!t_fr.tour_s8_title.is_empty());
+    assert!(!t_en.tour_s8_title.is_empty());
+
+    // Tutorial Guide Sections Verification
+    assert_eq!(t_fr.tut_guide.table_guide_title, "Comprendre le Tableau & les Colonnes");
+    assert_eq!(t_en.tut_guide.table_guide_title, "Understanding the Table & Columns");
+    assert!(!t_fr.tut_guide.col_essential_desc.is_empty());
+    assert!(!t_en.tut_guide.col_essential_desc.is_empty());
+    assert!(!t_fr.tut_guide.col_adv_desc.is_empty());
+    assert!(!t_en.tut_guide.col_adv_desc.is_empty());
+    assert!(!t_fr.tut_guide.col_raw_desc.is_empty());
+    assert!(!t_en.tut_guide.col_raw_desc.is_empty());
+    assert_eq!(t_fr.tut_guide.filters_guide_title, "Maîtriser les Filtres & la Fiabilité");
+    assert_eq!(t_en.tut_guide.filters_guide_title, "Mastering Filters & Reliability");
+    assert!(!t_fr.tut_guide.filter_ram_desc.is_empty());
+    assert!(!t_fr.tut_guide.filter_rel_desc.is_empty());
 }
 
 #[test]
@@ -102,31 +112,29 @@ fn test_stable_hierarchical_sub_ranking() {
     ];
     let indices = vec![0, 1, 2];
 
-    // 1. Grouped mode: GPT 6.1 is folded (#1), Claude Sonnet is #2
     let mut filters = FilterState::default();
     filters.group_by_root = true;
     let items_grouped = build_display_items(&models, &indices, &filters);
     assert_eq!(items_grouped.len(), 2);
-    assert_eq!(items_grouped[0].rank_str, "🥇 1");
-    assert_eq!(items_grouped[1].rank_str, "🥈 2");
+    assert_eq!(items_grouped[0].rank_str, "#1");
+    assert_eq!(items_grouped[1].rank_str, "#2");
 
-    // 2. Ungrouped mode: GPT 6.1 variants are #1.1 and #1.2, Claude Sonnet STAYS #2!
     filters.group_by_root = false;
     let items_flat = build_display_items(&models, &indices, &filters);
     assert_eq!(items_flat.len(), 3);
     assert_eq!(items_flat[0].rank_str, "#1.1");
     assert_eq!(items_flat[1].rank_str, "#1.2");
-    assert_eq!(items_flat[2].rank_str, "🥈 2"); // Claude Sonnet never jumps to #3!
+    assert_eq!(items_flat[2].rank_str, "#2");
 }
 
 #[test]
 fn test_tour_end_to_end_walkthrough_flow() {
-    use benchmark_llm_gui::domain::hardware::HardwarePlatform;
     use benchmark_llm_gui::presentation::filtering::{FilterState, ModelScope};
+    use benchmark_llm_gui::domain::hardware::HardwarePlatform;
 
     let mut tour = TourState::default();
     let mut filters = FilterState::default();
-    let total_steps = 7;
+    let total_steps = 9;
 
     tour.start();
     assert!(tour.is_active);
@@ -154,66 +162,89 @@ fn test_tour_end_to_end_walkthrough_flow() {
     tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 3);
 
-    // Step 3: User toggles root model group folder
+    // Step 3: User toggles Advanced Columns checkbox
     tour.check_and_update_progress(&filters, None, total_steps);
-    filters.group_by_root = !filters.group_by_root;
+    filters.show_advanced_columns = true;
     assert!(tour.check_and_update_progress(&filters, None, total_steps));
     assert!(tour.completed_steps[3]);
     tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 4);
 
-    // Step 4: User clicks a model in table
+    // Step 4: User toggles root model group folder
     tour.check_and_update_progress(&filters, None, total_steps);
-    assert!(tour.check_and_update_progress(&filters, Some("test/model-1"), total_steps));
+    filters.group_by_root = !filters.group_by_root;
+    assert!(tour.check_and_update_progress(&filters, None, total_steps));
     assert!(tour.completed_steps[4]);
     tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 5);
 
-    // Step 5: User clicks Recenter on Graph
-    tour.on_recenter_clicked();
+    // Step 5: User clicks a model in table
+    tour.check_and_update_progress(&filters, None, total_steps);
+    assert!(tour.check_and_update_progress(&filters, Some("test/model-1"), total_steps));
     assert!(tour.completed_steps[5]);
     tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 6);
 
-    // Step 6: User changes GPU in Simulator
+    // Step 6: User clicks Recenter on Graph
+    tour.on_recenter_clicked();
+    assert!(tour.completed_steps[6]);
+    tour.update_transition(4.0, total_steps);
+    assert_eq!(tour.current_step, 7);
+
+    // Step 7: User selects models in Comparator Face-à-Face
+    tour.check_and_update_comp_progress(&[Some("qwen-7b".into()), None]);
+    assert!(tour.completed_steps[7]);
+    tour.update_transition(4.0, total_steps);
+    assert_eq!(tour.current_step, 8);
+
+    // Step 8: User changes GPU in Simulator
     let mut sim_config = benchmark_llm_gui::domain::simulator::HardwareRigConfig::default();
     tour.check_and_update_sim_progress(&sim_config);
     sim_config.gpu = benchmark_llm_gui::domain::simulator::GpuTier::Rtx4090_24G;
     tour.check_and_update_sim_progress(&sim_config);
-    assert!(tour.completed_steps[6]);
+    assert!(tour.completed_steps[8]);
     tour.update_transition(4.0, total_steps);
-    assert!(!tour.is_active, "Tour must be closed upon completing step 7");
-    assert_eq!(tour.completed_count(), 7, "All 7 steps must be marked as completed");
+    assert!(!tour.is_active, "Tour must be closed upon completing step 9");
+    assert_eq!(tour.completed_count(), 9, "All 9 steps must be marked as completed");
+}
+
+#[test]
+fn test_tour_manual_validation_for_preselected_states() {
+    let mut tour = TourState::default();
+    tour.start();
+    assert_eq!(tour.current_step, 0);
+
+    // When option is already selected, user clicks manual validation button
+    tour.validate_current_step();
+    assert!(tour.completed_steps[0]);
+    assert!(tour.transition_timer.is_some());
+    tour.update_transition(4.0, 9);
+    assert_eq!(tour.current_step, 1);
 }
 
 #[test]
 fn test_tour_step4_raw_sources_and_global_mode_compatibility() {
-    use benchmark_llm_gui::presentation::filtering::{FilterState, TableColumnMode};
+    use benchmark_llm_gui::presentation::filtering::FilterState;
 
     let mut tour = TourState::default();
     let mut filters = FilterState::default();
-    let total_steps = 7;
+    let total_steps = 9;
 
-    // Start tour and jump directly to Step 4 (index 3)
     tour.start();
     tour.jump_to(3);
     assert_eq!(tour.current_step, 3);
 
-    // Verify under RawBenchmarkSources mode
-    filters.column_mode = TableColumnMode::RawBenchmarkSources;
-    assert_eq!(filters.group_by_root, true);
-
-    // Initial check
     tour.check_and_update_progress(&filters, None, total_steps);
     assert!(!tour.completed_steps[3]);
 
-    // Toggling root grouping in raw sources mode triggers completion and transition
-    filters.group_by_root = false;
+    filters.show_raw_sources = true;
     assert!(tour.check_and_update_progress(&filters, None, total_steps));
     assert!(tour.completed_steps[3]);
     assert!(tour.transition_timer.is_some());
 
-    // Advance through observation pause
+    // When jumped to, tour is paused to allow reading; resume to advance transition
+    assert!(tour.is_paused);
+    tour.is_paused = false;
     tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 4);
     assert_eq!(tour.transition_timer, None);

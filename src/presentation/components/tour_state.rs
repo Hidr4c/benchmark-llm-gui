@@ -1,17 +1,23 @@
 use crate::domain::hardware::HardwarePlatform;
 use crate::presentation::filtering::{FilterState, ModelScope};
 
+pub const TOUR_TOTAL_STEPS: usize = 9;
+
 pub struct TourState {
     pub is_active: bool,
     pub current_step: usize,
     pub auto_play: bool,
+    pub is_paused: bool,
     pub timer: f32,
     pub show_guide_summary: bool,
-    pub completed_steps: [bool; 7],
+    pub completed_steps: [bool; TOUR_TOTAL_STEPS],
     pub transition_timer: Option<f32>,
     pub transition_feedback: Option<String>,
     pub prev_scope: Option<ModelScope>,
     pub prev_hardware: Option<HardwarePlatform>,
+    pub prev_adv_cols: Option<bool>,
+    pub prev_raw_sources: Option<bool>,
+    pub prev_show_adv: Option<bool>,
     pub prev_grouping: Option<bool>,
     pub prev_selected_id: Option<String>,
     pub prev_sim_gpu: Option<crate::domain::simulator::GpuTier>,
@@ -23,13 +29,17 @@ impl Default for TourState {
             is_active: false,
             current_step: 0,
             auto_play: false,
+            is_paused: false,
             timer: 0.0,
             show_guide_summary: false,
-            completed_steps: [false; 7],
+            completed_steps: [false; TOUR_TOTAL_STEPS],
             transition_timer: None,
             transition_feedback: None,
             prev_scope: None,
             prev_hardware: None,
+            prev_adv_cols: None,
+            prev_raw_sources: None,
+            prev_show_adv: None,
             prev_grouping: None,
             prev_selected_id: None,
             prev_sim_gpu: None,
@@ -71,8 +81,9 @@ impl TourState {
 
     pub fn jump_to(&mut self, step: usize) {
         self.is_active = true;
-        self.current_step = step.min(6);
+        self.current_step = step.min(TOUR_TOTAL_STEPS - 1);
         self.auto_play = false;
+        self.is_paused = true;
         self.timer = 0.0;
         self.transition_timer = None;
         self.transition_feedback = None;
@@ -80,7 +91,9 @@ impl TourState {
     }
 
     pub fn next(&mut self, total_steps: usize) {
-        self.completed_steps[self.current_step] = true;
+        if self.current_step < TOUR_TOTAL_STEPS {
+            self.completed_steps[self.current_step] = true;
+        }
         self.transition_timer = None;
         self.transition_feedback = None;
         if self.current_step + 1 < total_steps {
@@ -102,7 +115,20 @@ impl TourState {
         }
     }
 
+    pub fn validate_current_step(&mut self) {
+        if self.is_active && self.transition_timer.is_none() {
+            if self.current_step < TOUR_TOTAL_STEPS {
+                self.completed_steps[self.current_step] = true;
+            }
+            self.transition_timer = Some(2.5);
+            self.transition_feedback = Some("Etape validee avec succes !".into());
+        }
+    }
+
     pub fn update_transition(&mut self, dt: f32, total_steps: usize) {
+        if self.is_paused {
+            return;
+        }
         if let Some(ref mut remaining) = self.transition_timer {
             *remaining -= dt;
             if *remaining <= 0.0 {
@@ -116,26 +142,36 @@ impl TourState {
     pub fn on_auto_detect_clicked(&mut self) {
         if self.is_active && self.current_step == 1 && self.transition_timer.is_none() {
             self.completed_steps[1] = true;
-            self.transition_timer = Some(3.5);
-            self.transition_feedback = Some("Détection matérielle réussie !".into());
+            self.transition_timer = Some(3.0);
+            self.transition_feedback = Some("Detection materielle reussie !".into());
         }
     }
 
     pub fn on_recenter_clicked(&mut self) {
-        if self.is_active && self.current_step == 5 && self.transition_timer.is_none() {
-            self.completed_steps[5] = true;
-            self.transition_timer = Some(3.5);
-            self.transition_feedback = Some("Graphe recentré sur la frontière de Pareto !".into());
+        if self.is_active && self.current_step == 6 && self.transition_timer.is_none() {
+            self.completed_steps[6] = true;
+            self.transition_timer = Some(3.0);
+            self.transition_feedback = Some("Graphe recentre sur la frontiere de Pareto !".into());
+        }
+    }
+
+    pub fn check_and_update_comp_progress(&mut self, slots: &[Option<String>; 2]) {
+        if self.is_active && self.current_step == 7 && self.transition_timer.is_none() && !self.is_paused {
+            if slots[0].is_some() || slots[1].is_some() {
+                self.completed_steps[7] = true;
+                self.transition_timer = Some(4.0);
+                self.transition_feedback = Some("Modeles selectionnes : face-a-face actif !".into());
+            }
         }
     }
 
     pub fn check_and_update_sim_progress(&mut self, config: &crate::domain::simulator::HardwareRigConfig) {
-        if self.is_active && self.current_step == 6 && self.transition_timer.is_none() {
+        if self.is_active && self.current_step == 8 && self.transition_timer.is_none() {
             if let Some(prev) = self.prev_sim_gpu {
                 if prev != config.gpu {
-                    self.completed_steps[6] = true;
-                    self.transition_timer = Some(3.5);
-                    self.transition_feedback = Some("Simulation actualisée en temps réel !".into());
+                    self.completed_steps[8] = true;
+                    self.transition_timer = Some(3.0);
+                    self.transition_feedback = Some("Simulation actualisee en temps reel !".into());
                 }
             }
             self.prev_sim_gpu = Some(config.gpu);
@@ -160,38 +196,39 @@ impl TourState {
                 if let Some(prev) = self.prev_scope {
                     if prev != filters.scope {
                         completed = true;
-                        feedback_msg = Some("Périmètre de modèles mis à jour !");
+                        feedback_msg = Some("Perimetre de modeles mis a jour !");
                     }
                 }
             }
-            1 => {
+            1 | 2 => {
                 if let Some(prev) = self.prev_hardware {
                     if prev != filters.hardware {
                         completed = true;
-                        feedback_msg = Some("Matériel actualisé !");
-                    }
-                }
-            }
-            2 => {
-                if let Some(prev) = self.prev_hardware {
-                    if prev != filters.hardware {
-                        completed = true;
-                        feedback_msg = Some("Filtre matériel appliqué !");
+                        feedback_msg = Some("Filtre materiel applique !");
                     }
                 }
             }
             3 => {
-                if let Some(prev) = self.prev_grouping {
-                    if prev != filters.group_by_root {
-                        completed = true;
-                        feedback_msg = Some("Affichage par famille basculé !");
-                    }
+                let adv_chg = self.prev_adv_cols.map_or(false, |p| p != filters.show_advanced_columns);
+                let raw_chg = self.prev_raw_sources.map_or(false, |p| p != filters.show_raw_sources);
+                let pnl_chg = self.prev_show_adv.map_or(false, |p| p != filters.show_advanced);
+                if adv_chg || raw_chg || pnl_chg {
+                    completed = true;
+                    feedback_msg = Some("Colonnes et filtres avances configures !");
                 }
             }
             4 => {
+                if let Some(prev) = self.prev_grouping {
+                    if prev != filters.group_by_root {
+                        completed = true;
+                        feedback_msg = Some("Affichage par famille bascule !");
+                    }
+                }
+            }
+            5 => {
                 if selected_model_id.is_some() && self.prev_selected_id.as_deref() != selected_model_id {
                     completed = true;
-                    feedback_msg = Some("Modèle sélectionné : fiche ouverte !");
+                    feedback_msg = Some("Modele selectionne : fiche ouverte !");
                 }
             }
             _ => {}
@@ -199,12 +236,15 @@ impl TourState {
 
         self.prev_scope = Some(filters.scope);
         self.prev_hardware = Some(filters.hardware);
+        self.prev_adv_cols = Some(filters.show_advanced_columns);
+        self.prev_raw_sources = Some(filters.show_raw_sources);
+        self.prev_show_adv = Some(filters.show_advanced);
         self.prev_grouping = Some(filters.group_by_root);
         self.prev_selected_id = selected_model_id.map(|s| s.to_string());
 
         if completed {
             self.completed_steps[self.current_step] = true;
-            self.transition_timer = Some(3.5);
+            self.transition_timer = Some(3.0);
             self.transition_feedback = feedback_msg.map(|s| s.to_string());
             true
         } else {
@@ -219,6 +259,9 @@ impl TourState {
     fn reset_trackers(&mut self) {
         self.prev_scope = None;
         self.prev_hardware = None;
+        self.prev_adv_cols = None;
+        self.prev_raw_sources = None;
+        self.prev_show_adv = None;
         self.prev_grouping = None;
         self.prev_selected_id = None;
     }

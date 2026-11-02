@@ -14,7 +14,7 @@ pub fn render_quest_log(
 
     let t = lang.t();
     let screen = ctx.screen_rect();
-    let panel_w = 265.0f32;
+    let panel_w = 270.0f32;
     let panel_pos = egui::pos2(screen.right() - panel_w - 16.0, screen.top() + 75.0);
 
     egui::Area::new(egui::Id::new("tour_quest_log_floating_panel"))
@@ -27,16 +27,9 @@ pub fn render_quest_log(
                 .stroke(egui::Stroke::new(1.5, ThemeTokens::CYAN_EDGE))
                 .inner_margin(12.0)
                 .rounding(8.0)
-                .shadow(egui::epaint::Shadow {
-                    offset: egui::vec2(0.0, 6.0),
-                    blur: 16.0,
-                    spread: 2.0,
-                    color: egui::Color32::from_black_alpha(180),
-                })
                 .show(ui, |ui| {
                     ui.set_width(panel_w);
                     ui.vertical(|ui| {
-                        // Header: Title, counter, and clean close cross button
                         ui.horizontal(|ui| {
                             ui.label(
                                 egui::RichText::new(t.tour_guide_title)
@@ -46,8 +39,8 @@ pub fn render_quest_log(
                             );
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                 let close_btn = egui::Button::new(
-                                    egui::RichText::new("×")
-                                        .size(15.0)
+                                    egui::RichText::new("X")
+                                        .size(13.0)
                                         .strong()
                                         .color(ThemeTokens::TEXT_SECONDARY),
                                 )
@@ -58,9 +51,9 @@ pub fn render_quest_log(
                                 }
 
                                 let completed = state.completed_count();
-                                let badge_color = if completed == 7 { ThemeTokens::SUCCESS } else { ThemeTokens::CYAN_EDGE };
+                                let badge_color = if completed == 9 { ThemeTokens::SUCCESS } else { ThemeTokens::CYAN_EDGE };
                                 ui.label(
-                                    egui::RichText::new(format!("{completed}/7"))
+                                    egui::RichText::new(format!("{completed}/9"))
                                         .strong()
                                         .color(badge_color)
                                         .size(12.0),
@@ -69,7 +62,7 @@ pub fn render_quest_log(
                         });
 
                         ui.add_space(4.0);
-                        let progress = state.completed_count() as f32 / 7.0;
+                        let progress = state.completed_count() as f32 / 9.0;
                         ui.add(
                             egui::ProgressBar::new(progress)
                                 .fill(ThemeTokens::CYAN_EDGE)
@@ -79,15 +72,16 @@ pub fn render_quest_log(
                         ui.separator();
                         ui.add_space(4.0);
 
-                        // Listing of the 7 interactive steps
                         let step_targets = [
                             (0, t.tour_s1_target, t.tour_s1_action),
                             (1, t.tour_s2_target, t.tour_s2_action),
                             (2, t.tour_s3_target, t.tour_s3_action),
-                            (3, t.tour_s4_target, t.tour_s4_action),
-                            (4, t.tour_s5_target, t.tour_s5_action),
-                            (5, t.tour_s6_target, t.tour_s6_action),
-                            (6, t.tour_s7_target, t.tour_s7_action),
+                            (3, t.tut_guide.tour_s3b_target, t.tut_guide.tour_s3b_action),
+                            (4, t.tour_s4_target, t.tour_s4_action),
+                            (5, t.tour_s5_target, t.tour_s5_action),
+                            (6, t.tour_s6_target, t.tour_s6_action),
+                            (7, t.tour_s7_target, t.tour_s7_action),
+                            (8, t.tour_s8_target, t.tour_s8_action),
                         ];
 
                         for (idx, target_name, action_hint) in step_targets {
@@ -95,14 +89,14 @@ pub fn render_quest_log(
                             let is_done = state.completed_steps[idx];
 
                             let (icon, icon_color) = if is_done {
-                                ("✅", ThemeTokens::SUCCESS)
+                                ("[OK]", ThemeTokens::SUCCESS)
                             } else if is_current {
-                                ("👉", ThemeTokens::GOLD_5090)
+                                ("[>]", ThemeTokens::GOLD_5090)
                             } else {
-                                ("⬜", ThemeTokens::TEXT_MUTED)
+                                ("[ ]", ThemeTokens::TEXT_MUTED)
                             };
 
-                            let title_text = egui::RichText::new(format!("{} {}", idx + 1, target_name))
+                            let title_text = egui::RichText::new(format!("#{} {}", idx + 1, target_name))
                                 .size(12.0)
                                 .color(if is_current {
                                     ThemeTokens::TEXT_PRIMARY
@@ -124,7 +118,7 @@ pub fn render_quest_log(
                                 .inner_margin(egui::vec2(4.0, 3.0))
                                 .show(ui, |ui| {
                                     ui.horizontal(|ui| {
-                                        ui.label(egui::RichText::new(icon).color(icon_color).size(12.0));
+                                        ui.label(egui::RichText::new(icon).color(icon_color).size(11.5).strong());
                                         let mut label = title_text;
                                         if is_current {
                                             label = label.strong();
@@ -139,10 +133,11 @@ pub fn render_quest_log(
                                 egui::Id::new(format!("guide_step_item_{idx}")),
                                 egui::Sense::click(),
                             );
-
-                            if clickable_area.on_hover_text(action_hint).clicked() {
+                            if clickable_area.clicked() {
                                 state.jump_to(idx);
                             }
+                            clickable_area.on_hover_text(format!("Etape {}: {action_hint}\n(Cliquez pour ouvrir)", idx + 1));
+                            ui.add_space(2.0);
                         }
                     });
                 });

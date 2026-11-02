@@ -152,8 +152,6 @@ fn draw_pointing_hand(
     bounce: f32,
 ) {
     let is_pointing_up = target.center().y < screen.top() + screen.height() * 0.55;
-    let hand_icon = if is_pointing_up { "👆" } else { "👇" };
-
     let center_x = target.center().x.clamp(screen.left() + 150.0, screen.right() - 150.0);
     let hand_y = if is_pointing_up {
         target.bottom() + 18.0 + bounce
@@ -167,14 +165,29 @@ fn draw_pointing_hand(
     painter.circle_filled(hand_pos, 20.0, bg_color);
     painter.circle_stroke(hand_pos, 20.0, egui::Stroke::new(2.5, accent));
 
-    let font_id = egui::FontId::proportional(22.0);
-    painter.text(
-        hand_pos,
-        egui::Align2::CENTER_CENTER,
-        hand_icon,
-        font_id,
-        egui::Color32::WHITE,
-    );
+    // Crisp Vector-Painted Directional Arrow pointing directly at target
+    let arr_color = egui::Color32::WHITE;
+    if is_pointing_up {
+        let tip = egui::pos2(hand_pos.x, hand_pos.y - 9.0);
+        let left = egui::pos2(hand_pos.x - 7.0, hand_pos.y + 4.0);
+        let right = egui::pos2(hand_pos.x + 7.0, hand_pos.y + 4.0);
+        painter.add(egui::Shape::convex_polygon(vec![tip, left, right], arr_color, egui::Stroke::NONE));
+        painter.rect_filled(
+            egui::Rect::from_min_max(egui::pos2(hand_pos.x - 2.5, hand_pos.y + 4.0), egui::pos2(hand_pos.x + 2.5, hand_pos.y + 10.0)),
+            1.0,
+            arr_color,
+        );
+    } else {
+        let tip = egui::pos2(hand_pos.x, hand_pos.y + 9.0);
+        let left = egui::pos2(hand_pos.x - 7.0, hand_pos.y - 4.0);
+        let right = egui::pos2(hand_pos.x + 7.0, hand_pos.y - 4.0);
+        painter.add(egui::Shape::convex_polygon(vec![tip, left, right], arr_color, egui::Stroke::NONE));
+        painter.rect_filled(
+            egui::Rect::from_min_max(egui::pos2(hand_pos.x - 2.5, hand_pos.y - 10.0), egui::pos2(hand_pos.x + 2.5, hand_pos.y - 4.0)),
+            1.0,
+            arr_color,
+        );
+    }
 
     // Floating callout bubble
     if !callout_text.is_empty() {
