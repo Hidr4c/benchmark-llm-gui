@@ -72,8 +72,16 @@ pub fn render_column_chooser_modal(
 
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                if ui.button(egui::RichText::new("↺ Vue par défaut").size(11.0)).on_hover_text("Rétablir l'ordre d'origine et la sélection de colonnes essentielle").clicked() {
+                if ui.button(egui::RichText::new("↺ Vue par défaut").size(11.0)).on_hover_text("Rétablir l'ordre d'origine et la sélection essentielle").clicked() {
                     prefs.reset_defaults();
+                }
+                if ui.button(egui::RichText::new("+ Avancé").size(11.0)).on_hover_text("Afficher ou masquer les colonnes avancées").clicked() {
+                    let vis = !prefs.are_advanced_columns_visible();
+                    prefs.set_advanced_columns_visible(vis);
+                }
+                if ui.button(egui::RichText::new("+ Sources Brutes").size(11.0)).on_hover_text("Afficher ou masquer les sources brutes").clicked() {
+                    let vis = !prefs.are_raw_sources_visible();
+                    prefs.set_raw_sources_visible(vis);
                 }
                 if ui.button(egui::RichText::new("Tout cocher").size(11.0)).on_hover_text("Cocher et afficher l'ensemble des colonnes").clicked() {
                     prefs.show_all_columns();

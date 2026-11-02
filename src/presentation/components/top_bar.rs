@@ -57,31 +57,37 @@ pub fn render_top_header(
 
         ui.separator();
 
-        // 1. View Navigation Dropdown List (Single clear ComboBox instead of multiple flat buttons)
-        egui::ComboBox::from_id_salt("main_view_nav_dropdown")
-            .selected_text(
-                egui::RichText::new(active_tab.label(*language))
-                    .strong()
-                    .color(ThemeTokens::CYAN_EDGE)
-            )
-            .width(200.0)
-            .show_ui(ui, |ui| {
-                let views = [
-                    AppTab::Table,
-                    AppTab::Graph,
-                    AppTab::Comparator,
-                    AppTab::Simulator,
-                    AppTab::Sources,
-                    AppTab::Tutorial,
-                ];
-                for v in views {
-                    let is_sel = *active_tab == v;
-                    let text = egui::RichText::new(v.label(*language)).strong();
-                    if ui.selectable_label(is_sel, text).clicked() {
-                        *active_tab = v;
-                    }
+        // 1. Clear, direct Navigation Tab Bar (1-click access to all features)
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
+            let views = [
+                AppTab::Table,
+                AppTab::Graph,
+                AppTab::Comparator,
+                AppTab::Simulator,
+                AppTab::Sources,
+                AppTab::Tutorial,
+            ];
+            for v in views {
+                let is_sel = *active_tab == v;
+                let (btn_color, bg_fill) = if is_sel {
+                    (ThemeTokens::CYAN_EDGE, ThemeTokens::BG_CARD)
+                } else {
+                    (ThemeTokens::TEXT_SECONDARY, egui::Color32::TRANSPARENT)
+                };
+                let btn = egui::Button::new(
+                    egui::RichText::new(v.label(*language))
+                        .size(12.0)
+                        .strong()
+                        .color(btn_color)
+                )
+                .fill(bg_fill);
+
+                if ui.add(btn).clicked() {
+                    *active_tab = v;
                 }
-            });
+            }
+        });
 
 
 

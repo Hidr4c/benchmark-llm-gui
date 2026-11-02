@@ -176,13 +176,14 @@ fn render_theme_card(
             let pct1 = (val1 / common_max).clamp(0.0, 1.0);
             let pct2 = (val2 / common_max).clamp(0.0, 1.0);
 
-            let total_w = ui.available_width();
-            let label_col_w = (total_w * 0.38).clamp(220.0, 360.0);
-            let score_text_w = 155.0;
-
-            // Row 1: Model #1 (Cyan)
-            ui.horizontal(|ui| {
-                ui.allocate_ui(egui::vec2(label_col_w, 20.0), |ui| {
+            // Using egui::Grid guarantees that all columns (names, scores, and bars)
+            // align with 100% pixel-perfect precision on the exact same X coordinate!
+            egui::Grid::new(title)
+                .num_columns(3)
+                .spacing(egui::vec2(12.0, 5.0))
+                .min_col_width(80.0)
+                .show(ui, |ui| {
+                    // Row 1: Model #1 (Cyan)
                     ui.horizontal(|ui| {
                         ui.label(egui::RichText::new("[#1]").color(ThemeTokens::CYAN_EDGE).strong().size(11.5));
                         ui.label(egui::RichText::new(name1).strong().size(11.5));
@@ -190,28 +191,19 @@ fn render_theme_card(
                             ui.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(10.0));
                         }
                     });
-                });
 
-                ui.allocate_ui(egui::vec2(score_text_w, 20.0), |ui| {
                     ui.label(egui::RichText::new(&text1).size(11.0).color(ThemeTokens::CYAN_EDGE).strong());
-                });
 
-                let bar_w = ui.available_width() - 8.0;
-                if bar_w > 40.0 {
+                    let bar_w = (ui.available_width() - 10.0).max(120.0);
                     ui.add(
                         egui::ProgressBar::new(pct1)
                             .desired_width(bar_w)
                             .fill(ThemeTokens::CYAN_EDGE)
                             .animate(false)
                     );
-                }
-            });
+                    ui.end_row();
 
-            ui.add_space(3.0);
-
-            // Row 2: Model #2 (Gold)
-            ui.horizontal(|ui| {
-                ui.allocate_ui(egui::vec2(label_col_w, 20.0), |ui| {
+                    // Row 2: Model #2 (Gold)
                     ui.horizontal(|ui| {
                         ui.label(egui::RichText::new("[#2]").color(ThemeTokens::GOLD_5090).strong().size(11.5));
                         ui.label(egui::RichText::new(name2).strong().size(11.5));
@@ -219,22 +211,18 @@ fn render_theme_card(
                             ui.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(10.0));
                         }
                     });
-                });
 
-                ui.allocate_ui(egui::vec2(score_text_w, 20.0), |ui| {
                     ui.label(egui::RichText::new(&text2).size(11.0).color(ThemeTokens::GOLD_5090).strong());
-                });
 
-                let bar_w = ui.available_width() - 8.0;
-                if bar_w > 40.0 {
+                    let bar_w = (ui.available_width() - 10.0).max(120.0);
                     ui.add(
                         egui::ProgressBar::new(pct2)
                             .desired_width(bar_w)
                             .fill(ThemeTokens::GOLD_5090)
                             .animate(false)
                     );
-                }
-            });
+                    ui.end_row();
+                });
 
             ui.add_space(3.0);
             ui.label(egui::RichText::new(winner_text).color(ThemeTokens::TEXT_MUTED).size(10.5));

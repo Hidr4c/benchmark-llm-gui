@@ -71,6 +71,38 @@ impl BenchmarkSourceInfo {
                 metrics_measured: "Synthetic general score, multi-task ranking.",
                 is_connected_live: true,
             },
+            BenchmarkSourceInfo {
+                name: "Arena-Hard-Auto (LMSYS Real-World Queries)",
+                category: SourceCategory::AcademicGeneral,
+                url: "https://github.com/lm-sys/arena-hard-auto",
+                description: "Evaluation on 500 challenging prompts with 91% correlation to Chatbot Arena human preference.",
+                metrics_measured: "Length-controlled win rate against GPT-4-0314 baseline.",
+                is_connected_live: true,
+            },
+            BenchmarkSourceInfo {
+                name: "MixEval / MixEval-Hard (Leakage-Free)",
+                category: SourceCategory::AcademicGeneral,
+                url: "https://mixeval.github.io/",
+                description: "Real-world dynamic benchmark derived from web queries with 0.96 correlation to human ELO.",
+                metrics_measured: "Multi-domain free-form reasoning and hard problem resolution accuracy.",
+                is_connected_live: true,
+            },
+            BenchmarkSourceInfo {
+                name: "AIME 2024 & MATH-500 (Olympiad Reasoning)",
+                category: SourceCategory::AcademicGeneral,
+                url: "https://github.com/openai/prm800k",
+                description: "High-school Olympiad math evaluating multi-step reasoning models (R1, o1, o3, QwQ).",
+                metrics_measured: "Pass@1 accuracy on competition math problems.",
+                is_connected_live: true,
+            },
+            BenchmarkSourceInfo {
+                name: "AlpacaEval 2.0 (Length-Controlled)",
+                category: SourceCategory::AcademicGeneral,
+                url: "https://github.com/tatsu-lab/alpaca_eval",
+                description: "Fast instruction-following benchmark with debiased length-controlled win rate.",
+                metrics_measured: "Length-controlled win rate (LC-Win-Rate %) against reference outputs.",
+                is_connected_live: true,
+            },
 
             // 2. Coding & Software Engineering
             BenchmarkSourceInfo {
