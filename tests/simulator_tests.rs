@@ -108,3 +108,34 @@ fn test_license_category_filtering() {
     assert_eq!(filtered.len(), 1);
     assert_eq!(models[filtered[0]].name, "Qwen 2.5 Coder 7B");
 }
+
+#[test]
+fn test_smartphone_on_device_hardware_tiers() {
+    let mid = HardwarePlatform::SmartphoneMid;
+    assert!(mid.is_embedded());
+    assert_eq!(mid.max_usable_memory_gb(), Some(2.2));
+    assert!(mid.fits_model(1.8, 2.5));
+    assert!(!mid.fits_model(3.5, 5.0));
+
+    let high = HardwarePlatform::SmartphoneHigh;
+    assert!(high.is_embedded());
+    assert_eq!(high.max_usable_memory_gb(), Some(5.5));
+    assert!(high.fits_model(5.2, 7.0));
+    assert!(!high.fits_model(8.5, 12.0));
+
+    let pro = HardwarePlatform::SmartphonePro;
+    assert!(pro.is_embedded());
+    assert_eq!(pro.max_usable_memory_gb(), Some(9.0));
+    assert!(pro.fits_model(8.2, 11.0));
+    assert!(!pro.fits_model(15.0, 19.0));
+}
+
+#[test]
+fn test_live_system_detector() {
+    use benchmark_llm_gui::infrastructure::hardware::system_detector::SystemHardwareDetector;
+    use benchmark_llm_gui::domain::hardware_detector::IHardwareDetector;
+    let detector = SystemHardwareDetector::new();
+    let res = detector.detect();
+    println!("Live detect result: {:?}", res);
+    assert!(res.is_ok());
+}
