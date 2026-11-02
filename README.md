@@ -3,6 +3,7 @@
 High-performance, modular desktop application written in **Rust** (`eframe`/`egui`) designed to explore, benchmark, filter, and compare **Local and Cloud Large Language Models (LLMs)** across diverse hardware tiers—from resource-constrained embedded edge devices (Micro-IoT, Raspberry Pi, Jetson) up to domestic workstations and flagship GPUs (RTX 4060, RTX 4090, RTX 5090 32 GB).
 
 [![Latest Release](https://img.shields.io/badge/Release-v1.0.0-brightgreen.svg)](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest)
+[![CI & Build](https://github.com/Hidr4c/benchmark-llm-gui/actions/workflows/ci.yml/badge.svg)](https://github.com/Hidr4c/benchmark-llm-gui/actions/workflows/ci.yml)
 [![Rust Edition](https://img.shields.io/badge/Rust-2024_Edition-orange.svg)](https://www.rust-lang.org/)
 [![Architecture](https://img.shields.io/badge/Architecture-Clean%20%26%20IoC-blue.svg)](#architecture)
 [![Database](https://img.shields.io/badge/Storage-SQLite%20Bundled%20Embedded-brightgreen.svg)](#storage--zero-daemons)
