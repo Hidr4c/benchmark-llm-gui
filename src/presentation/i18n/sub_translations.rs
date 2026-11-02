@@ -202,6 +202,9 @@ pub struct TableMenuTranslations {
     pub op_not_match_regex: &'static str,
     pub btn_column_chooser: &'static str,
     pub menu_column_chooser: &'static str,
+    pub header_tooltip: &'static str,
+    pub section_sort: &'static str,
+    pub section_order: &'static str,
 }
 
 pub const FR_TABLE_MENU: TableMenuTranslations = TableMenuTranslations {
@@ -216,7 +219,7 @@ pub const FR_TABLE_MENU: TableMenuTranslations = TableMenuTranslations {
     menu_move_left: "◀  Déplacer à gauche",
     menu_move_right: "▶  Déplacer à droite",
     menu_reset_columns: "↺  Rétablir l'ordre d'origine",
-    menu_clear_all_filters: "🗑  Effacer tous les filtres colonnes",
+    menu_clear_all_filters: "Effacer tous les filtres colonnes",
     filter_active_badge: " [Filtre actif]",
     active_filters_summary: "Filtres colonnes actifs :",
     op_contains: "Contient (~)",
@@ -226,8 +229,11 @@ pub const FR_TABLE_MENU: TableMenuTranslations = TableMenuTranslations {
     op_not_contains: "Ne contient pas (!~)",
     op_match_regex: "Match Regex (.*)",
     op_not_match_regex: "Ne match pas Regex",
-    btn_column_chooser: "⚙ Colonnes",
-    menu_column_chooser: "⚙ Sélecteur de colonnes...",
+    btn_column_chooser: "Colonnes",
+    menu_column_chooser: "Sélecteur de colonnes personnalisé...",
+    header_tooltip: "Clic gauche : trier | Glisser-déposer : réordonner | Clic droit : options",
+    section_sort: "TRI DE COLONNE",
+    section_order: "ORDRE DE LA COLONNE",
 };
 
 pub const EN_TABLE_MENU: TableMenuTranslations = TableMenuTranslations {
@@ -242,7 +248,7 @@ pub const EN_TABLE_MENU: TableMenuTranslations = TableMenuTranslations {
     menu_move_left: "◀  Move Left",
     menu_move_right: "▶  Move Right",
     menu_reset_columns: "↺  Reset Column Order",
-    menu_clear_all_filters: "🗑  Clear All Column Filters",
+    menu_clear_all_filters: "Clear All Column Filters",
     filter_active_badge: " [Filtered]",
     active_filters_summary: "Active column filters:",
     op_contains: "Contains (~)",
@@ -252,6 +258,9 @@ pub const EN_TABLE_MENU: TableMenuTranslations = TableMenuTranslations {
     op_not_contains: "Does not contain (!~)",
     op_match_regex: "Matches Regex (.*)",
     op_not_match_regex: "Does not match Regex",
-    btn_column_chooser: "⚙ Columns",
-    menu_column_chooser: "⚙ Column Chooser...",
+    btn_column_chooser: "Columns",
+    menu_column_chooser: "Custom Column Chooser...",
+    header_tooltip: "Left click: sort | Drag & drop: reorder | Right click: options",
+    section_sort: "COLUMN SORT",
+    section_order: "COLUMN ORDER",
 };

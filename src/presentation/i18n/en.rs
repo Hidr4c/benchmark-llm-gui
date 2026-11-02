@@ -47,7 +47,7 @@ pub const EN_TRANSLATIONS: Translations = Translations {
     scope_cloud: "Cloud Models (APIs)",
     scope_all: "All (Local + Cloud)",
     scope_tooltip: "Choose between 100% local models (private & free) or cloud-hosted API models.",
-    search_placeholder: "Search model (e.g. Qwen, Mistral, 32B...)",
+    search_placeholder: "Search model (name, architecture, size)...",
     search_tooltip: "Search by model name, Hugging Face repo ID, or architecture family.",
     sync_refresh: "R Sync Live",
     sync_downloading: "Downloading...",

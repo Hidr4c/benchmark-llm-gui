@@ -11,9 +11,9 @@ pub fn render_graph_search_picker(
     lang: Language,
 ) {
     let t_hint = if lang == Language::French {
-        "Rechercher un modèle sur le graphe (ex: Qwen 3.8, Mistral, Gemma)..."
+        "Rechercher un modèle sur le graphe (nom, taille)..."
     } else {
-        "Search a model on plot (e.g. Qwen 3.8, Mistral, Gemma)..."
+        "Search a model on plot (name, size)..."
     };
 
     ui.horizontal(|ui| {
@@ -104,7 +104,7 @@ pub fn render_slot_model_card(
                 ui.label(egui::RichText::new("Recherche :").size(11.0).color(ThemeTokens::TEXT_MUTED));
                 let resp = ui.add(
                     egui::TextEdit::singleline(query)
-                        .hint_text("Taper un nom (ex: Qwen, Mistral, Llama)...")
+                        .hint_text("Taper un nom ou taille...")
                         .desired_width(240.0),
                 );
                 if !query.is_empty() && ui.small_button("X").clicked() {

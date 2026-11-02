@@ -47,7 +47,7 @@ pub const FR_TRANSLATIONS: Translations = Translations {
     scope_cloud: "Modèles Cloud (APIs)",
     scope_all: "Tous (Local + Cloud)",
     scope_tooltip: "Choisissez entre modèles 100% locaux (privés et gratuits) ou modèles hébergés dans le Cloud.",
-    search_placeholder: "Rechercher un modèle (ex: Qwen, Mistral, 32B...)",
+    search_placeholder: "Rechercher un modèle (nom, architecture, taille)...",
     search_tooltip: "Recherche textuelle sur le nom, l'identifiant Hugging Face ou la famille.",
     sync_refresh: "Actualiser",
     sync_downloading: "Téléchargement...",

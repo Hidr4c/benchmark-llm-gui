@@ -4,44 +4,13 @@ use crate::presentation::i18n::Language;
 use crate::presentation::theme::ThemeTokens;
 
 pub fn infer_ollama_command(model: &ModelBenchmark) -> String {
-    let lower_id = model.id.to_lowercase();
-    let lower_name = model.name.to_lowercase();
-
-    if lower_id.contains("qwen2.5-coder-32b") || lower_name.contains("qwen 2.5 coder 32b") {
-        "ollama run qwen2.5-coder:32b".into()
-    } else if lower_id.contains("qwen2.5-coder-7b") || lower_name.contains("qwen 2.5 coder 7b") {
-        "ollama run qwen2.5-coder:7b".into()
-    } else if lower_id.contains("qwen2.5-7b") || lower_name.contains("qwen 2.5 7b") {
-        "ollama run qwen2.5:7b".into()
-    } else if lower_id.contains("qwen2.5-14b") || lower_name.contains("qwen 2.5 14b") {
-        "ollama run qwen2.5:14b".into()
-    } else if lower_id.contains("qwen2.5-32b") || lower_name.contains("qwen 2.5 32b") {
-        "ollama run qwen2.5:32b".into()
-    } else if lower_id.contains("deepseek-r1-distill-qwen-14b") {
-        "ollama run deepseek-r1:14b".into()
-    } else if lower_id.contains("deepseek-r1-distill-llama-8b") {
-        "ollama run deepseek-r1:8b".into()
-    } else if lower_id.contains("deepseek-r1") || lower_name.contains("deepseek r1") {
-        "ollama run deepseek-r1".into()
-    } else if lower_id.contains("llama-3.3-70b") || lower_name.contains("llama 3.3 70b") {
-        "ollama run llama3.3:70b".into()
-    } else if lower_id.contains("llama-3.2-3b") || lower_name.contains("llama 3.2 3b") {
-        "ollama run llama3.2:3b".into()
-    } else if lower_id.contains("llama-3.2-1b") || lower_name.contains("llama 3.2 1b") {
-        "ollama run llama3.2:1b".into()
-    } else if lower_id.contains("mistral-7b") || lower_name.contains("mistral 7b") {
-        "ollama run mistral:7b".into()
-    } else if lower_id.contains("gemma-2-9b") || lower_name.contains("gemma 2 9b") {
-        "ollama run gemma2:9b".into()
-    } else if lower_id.contains("phi-4") || lower_name.contains("phi 4") {
-        "ollama run phi4".into()
-    } else {
-        let tag = model.id.split('/').last().unwrap_or(&model.name)
-            .to_lowercase()
-            .replace("-instruct", "")
-            .replace("_", "-");
-        format!("ollama run {}", tag)
+    if let Some(tag) = &model.ollama_tag {
+        return format!("ollama run {tag}");
     }
+    if model.id.contains('/') {
+        return format!("ollama run hf.co/{}", model.id);
+    }
+    format!("ollama run {}", model.id)
 }
 
 pub fn render_runner_card(ui: &mut egui::Ui, model: &ModelBenchmark, lang: Language) {
@@ -135,7 +104,7 @@ fn render_lm_studio_tab(ui: &mut egui::Ui, model: &ModelBenchmark, r: &'static c
 
     ui.horizontal(|ui| {
         let lms_url = format!("lmstudio://open?model={}", model.id);
-        if ui.button(egui::RichText::new(r.btn_open_lms).color(ThemeTokens::GOLD_5090).size(10.5)).on_hover_text("Ouvre le modele directement dans LM Studio").clicked() {
+        if ui.button(egui::RichText::new(r.btn_open_lms).color(ThemeTokens::GOLD_5090).size(10.5)).on_hover_text(r.hint_lms).clicked() {
             let _ = open::that(&lms_url);
         }
         if !model.hf_url.is_empty() && ui.button(egui::RichText::new(r.btn_open_hf).size(10.5)).clicked() {

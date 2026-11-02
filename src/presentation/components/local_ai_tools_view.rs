@@ -32,8 +32,8 @@ fn render_hero_banner(ui: &mut egui::Ui, t: &'static crate::presentation::i18n::
         .show(ui, |ui| {
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("🚀").size(24.0));
-                    ui.heading(egui::RichText::new(t.hero_title).color(ThemeTokens::TEXT_PRIMARY).strong().size(16.0));
+                    ui.label(egui::RichText::new("[Local AI]").strong().color(ThemeTokens::CYAN_EDGE).size(14.0));
+                    ui.heading(egui::RichText::new(t.hero_title).color(ThemeTokens::TEXT_PRIMARY).strong().size(15.0));
                 });
                 ui.add_space(4.0);
                 ui.label(egui::RichText::new(t.hero_subtitle).color(ThemeTokens::TEXT_SECONDARY).size(12.0));
@@ -42,7 +42,7 @@ fn render_hero_banner(ui: &mut egui::Ui, t: &'static crate::presentation::i18n::
 }
 
 fn render_roadmap(ui: &mut egui::Ui, t: &'static crate::presentation::i18n::LocalToolsTranslations) {
-    ui.label(egui::RichText::new(format!("🗺️ {}", t.section_steps)).size(14.5).color(ThemeTokens::GOLD_5090).strong());
+    ui.label(egui::RichText::new(t.section_steps).size(14.5).color(ThemeTokens::GOLD_5090).strong());
     ui.add_space(6.0);
 
     let steps = [
@@ -92,7 +92,7 @@ fn render_off_grid_section(ui: &mut egui::Ui, t: &'static crate::presentation::i
         .show(ui, |ui| {
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("📱 🔋").size(18.0));
+                    ui.label(egui::RichText::new("[Mobile]").strong().color(ThemeTokens::GOLD_5090).size(12.0));
                     ui.label(egui::RichText::new(t.off_grid_title).strong().color(ThemeTokens::GOLD_5090).size(13.5));
                 });
                 ui.add_space(4.0);
@@ -117,7 +117,7 @@ fn render_off_grid_section(ui: &mut egui::Ui, t: &'static crate::presentation::i
 }
 
 fn render_tools_catalog(ui: &mut egui::Ui, t: &'static crate::presentation::i18n::LocalToolsTranslations) {
-    ui.label(egui::RichText::new(format!("🛠️ {}", t.section_tools)).size(14.5).color(ThemeTokens::CYAN_EDGE).strong());
+    ui.label(egui::RichText::new(t.section_tools).size(14.5).color(ThemeTokens::CYAN_EDGE).strong());
     ui.add_space(6.0);
 
     let card_w = (ui.available_width() - 16.0) / 2.0;
@@ -177,7 +177,7 @@ fn render_tool_card(ui: &mut egui::Ui, width: f32, tool: &ToolCardData, t: &'sta
 
                 ui.add_space(4.0);
                 ui.horizontal(|ui| {
-                    if ui.button(egui::RichText::new(format!("🌐 {}", t.btn_open_site)).strong().color(ThemeTokens::GOLD_5090).size(11.0)).clicked() {
+                    if ui.button(egui::RichText::new(t.btn_open_site).strong().color(ThemeTokens::GOLD_5090).size(11.0)).clicked() {
                         let _ = open::that(tool.url);
                     }
                 });
