@@ -14,6 +14,7 @@ pub mod graph_view;
 pub mod model_search_picker;
 pub mod simulator_view;
 pub mod sources_view;
+pub mod table_header_cell;
 pub mod table_items;
 pub mod table_raw_view;
 pub mod table_row;

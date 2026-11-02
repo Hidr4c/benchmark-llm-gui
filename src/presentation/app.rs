@@ -4,7 +4,7 @@ use eframe::egui;
 use crate::domain::hardware_detector::{DetectedHardware, IHardwareDetector};
 use crate::domain::model::ModelBenchmark;
 use crate::domain::simulator::HardwareRigConfig;
-use crate::domain::traits::{IBenchmarkRepository, IModelFetcher, SnapshotMeta};
+use crate::domain::traits::{IBenchmarkRepository, IModelFetcher, IPreferencesRepository, SnapshotMeta};
 use crate::infrastructure::hardware::system_detector::SystemHardwareDetector;
 use crate::infrastructure::updater::GitHubReleaseAdapter;
 use crate::presentation::components::comparator_view::{render_comparator_view, ComparatorState};
@@ -43,19 +43,27 @@ pub struct BenchmarkApp {
     pub zoom_factor: f32,
     pub language: Language,
     pub updater: UpdaterState,
+    last_saved_prefs: Option<crate::domain::table_preferences::TablePreferences>,
 }
 
 impl BenchmarkApp {
     pub fn new(repo: Box<dyn IBenchmarkRepository>, fetcher: Arc<dyn IModelFetcher>) -> Self {
         let (tx, rx) = channel();
         let (snapshots, selected_id, models, initial_msg) = match repo.load_latest_snapshot() {
-            Ok(Some((latest, models))) => {
-                let snaps = repo.list_snapshots().unwrap_or_default();
-                (snaps, Some(latest.id), models, None)
-            }
-            Ok(None) => (Vec::new(), None, Vec::new(), Some(("Empty database. Click 'Refresh' to fetch models.".to_string(), false))),
+            Ok(Some((latest, models))) => (repo.list_snapshots().unwrap_or_default(), Some(latest.id), models, None),
+            Ok(None) => (Vec::new(), None, Vec::new(), Some(("Empty database. Click 'Refresh' to fetch models.".into(), false))),
             Err(e) => (Vec::new(), None, Vec::new(), Some((format!("Database error: {e}"), true))),
         };
+
+        let mut filters = FilterState::default();
+        if let Ok(pref_repo) = crate::infrastructure::preferences::SqlitePreferencesRepository::open("benchmark.db") {
+            if let Ok(Some(prefs)) = pref_repo.load_table_preferences() {
+                filters.sort_field = prefs.sort_field;
+                filters.sort_order = prefs.sort_order;
+                filters.table_prefs = prefs;
+            }
+        }
+        let last_saved_prefs = Some(filters.table_prefs.clone());
 
         Self {
             repo,
@@ -66,7 +74,7 @@ impl BenchmarkApp {
             snapshots,
             selected_snapshot_id: selected_id,
             all_models: models,
-            filters: FilterState::default(),
+            filters,
             selected_model_id: None,
             active_tab: AppTab::Table,
             comp_state: ComparatorState::default(),
@@ -79,6 +87,7 @@ impl BenchmarkApp {
             zoom_factor: 1.0,
             language: Language::French,
             updater: UpdaterState::new(Arc::new(GitHubReleaseAdapter::new("Hidr4c", "benchmark-llm-gui"))),
+            last_saved_prefs,
         }
     }
 
@@ -236,46 +245,33 @@ impl eframe::App for BenchmarkApp {
                 });
             } else {
                 match self.active_tab {
-                    AppTab::Table => {
-                        render_table(ui, &self.all_models, &filtered_indices, &mut self.filters, &mut self.selected_model_id, self.language);
-                    }
+                    AppTab::Table => render_table(ui, &self.all_models, &filtered_indices, &mut self.filters, &mut self.selected_model_id, self.language),
                     AppTab::Graph => {
                         render_graph_view(ui, &mut self.graph_state, &self.all_models, &filtered_indices, &self.filters, &mut self.selected_model_id, self.language);
-                        let rec = ctx.memory_mut(|m| m.data.remove_temp::<bool>(egui::Id::new("tour_evt_recenter_clicked"))).unwrap_or(false);
-                        if rec || self.graph_state.reset_requested {
+                        if ctx.memory_mut(|m| m.data.remove_temp::<bool>(egui::Id::new("tour_evt_recenter_clicked"))).unwrap_or(false) || self.graph_state.reset_requested {
                             self.tour_state.on_recenter_clicked();
                         }
                     }
                     AppTab::Comparator => {
-                        render_comparator_view(
-                            ui, &mut self.comp_state, self.detected_hardware.as_ref(),
-                            &self.all_models, &self.filters, &mut self.active_tab, self.language,
-                        );
+                        render_comparator_view(ui, &mut self.comp_state, self.detected_hardware.as_ref(), &self.all_models, &self.filters, &mut self.active_tab, self.language);
                         self.tour_state.check_and_update_comp_progress(&self.comp_state.slots);
                     }
                     AppTab::Simulator => {
-                        egui::ScrollArea::vertical().show(ui, |ui| {
-                            render_simulator_view(
-                                ui,
-                                &mut self.sim_config,
-                                self.detected_hardware.as_ref(),
-                                &self.all_models,
-                                &self.filters,
-                                &mut self.selected_model_id,
-                                self.language,
-                            );
-                        });
+                        egui::ScrollArea::vertical().show(ui, |ui| render_simulator_view(ui, &mut self.sim_config, self.detected_hardware.as_ref(), &self.all_models, &self.filters, &mut self.selected_model_id, self.language));
                         self.tour_state.check_and_update_sim_progress(&self.sim_config);
                     }
-                    AppTab::Sources => {
-                        render_sources_view(ui, self.language);
-                    }
-                    AppTab::Tutorial => {
-                        render_tutorial_view(ui, &mut self.tour_state, &mut self.active_tab, &mut self.filters, self.language);
-                    }
+                    AppTab::Sources => render_sources_view(ui, self.language),
+                    AppTab::Tutorial => render_tutorial_view(ui, &mut self.tour_state, &mut self.active_tab, &mut self.filters, self.language),
                 }
             }
         });
+
+        if self.last_saved_prefs.as_ref() != Some(&self.filters.table_prefs) {
+            self.last_saved_prefs = Some(self.filters.table_prefs.clone());
+            if let Ok(pref_repo) = crate::infrastructure::preferences::SqlitePreferencesRepository::open("benchmark.db") {
+                let _ = pref_repo.save_table_preferences(&self.filters.table_prefs);
+            }
+        }
 
         // Application Update Modal Popup
         self.updater.render_modal(ctx, self.language);

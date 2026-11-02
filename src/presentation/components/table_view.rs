@@ -1,7 +1,9 @@
 use eframe::egui;
 use egui_extras::{Column, TableBuilder};
 use crate::domain::model::{ModelBenchmark, SortField, SortOrder};
+use crate::domain::table_preferences::TableColumnId;
 use crate::presentation::components::filter_bar::FilterState;
+use crate::presentation::components::table_header_cell::render_header_cell;
 pub use crate::presentation::components::table_items::{
     build_display_items, format_downloads, hardware_badge_text, header_sort_col,
     render_economic_cell, render_score_badge_cell, render_vs_button, DisplayItem,
@@ -28,8 +30,25 @@ pub fn render_table(
         return;
     }
 
+    // Active column filters summary banner
+    if filters.table_prefs.active_filter_count() > 0 {
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new(format!("🔍 {} ({} active)", t.table_menu.active_filters_summary, filters.table_prefs.active_filter_count()))
+                .color(ThemeTokens::CYAN_EDGE).size(11.5).strong());
+            if ui.button(egui::RichText::new(t.table_menu.menu_clear_all_filters).color(ThemeTokens::DANGER).size(11.0)).clicked() {
+                filters.table_prefs.reset_filters();
+            }
+        });
+        ui.add_space(2.0);
+    }
+
     let items = build_display_items(all_models, filtered_indices, filters);
     let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
+
+    let visible_cols: Vec<TableColumnId> = filters.table_prefs.column_order.iter()
+        .copied()
+        .filter(|c| (!c.is_advanced() || filters.show_advanced_columns) && (!c.is_raw_source() || filters.show_raw_sources))
+        .collect();
 
     egui::ScrollArea::horizontal()
         .auto_shrink([false, false])
@@ -46,83 +65,35 @@ pub fn render_table(
             let mut table = TableBuilder::new(ui)
                 .striped(true)
                 .resizable(true)
-                .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-                .column(Column::exact(64.0))                                      // Col 1: # Rank
-                .column(Column::initial(220.0).at_least(160.0).clip(true));       // Col 2: Model Name
+                .cell_layout(egui::Layout::left_to_right(egui::Align::Center));
 
-            if filters.show_advanced_columns {
-                table = table.column(Column::exact(68.0));                         // Year
+            for &col in &visible_cols {
+                table = table.column(column_spec(col));
             }
-
-            table = table
-                .column(Column::initial(135.0).at_least(105.0))                   // Target Hardware
-                .column(Column::initial(80.0).at_least(65.0));                    // Size
-
-            if filters.show_advanced_columns {
-                table = table.column(Column::initial(95.0).at_least(80.0));       // Efficiency
-            }
-
-            table = table.column(Column::initial(120.0).at_least(100.0));        // Calibrated Score
-
-            if filters.show_advanced_columns {
-                table = table.column(Column::initial(125.0).at_least(100.0));     // Real-World Economic
-            }
-
-            table = table.column(Column::initial(110.0).at_least(90.0));          // Speed
-
-            if filters.show_advanced_columns {
-                table = table.column(Column::initial(90.0).at_least(75.0));       // Popularity
-            }
-
-            if filters.show_raw_sources {
-                table = table
-                    .column(Column::initial(80.0).at_least(65.0))                 // MMLU-PRO
-                    .column(Column::initial(80.0).at_least(65.0))                 // SWE-Bench
-                    .column(Column::initial(80.0).at_least(65.0))                 // Agentic
-                    .column(Column::initial(80.0).at_least(65.0));                // OpenLLM
-            }
-
-            table = table.column(Column::initial(115.0).at_least(90.0));          // Cloud Pricing
 
             table.header(28.0, |mut header| {
-                header.col(|ui| { ui.strong(t.col_rank); });
-                header.col(|ui| {
-                    ui.horizontal(|ui| {
-                        header_sort_col(ui, t.col_model, SortField::Name, SortOrder::Ascending, filters);
-                        let folder_icon = if filters.group_by_root { "[+]" } else { "[-]" };
-                        let folder_resp = ui.small_button(folder_icon).on_hover_text(t.group_tooltip);
-                        ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_grouped"), folder_resp.rect));
-                        if folder_resp.clicked() {
-                            filters.group_by_root = !filters.group_by_root;
+                for &col in &visible_cols {
+                    header.col(|ui| {
+                        if col == TableColumnId::Model {
+                            ui.horizontal(|ui| {
+                                let (label, sf, def_order) = column_header_info(col, lang);
+                                render_header_cell(ui, col, label, sf, def_order, filters, lang);
+                                let folder_icon = if filters.group_by_root { "[+]" } else { "[-]" };
+                                let folder_resp = ui.small_button(folder_icon).on_hover_text(t.group_tooltip);
+                                ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_grouped"), folder_resp.rect));
+                                if folder_resp.clicked() {
+                                    filters.group_by_root = !filters.group_by_root;
+                                }
+                            });
+                        } else {
+                            let (label, sf, def_order) = column_header_info(col, lang);
+                            let resp = render_header_cell(ui, col, label, sf, def_order, filters, lang);
+                            if col == TableColumnId::Score {
+                                resp.on_hover_text(lang.confidence().col_tooltip);
+                            }
                         }
                     });
-                });
-                if filters.show_advanced_columns {
-                    header.col(|ui| { header_sort_col(ui, t.col_year, SortField::Year, SortOrder::Descending, filters); });
                 }
-                header.col(|ui| { header_sort_col(ui, t.col_hardware, SortField::Memory, SortOrder::Ascending, filters); });
-                header.col(|ui| { header_sort_col(ui, t.col_size, SortField::Size, SortOrder::Ascending, filters); });
-                if filters.show_advanced_columns {
-                    header.col(|ui| { header_sort_col(ui, t.col_efficiency, SortField::Efficiency, SortOrder::Descending, filters); });
-                }
-                header.col(|ui| {
-                    let resp = header_sort_col(ui, t.col_score, SortField::Intelligence, SortOrder::Descending, filters);
-                    resp.on_hover_text(lang.confidence().col_tooltip);
-                });
-                if filters.show_advanced_columns {
-                    header.col(|ui| { header_sort_col(ui, t.col_real_world, SortField::RealWorld, SortOrder::Descending, filters); });
-                }
-                header.col(|ui| { header_sort_col(ui, t.col_speed, SortField::Speed, SortOrder::Descending, filters); });
-                if filters.show_advanced_columns {
-                    header.col(|ui| { header_sort_col(ui, t.col_popularity, SortField::Downloads, SortOrder::Descending, filters); });
-                }
-                if filters.show_raw_sources {
-                    header.col(|ui| { ui.strong(t.col_mmlu_pro); });
-                    header.col(|ui| { header_sort_col(ui, t.col_swe_bench, SortField::Coding, SortOrder::Descending, filters); });
-                    header.col(|ui| { header_sort_col(ui, t.col_agentic, SortField::Agentic, SortOrder::Descending, filters); });
-                    header.col(|ui| { header_sort_col(ui, t.col_open_llm, SortField::Intelligence, SortOrder::Descending, filters); });
-                }
-                header.col(|ui| { header_sort_col(ui, t.col_cloud_price, SortField::Price, SortOrder::Ascending, filters); });
             })
             .body(|body| {
                 body.rows(text_height + 14.0, items.len(), |mut row| {
@@ -148,4 +119,48 @@ pub fn render_table(
     crate::presentation::components::compare_floating_dock::render_floating_compare_dock(
         ui.ctx(), filters, all_models, lang,
     );
+}
+
+fn column_spec(col: TableColumnId) -> Column {
+    match col {
+        TableColumnId::Rank => Column::exact(64.0),
+        TableColumnId::Model => Column::initial(220.0).at_least(160.0).clip(true),
+        TableColumnId::Year => Column::exact(68.0),
+        TableColumnId::TargetHardware => Column::initial(135.0).at_least(105.0),
+        TableColumnId::Size => Column::initial(80.0).at_least(65.0),
+        TableColumnId::Efficiency => Column::initial(95.0).at_least(80.0),
+        TableColumnId::Score => Column::initial(120.0).at_least(100.0),
+        TableColumnId::RealWorld => Column::initial(125.0).at_least(100.0),
+        TableColumnId::Speed => Column::initial(110.0).at_least(90.0),
+        TableColumnId::Popularity => Column::initial(90.0).at_least(75.0),
+        TableColumnId::MmluPro
+        | TableColumnId::SweBench
+        | TableColumnId::Agentic
+        | TableColumnId::OpenLlm => Column::initial(80.0).at_least(65.0),
+        TableColumnId::CloudPrice => Column::initial(115.0).at_least(90.0),
+    }
+}
+
+fn column_header_info(
+    col: TableColumnId,
+    lang: Language,
+) -> (&'static str, Option<SortField>, SortOrder) {
+    let t = lang.t();
+    match col {
+        TableColumnId::Rank => (t.col_rank, None, SortOrder::Ascending),
+        TableColumnId::Model => (t.col_model, Some(SortField::Name), SortOrder::Ascending),
+        TableColumnId::Year => (t.col_year, Some(SortField::Year), SortOrder::Descending),
+        TableColumnId::TargetHardware => (t.col_hardware, Some(SortField::Memory), SortOrder::Ascending),
+        TableColumnId::Size => (t.col_size, Some(SortField::Size), SortOrder::Ascending),
+        TableColumnId::Efficiency => (t.col_efficiency, Some(SortField::Efficiency), SortOrder::Descending),
+        TableColumnId::Score => (t.col_score, Some(SortField::Intelligence), SortOrder::Descending),
+        TableColumnId::RealWorld => (t.col_real_world, Some(SortField::RealWorld), SortOrder::Descending),
+        TableColumnId::Speed => (t.col_speed, Some(SortField::Speed), SortOrder::Descending),
+        TableColumnId::Popularity => (t.col_popularity, Some(SortField::Downloads), SortOrder::Descending),
+        TableColumnId::MmluPro => (t.col_mmlu_pro, None, SortOrder::Descending),
+        TableColumnId::SweBench => (t.col_swe_bench, Some(SortField::Coding), SortOrder::Descending),
+        TableColumnId::Agentic => (t.col_agentic, Some(SortField::Agentic), SortOrder::Descending),
+        TableColumnId::OpenLlm => (t.col_open_llm, Some(SortField::Intelligence), SortOrder::Descending),
+        TableColumnId::CloudPrice => (t.col_cloud_price, Some(SortField::Price), SortOrder::Ascending),
+    }
 }
