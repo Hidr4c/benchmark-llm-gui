@@ -209,7 +209,7 @@ impl eframe::App for BenchmarkApp {
                     if let Some(vram) = hw.gpu_vram_gb {
                         self.graph_state.vram_budget_gb = vram;
                     }
-                    let msg = format!("🎯 {} : {}", self.language.t().btn_auto_detect, hw.summary());
+                    let msg = format!("{}: {}", self.language.t().btn_auto_detect, hw.summary());
                     self.status_message = Some((msg, false));
                     self.detected_hardware = Some(hw);
                 }
@@ -217,6 +217,7 @@ impl eframe::App for BenchmarkApp {
                     self.status_message = Some((format!("Detection notice: {e}"), true));
                 }
             }
+            self.tour_state.on_auto_detect_clicked();
         }
 
         let selected_model = self.selected_model_id.as_ref().and_then(|id| {
@@ -276,6 +277,13 @@ impl eframe::App for BenchmarkApp {
         });
 
         // Interactive guided walkthrough tour overlay
-        render_tour_overlay(ctx, &mut self.tour_state, &mut self.active_tab, self.language);
+        render_tour_overlay(
+            ctx,
+            &mut self.tour_state,
+            &mut self.active_tab,
+            &self.filters,
+            self.selected_model_id.as_deref(),
+            self.language,
+        );
     }
 }

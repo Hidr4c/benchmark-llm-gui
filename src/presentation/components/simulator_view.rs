@@ -20,6 +20,15 @@ pub fn render_simulator_view(
     let sim = config.simulate();
 
     ui.vertical(|ui| {
+        let sim_hdr_rect = ui.available_rect_before_wrap();
+        ui.ctx().memory_mut(|m| {
+            let area = egui::Rect::from_min_size(
+                sim_hdr_rect.min,
+                egui::vec2(sim_hdr_rect.width(), 46.0),
+            );
+            m.data.insert_temp(egui::Id::new("tour_target_sim_area"), area);
+        });
+
         // --- 1. Header & Quick Actions ---
         ui.horizontal(|ui| {
             ui.heading(egui::RichText::new(t.sim_title).strong().color(ThemeTokens::TEXT_PRIMARY));

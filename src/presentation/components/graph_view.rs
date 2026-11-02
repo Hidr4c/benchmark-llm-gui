@@ -30,6 +30,15 @@ pub fn render_graph_view(
     }
 
     ui.vertical(|ui| {
+        let preset_row_rect = ui.available_rect_before_wrap();
+        ui.ctx().memory_mut(|m| {
+            let area = egui::Rect::from_min_size(
+                preset_row_rect.min,
+                egui::vec2(preset_row_rect.width(), 42.0),
+            );
+            m.data.insert_temp(egui::Id::new("tour_target_graph_area"), area);
+        });
+
         // --- 1. Preset & Metric Configuration Dropdowns ---
         ui.horizontal_wrapped(|ui| {
             ui.label(egui::RichText::new(t.graph_preset_label).strong());
