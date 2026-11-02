@@ -26,6 +26,27 @@ impl AppTab {
             Self::Tutorial => t.tab_tutorial,
         }
     }
+
+    pub fn short_label(&self, lang: Language) -> &'static str {
+        match lang {
+            Language::French => match self {
+                Self::Table => "Classement",
+                Self::Graph => "Graphique Pareto",
+                Self::Comparator => "Comparateur VS",
+                Self::Simulator => "Simulateur",
+                Self::Sources => "Sources",
+                Self::Tutorial => "Guide IA",
+            },
+            Language::English => match self {
+                Self::Table => "Rankings",
+                Self::Graph => "Pareto Chart",
+                Self::Comparator => "VS Comparator",
+                Self::Simulator => "Simulator",
+                Self::Sources => "Sources",
+                Self::Tutorial => "AI Guide",
+            },
+        }
+    }
 }
 
 pub fn render_top_header(
@@ -44,56 +65,25 @@ pub fn render_top_header(
     on_contact: &mut bool,
 ) {
     let t = language.t();
-    ui.add_space(4.0);
+    ui.add_space(3.0);
 
-    // --- Single Header Line: Brand, Navigation View Dropdown & Utility Tools ---
+    // --- Row 1: Brand & Top Utilities ---
     ui.horizontal(|ui| {
         ui.heading(
             egui::RichText::new("LLM Benchmark Explorer")
-                .size(17.0)
+                .size(16.5)
                 .strong()
                 .color(ThemeTokens::PRIMARY),
         );
+        ui.label(
+            egui::RichText::new("• Edge & GPU Profiler")
+                .size(11.0)
+                .color(ThemeTokens::TEXT_MUTED),
+        );
 
-        ui.separator();
-
-        // 1. Clear, direct Navigation Tab Bar (1-click access to all features)
-        ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
-            let views = [
-                AppTab::Table,
-                AppTab::Graph,
-                AppTab::Comparator,
-                AppTab::Simulator,
-                AppTab::Sources,
-                AppTab::Tutorial,
-            ];
-            for v in views {
-                let is_sel = *active_tab == v;
-                let (btn_color, bg_fill) = if is_sel {
-                    (ThemeTokens::CYAN_EDGE, ThemeTokens::BG_CARD)
-                } else {
-                    (ThemeTokens::TEXT_SECONDARY, egui::Color32::TRANSPARENT)
-                };
-                let btn = egui::Button::new(
-                    egui::RichText::new(v.label(*language))
-                        .size(12.0)
-                        .strong()
-                        .color(btn_color)
-                )
-                .fill(bg_fill);
-
-                if ui.add(btn).clicked() {
-                    *active_tab = v;
-                }
-            }
-        });
-
-
-
-        // 2. Right-Aligned Global Actions
+        // Right-Aligned Global Actions
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            // 1. Language Dropdown Selector (Strictly "FR" or "EN") - Placed FIRST in right_to_left so it appears at the EXTREME RIGHT
+            // 1. Language Dropdown Selector (Strictly "FR" or "EN")
             egui::ComboBox::from_id_salt("top_language_combobox")
                 .selected_text(language.label())
                 .width(55.0)
@@ -154,7 +144,7 @@ pub fn render_top_header(
 
             ui.separator();
 
-            // 3. Refresh / Sync Button (clearly styled as a button)
+            // 3. Refresh / Sync Button
             let sync_text = if is_syncing {
                 egui::RichText::new(t.sync_downloading).color(ThemeTokens::PRIMARY)
             } else {
@@ -193,6 +183,73 @@ pub fn render_top_header(
                 });
         });
     });
+
+    ui.add_space(4.0);
+
+    // --- Row 2: Real Binder Tabs Navigation (Onglets de classeur) ---
+    egui::ScrollArea::horizontal()
+        .auto_shrink([false, true])
+        .show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing = egui::vec2(6.0, 0.0);
+                let views = [
+                    AppTab::Table,
+                    AppTab::Graph,
+                    AppTab::Comparator,
+                    AppTab::Simulator,
+                    AppTab::Sources,
+                    AppTab::Tutorial,
+                ];
+
+                for v in views {
+                    let is_sel = *active_tab == v;
+                    let (stroke, bg_fill, text_color, font_size) = if is_sel {
+                        (
+                            egui::Stroke::new(1.5, ThemeTokens::CYAN_EDGE),
+                            ThemeTokens::BG_CARD,
+                            ThemeTokens::CYAN_EDGE,
+                            13.0,
+                        )
+                    } else {
+                        (
+                            egui::Stroke::new(1.0, ThemeTokens::BG_PANEL),
+                            egui::Color32::from_rgb(17, 21, 28),
+                            ThemeTokens::TEXT_SECONDARY,
+                            12.0,
+                        )
+                    };
+
+                    let btn_text = egui::RichText::new(v.short_label(*language))
+                        .size(font_size)
+                        .strong()
+                        .color(text_color);
+
+                    let tab_btn = egui::Button::new(btn_text)
+                        .fill(bg_fill)
+                        .stroke(stroke)
+                        .rounding(egui::Rounding {
+                            nw: 6.0,
+                            ne: 6.0,
+                            sw: 0.0,
+                            se: 0.0,
+                        })
+                        .min_size(egui::vec2(110.0, 30.0));
+
+                    if ui.add(tab_btn)
+                        .on_hover_text(v.label(*language))
+                        .clicked()
+                    {
+                        *active_tab = v;
+                    }
+                }
+            });
+        });
+
+    // Continuous baseline connecting the active binder tab to page content
+    let rect = ui.available_rect_before_wrap();
+    let line_y = ui.cursor().top() - 1.0;
+    ui.painter().hline(rect.x_range(), line_y, egui::Stroke::new(1.5, ThemeTokens::BG_PANEL));
+    ui.add_space(3.0);
 
     if let Some((msg, is_err)) = status_message {
         if *is_err {
