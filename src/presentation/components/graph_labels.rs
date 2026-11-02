@@ -73,11 +73,11 @@ pub fn render_graph_node_labels(
 
         let short_name = truncate_name(&p.name, 18);
         let (label_text, text_color, is_bold) = if is_target {
-            (format!("[Cible] {}", short_name), ThemeTokens::GOLD_5090, true)
+            (format!("[Cible] {}", short_name), ThemeTokens::CYAN_EDGE, true)
         } else if is_champ {
-            (format!("* {}", short_name), ThemeTokens::GOLD_5090, true)
+            (format!("★ {}", short_name), egui::Color32::WHITE, true)
         } else if in_budget {
-            (short_name, egui::Color32::from_rgb(220, 235, 250), false)
+            (short_name, egui::Color32::from_rgb(180, 220, 250), false)
         } else {
             (short_name, egui::Color32::from_rgb(140, 155, 175), false)
         };

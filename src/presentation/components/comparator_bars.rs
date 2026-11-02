@@ -75,8 +75,8 @@ pub fn render_thematic_dual_bars(
             ui,
             "2. Vitesse & Débit",
             "Vitesse Réelle Projetée sur ce GPU (Tokens par seconde et latence estimée)",
-            &met1.model_name, tps1, max_tps, format!("{:.0} tok/s (~{:.1}s / 200 mots)", tps1, met1.sec_per_200_words),
-            &met2.model_name, tps2, max_tps, format!("{:.0} tok/s (~{:.1}s / 200 mots)", tps2, met2.sec_per_200_words),
+            &met1.model_name, tps1, max_tps, format!("{:.0} tok/s ({:.1}s / 200m)", tps1, met1.sec_per_200_words),
+            &met2.model_name, tps2, max_tps, format!("{:.0} tok/s ({:.1}s / 200m)", tps2, met2.sec_per_200_words),
             &speed_winner_text,
             tps1 > tps2 + 5.0, tps2 > tps1 + 5.0,
         );
@@ -88,12 +88,12 @@ pub fn render_thematic_dual_bars(
         let vram1_text = if met1.is_cloud {
             "0.0 Go (Cloud API - Zéro VRAM)".into()
         } else {
-            format!("{:.1} Go ({:.0}%) - {}", met1.vram_usage_gb, (met1.vram_usage_gb / total_vram) * 100.0, if met1.fits_pure_vram { "100% VRAM OK" } else { "Déborde sur RAM" })
+            format!("{:.1} Go ({:.0}%) - {}", met1.vram_usage_gb, (met1.vram_usage_gb / total_vram) * 100.0, if met1.fits_pure_vram { "VRAM OK" } else { "RAM" })
         };
         let vram2_text = if met2.is_cloud {
             "0.0 Go (Cloud API - Zéro VRAM)".into()
         } else {
-            format!("{:.1} Go ({:.0}%) - {}", met2.vram_usage_gb, (met2.vram_usage_gb / total_vram) * 100.0, if met2.fits_pure_vram { "100% VRAM OK" } else { "Déborde sur RAM" })
+            format!("{:.1} Go ({:.0}%) - {}", met2.vram_usage_gb, (met2.vram_usage_gb / total_vram) * 100.0, if met2.fits_pure_vram { "VRAM OK" } else { "RAM" })
         };
         let vram_winner_text = if met1.vram_usage_gb < met2.vram_usage_gb {
             format!("[Modèle le plus sobre : #1] Laisse +{:.1} Go de mémoire libre face à #2", met2.vram_usage_gb - met1.vram_usage_gb)
@@ -196,57 +196,63 @@ fn render_theme_card(
             let pct1 = (val1 / common_max).clamp(0.0, 1.0);
             let pct2 = (val2 / common_max).clamp(0.0, 1.0);
 
-            // Strict fixed column allocation guarantees 100% horizontal alignment
-            let col0_w = 260.0;
+            let col0_w = 240.0;
             let col1_w = 175.0;
-            let bar_w = (ui.available_width() - col0_w - col1_w - 30.0).max(150.0);
+            let bar_w = (ui.available_width() - col0_w - col1_w - 32.0).max(140.0);
 
-            egui::Grid::new(title)
-                .num_columns(3)
-                .spacing(egui::vec2(12.0, 6.0))
-                .show(ui, |ui| {
-                    // Row 1: Model #1 (Cyan)
-                    ui.allocate_ui_with_layout(egui::vec2(col0_w, 22.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                        ui.label(egui::RichText::new("[#1]").color(ThemeTokens::CYAN_EDGE).strong().size(12.5));
-                        ui.label(egui::RichText::new(name1).strong().size(12.5));
-                        if w1 {
-                            ui.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(11.0));
-                        }
-                    });
-
-                    ui.allocate_ui_with_layout(egui::vec2(col1_w, 22.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                        ui.label(egui::RichText::new(&text1).size(12.0).color(ThemeTokens::CYAN_EDGE).strong());
-                    });
-
-                    ui.add(
-                        egui::ProgressBar::new(pct1)
-                            .desired_width(bar_w)
-                            .fill(ThemeTokens::CYAN_EDGE)
-                            .animate(false)
-                    );
-                    ui.end_row();
-
-                    // Row 2: Model #2 (Gold)
-                    ui.allocate_ui_with_layout(egui::vec2(col0_w, 22.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                        ui.label(egui::RichText::new("[#2]").color(ThemeTokens::GOLD_5090).strong().size(12.5));
-                        ui.label(egui::RichText::new(name2).strong().size(12.5));
-                        if w2 {
-                            ui.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(11.0));
-                        }
-                    });
-
-                    ui.allocate_ui_with_layout(egui::vec2(col1_w, 22.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                        ui.label(egui::RichText::new(&text2).size(12.0).color(ThemeTokens::GOLD_5090).strong());
-                    });
-
-                    ui.add(
-                        egui::ProgressBar::new(pct2)
-                            .desired_width(bar_w)
-                            .fill(ThemeTokens::GOLD_5090)
-                            .animate(false)
-                    );
-                    ui.end_row();
+            // Row 1: Model #1 (Cyan)
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing = egui::vec2(10.0, 0.0);
+                ui.allocate_ui_with_layout(egui::vec2(col0_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.set_max_width(col0_w);
+                    ui.label(egui::RichText::new("[#1]").color(ThemeTokens::CYAN_EDGE).strong().size(12.5));
+                    let short_name1 = if name1.len() > 18 { format!("{}...", &name1[..16]) } else { name1.to_string() };
+                    ui.label(egui::RichText::new(short_name1).strong().size(12.0)).on_hover_text(name1);
+                    if w1 {
+                        ui.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(10.5));
+                    }
                 });
+
+                ui.allocate_ui_with_layout(egui::vec2(col1_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.set_max_width(col1_w);
+                    ui.label(egui::RichText::new(&text1).size(12.0).color(ThemeTokens::CYAN_EDGE).strong());
+                });
+
+                ui.add(
+                    egui::ProgressBar::new(pct1)
+                        .desired_width(bar_w)
+                        .fill(ThemeTokens::CYAN_EDGE)
+                        .animate(false)
+                );
+            });
+
+            ui.add_space(3.0);
+
+            // Row 2: Model #2 (Gold)
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing = egui::vec2(10.0, 0.0);
+                ui.allocate_ui_with_layout(egui::vec2(col0_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.set_max_width(col0_w);
+                    ui.label(egui::RichText::new("[#2]").color(ThemeTokens::GOLD_5090).strong().size(12.5));
+                    let short_name2 = if name2.len() > 18 { format!("{}...", &name2[..16]) } else { name2.to_string() };
+                    ui.label(egui::RichText::new(short_name2).strong().size(12.0)).on_hover_text(name2);
+                    if w2 {
+                        ui.label(egui::RichText::new("[MEILLEUR]").color(ThemeTokens::SUCCESS).strong().size(10.5));
+                    }
+                });
+
+                ui.allocate_ui_with_layout(egui::vec2(col1_w, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.set_max_width(col1_w);
+                    ui.label(egui::RichText::new(&text2).size(12.0).color(ThemeTokens::GOLD_5090).strong());
+                });
+
+                ui.add(
+                    egui::ProgressBar::new(pct2)
+                        .desired_width(bar_w)
+                        .fill(ThemeTokens::GOLD_5090)
+                        .animate(false)
+                );
+            });
 
             ui.add_space(4.0);
             ui.label(egui::RichText::new(winner_text).color(ThemeTokens::TEXT_SECONDARY).size(11.5));

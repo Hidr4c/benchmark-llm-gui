@@ -82,22 +82,23 @@ fn render_hero_banner(ui: &mut egui::Ui, tour_state: &mut TourState, lang: Langu
         .inner_margin(14.0)
         .rounding(8.0)
         .show(ui, |ui| {
+            // Row 1: Heading & Action Buttons without overlapping
             ui.horizontal(|ui| {
-                ui.label(egui::RichText::new("").size(32.0));
-                ui.vertical(|ui| {
-                    ui.heading(egui::RichText::new(t.tut_hero_title).color(ThemeTokens::TEXT_PRIMARY).strong().size(15.0));
-                    ui.label(egui::RichText::new(t.tut_hero_desc).color(ThemeTokens::TEXT_SECONDARY).size(12.0));
-                });
+                ui.heading(egui::RichText::new(t.tut_hero_title).color(ThemeTokens::TEXT_PRIMARY).strong().size(15.0));
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button(egui::RichText::new("> Mode Video (Auto-Play)").size(12.5).strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
+                    if ui.button(egui::RichText::new("> Mode Video (Auto-Play)").size(12.0).strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
                         tour_state.start_autoplay();
                     }
-                    if ui.button(egui::RichText::new(t.tut_btn_launch_tour).size(12.5).strong().color(ThemeTokens::GOLD_5090)).clicked() {
+                    if ui.button(egui::RichText::new(t.tut_btn_launch_tour).size(12.0).strong().color(ThemeTokens::GOLD_5090)).clicked() {
                         tour_state.start();
                     }
                 });
             });
+
+            // Row 2: Full description on its own line across full card width
+            ui.add_space(4.0);
+            ui.label(egui::RichText::new(t.tut_hero_desc).color(ThemeTokens::TEXT_SECONDARY).size(12.0));
         });
 }
 
@@ -123,7 +124,7 @@ fn render_columns_guide(ui: &mut egui::Ui, active_tab: &mut AppTab, lang: Langua
             ui.label(egui::RichText::new(guide.table_guide_desc).color(ThemeTokens::TEXT_MUTED).size(11.5));
             ui.add_space(8.0);
 
-            let col_w = (ui.available_width() - 16.0) / 3.0;
+            let col_w = ((ui.available_width() - 16.0) / 3.0 - 24.0).max(140.0);
             ui.horizontal(|ui| {
                 render_subcard(ui, col_w, guide.col_essential_badge, ThemeTokens::CYAN_EDGE, guide.col_essential_desc);
                 ui.add_space(8.0);
@@ -157,7 +158,7 @@ fn render_filters_guide(ui: &mut egui::Ui, active_tab: &mut AppTab, filters: &mu
             ui.label(egui::RichText::new(guide.filters_guide_desc).color(ThemeTokens::TEXT_MUTED).size(11.5));
             ui.add_space(8.0);
 
-            let col_w = (ui.available_width() - 16.0) / 3.0;
+            let col_w = ((ui.available_width() - 16.0) / 3.0 - 24.0).max(140.0);
             ui.horizontal(|ui| {
                 render_subcard(ui, col_w, guide.filter_ram_title, ThemeTokens::CYAN_EDGE, guide.filter_ram_desc);
                 ui.add_space(8.0);
@@ -173,7 +174,7 @@ fn render_practical_guides(ui: &mut egui::Ui, tour_state: &mut TourState, lang: 
     ui.label(egui::RichText::new(" Guides Pratiques & Cas d'Usage Cles").size(14.5).color(ThemeTokens::CYAN_EDGE).strong());
     ui.add_space(4.0);
 
-    let card_w = (ui.available_width() - 12.0) * 0.5;
+    let card_w = ((ui.available_width() - 14.0) * 0.5 - 28.0).max(200.0);
     ui.horizontal(|ui| {
         render_card(ui, card_w, "", t.tut_card1_title, t.tut_card1_desc, " Voir le Classement des Modeles", || tour_state.jump_to(2));
         ui.add_space(12.0);

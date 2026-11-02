@@ -61,7 +61,7 @@ pub fn render_top_header(
     updater: &mut UpdaterState,
     on_sync: &mut bool,
     on_switch_snapshot: &mut Option<i64>,
-    on_launch_tour: &mut bool,
+    _on_launch_tour: &mut bool,
     on_contact: &mut bool,
 ) {
     let t = language.t();
@@ -74,11 +74,6 @@ pub fn render_top_header(
                 .size(16.5)
                 .strong()
                 .color(ThemeTokens::PRIMARY),
-        );
-        ui.label(
-            egui::RichText::new("• Edge & GPU Profiler")
-                .size(11.0)
-                .color(ThemeTokens::TEXT_MUTED),
         );
 
         // Right-Aligned Global Actions
@@ -124,16 +119,6 @@ pub fn render_top_header(
                 .clicked()
             {
                 *on_contact = true;
-            }
-
-            ui.separator();
-
-            // 3. Interactive Guided Demo / Walkthrough Button
-            if ui.button(egui::RichText::new(t.btn_tour_demo).color(ThemeTokens::GOLD_5090).strong())
-                .on_hover_text(t.tooltip_tour_demo)
-                .clicked()
-            {
-                *on_launch_tour = true;
             }
 
             ui.separator();
@@ -205,16 +190,16 @@ pub fn render_top_header(
                     let is_sel = *active_tab == v;
                     let (stroke, bg_fill, text_color, font_size) = if is_sel {
                         (
-                            egui::Stroke::new(1.5, ThemeTokens::CYAN_EDGE),
-                            ThemeTokens::BG_CARD,
-                            ThemeTokens::CYAN_EDGE,
+                            egui::Stroke::new(2.0, ThemeTokens::CYAN_EDGE),
+                            egui::Color32::from_rgb(16, 68, 108),
+                            egui::Color32::WHITE,
                             13.0,
                         )
                     } else {
                         (
-                            egui::Stroke::new(1.0, ThemeTokens::BG_PANEL),
-                            egui::Color32::from_rgb(17, 21, 28),
-                            ThemeTokens::TEXT_SECONDARY,
+                            egui::Stroke::new(1.0, egui::Color32::from_rgb(55, 75, 105)),
+                            egui::Color32::from_rgb(30, 40, 58),
+                            egui::Color32::from_rgb(205, 222, 245),
                             12.0,
                         )
                     };
@@ -233,7 +218,7 @@ pub fn render_top_header(
                             sw: 0.0,
                             se: 0.0,
                         })
-                        .min_size(egui::vec2(110.0, 30.0));
+                        .min_size(egui::vec2(115.0, 32.0));
 
                     if ui.add(tab_btn)
                         .on_hover_text(v.label(*language))
@@ -248,7 +233,7 @@ pub fn render_top_header(
     // Continuous baseline connecting the active binder tab to page content
     let rect = ui.available_rect_before_wrap();
     let line_y = ui.cursor().top() - 1.0;
-    ui.painter().hline(rect.x_range(), line_y, egui::Stroke::new(1.5, ThemeTokens::BG_PANEL));
+    ui.painter().hline(rect.x_range(), line_y, egui::Stroke::new(2.0, ThemeTokens::CYAN_EDGE));
     ui.add_space(3.0);
 
     if let Some((msg, is_err)) = status_message {
