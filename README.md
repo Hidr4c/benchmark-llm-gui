@@ -2,11 +2,24 @@
 
 High-performance, modular desktop application written in **Rust** (`eframe`/`egui`) designed to explore, benchmark, filter, and compare **Local and Cloud Large Language Models (LLMs)** across diverse hardware tiers—from resource-constrained embedded edge devices (Micro-IoT, Raspberry Pi, Jetson) up to domestic workstations and flagship GPUs (RTX 4060, RTX 4090, RTX 5090 32 GB).
 
+[![Latest Release](https://img.shields.io/badge/Release-v1.0.0-brightgreen.svg)](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest)
 [![Rust Edition](https://img.shields.io/badge/Rust-2024_Edition-orange.svg)](https://www.rust-lang.org/)
 [![Architecture](https://img.shields.io/badge/Architecture-Clean%20%26%20IoC-blue.svg)](#architecture)
 [![Database](https://img.shields.io/badge/Storage-SQLite%20Bundled%20Embedded-brightgreen.svg)](#storage--zero-daemons)
 [![File Limit](https://img.shields.io/badge/File%20Size-%E2%89%A4%20300%20Lines-success.svg)](#engineering-standards)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
+
+---
+
+## 💾 Pre-compiled Binaries (Zero Setup Required)
+
+Download ready-to-run, standalone executables with zero external dependencies (bundled embedded SQLite, no Python or external database required):
+
+| Platform | Target Architecture | Package |
+| :--- | :--- | :--- |
+| **Windows x64** | `x86_64-pc-windows-msvc` | [**`benchmark-llm-gui-windows-x64.zip`**](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest) |
+| **Linux x64** | `x86_64-unknown-linux-gnu` | [**`benchmark-llm-gui-linux-x64.tar.gz`**](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest) |
+| **macOS (Apple Silicon)** | `aarch64-apple-darwin` | [**`benchmark-llm-gui-macos-arm64.tar.gz`**](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest) |
 
 ---
 

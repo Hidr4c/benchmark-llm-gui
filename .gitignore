@@ -6,4 +6,7 @@ benchmarks_export.csv
 GEMINI.md
 .gemini/
 *.log
+*.zip
+*.tar.gz
+releases/
 
