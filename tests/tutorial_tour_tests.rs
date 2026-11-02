@@ -116,8 +116,8 @@ fn test_tutorial_tab_localization() {
 
     let runner_fr = Language::French.runner();
     let runner_en = Language::English.runner();
-    assert_eq!(runner_fr.tab_lm_studio, "🚀 LM Studio");
-    assert_eq!(runner_en.tab_lm_studio, "🚀 LM Studio");
+    assert_eq!(runner_fr.tab_lm_studio, "LM Studio");
+    assert_eq!(runner_en.tab_lm_studio, "LM Studio");
     assert!(!runner_fr.hint_lms.is_empty());
 }
 
