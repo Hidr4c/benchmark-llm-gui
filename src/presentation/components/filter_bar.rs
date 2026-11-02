@@ -30,9 +30,9 @@ pub fn render_filter_bar(
                 .selected_text(scope_label)
                 .width(135.0)
                 .show_ui(ui, |ui| {
+                    if ui.selectable_label(filters.scope == ModelScope::All, t.scope_all).clicked() { filters.scope = ModelScope::All; }
                     if ui.selectable_label(filters.scope == ModelScope::LocalOnly, t.scope_local).clicked() { filters.scope = ModelScope::LocalOnly; }
                     if ui.selectable_label(filters.scope == ModelScope::CloudOnly, t.scope_cloud).clicked() { filters.scope = ModelScope::CloudOnly; }
-                    if ui.selectable_label(filters.scope == ModelScope::All, t.scope_all).clicked() { filters.scope = ModelScope::All; }
                 }).response;
             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_scope"), scope_resp.rect));
             scope_resp.on_hover_text(t.scope_tooltip);
@@ -53,14 +53,15 @@ pub fn render_filter_bar(
             ui.separator();
 
             // 3. Hardware Dropdown & Auto-detect (Always visible to maintain rock-solid UI stability)
-            let hw_label = filters.hardware.label();
+            let hw_label = if filters.hardware == HardwarePlatform::All { t.hw_all } else { filters.hardware.label() };
             let hw_resp = egui::ComboBox::from_id_salt("hardware_combo")
                 .selected_text(hw_label)
                 .width(145.0)
                 .show_ui(ui, |ui| {
                     let gpus = [HardwarePlatform::All, HardwarePlatform::Gpu8Gb, HardwarePlatform::Gpu12Gb, HardwarePlatform::Gpu16Gb, HardwarePlatform::Gpu24Gb, HardwarePlatform::Gpu32Gb, HardwarePlatform::Workstation];
                     for hw in gpus {
-                        if ui.selectable_label(filters.hardware == hw, hw.label()).clicked() {
+                        let lbl = if hw == HardwarePlatform::All { t.hw_all } else { hw.label() };
+                        if ui.selectable_label(filters.hardware == hw, lbl).clicked() {
                             filters.hardware = hw;
                             if filters.scope == ModelScope::CloudOnly { filters.scope = ModelScope::All; }
                         }
@@ -89,31 +90,7 @@ pub fn render_filter_bar(
 
             ui.separator();
 
-            // 4. Table View Mode Segmented Switch (Prominent, intuitive 1-click toggle)
-            let is_global = filters.column_mode == TableColumnMode::GlobalEvaluation;
-            let is_raw = filters.column_mode == TableColumnMode::RawBenchmarkSources;
-
-            let global_btn = egui::Button::new(
-                egui::RichText::new(t.col_mode_global)
-                    .strong()
-                    .color(if is_global { ThemeTokens::CYAN_EDGE } else { ThemeTokens::TEXT_SECONDARY })
-            ).fill(if is_global { egui::Color32::from_rgb(22, 36, 56) } else { egui::Color32::TRANSPARENT });
-            if ui.add(global_btn).on_hover_text(t.col_mode_label).clicked() {
-                filters.column_mode = TableColumnMode::GlobalEvaluation;
-            }
-
-            let raw_btn = egui::Button::new(
-                egui::RichText::new(t.col_mode_raw)
-                    .strong()
-                    .color(if is_raw { ThemeTokens::GOLD_5090 } else { ThemeTokens::TEXT_SECONDARY })
-            ).fill(if is_raw { egui::Color32::from_rgb(48, 38, 20) } else { egui::Color32::TRANSPARENT });
-            if ui.add(raw_btn).on_hover_text(t.col_mode_label).clicked() {
-                filters.column_mode = TableColumnMode::RawBenchmarkSources;
-            }
-
-            ui.separator();
-
-            // 5. Advanced Filters Toggle Button
+            // 4. Advanced Filters Toggle Button
             let adv_text = if filters.show_advanced { t.advanced_less } else { t.advanced_more };
             if ui.selectable_label(filters.show_advanced, adv_text).on_hover_text(t.advanced_tooltip).clicked() {
                 filters.show_advanced = !filters.show_advanced;
@@ -125,12 +102,16 @@ pub fn render_filter_bar(
 
             ui.separator();
 
-            // 6. Counter badge
-            ui.label(
+            // 5. Counter badge (with tour result anchor)
+            let counter_resp = ui.label(
                 egui::RichText::new(format!("{matching_count} / {total_count}"))
                     .color(if matching_count > 0 { ThemeTokens::SUCCESS } else { ThemeTokens::WARNING })
                     .strong()
             );
+            ui.ctx().memory_mut(|m| {
+                m.data.insert_temp(egui::Id::new("tour_result_scope"), counter_resp.rect);
+                m.data.insert_temp(egui::Id::new("tour_result_hardware"), counter_resp.rect);
+            });
         });
 
         // --- Row 2: Secondary / Advanced filters (only when expanded) ---

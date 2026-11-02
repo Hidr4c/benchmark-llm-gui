@@ -73,6 +73,7 @@ pub struct Translations {
 
     // Dropdowns
     pub hw_label: &'static str,
+    pub hw_all: &'static str,
     pub hw_tooltip: &'static str,
     pub mod_label: &'static str,
     pub mod_all: &'static str,

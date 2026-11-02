@@ -38,17 +38,17 @@ impl HardwarePlatform {
     pub fn label(&self) -> &'static str {
         match self {
             HardwarePlatform::All => "All Hardware",
-            HardwarePlatform::MicroIoT => "Micro-IoT (<= 1 GB RAM)",
-            HardwarePlatform::RaspberryPi4 => "Raspberry Pi 4 (2-4 GB)",
-            HardwarePlatform::RaspberryPi5 => "Raspberry Pi 5 / RK3588 (8 GB)",
+            HardwarePlatform::Gpu8Gb => "GPU 8 Go VRAM",
+            HardwarePlatform::Gpu12Gb => "GPU 12 Go VRAM",
+            HardwarePlatform::Gpu16Gb => "GPU 16 Go VRAM",
+            HardwarePlatform::Gpu24Gb => "GPU 24 Go VRAM",
+            HardwarePlatform::Gpu32Gb => "GPU 32 Go VRAM",
+            HardwarePlatform::Workstation => "Workstation & Mac (48+ Go)",
+            HardwarePlatform::MicroIoT => "Micro-IoT (<= 1 Go RAM)",
+            HardwarePlatform::RaspberryPi4 => "Raspberry Pi 4 (2-4 Go)",
+            HardwarePlatform::RaspberryPi5 => "Raspberry Pi 5 / RK3588 (8 Go)",
             HardwarePlatform::JetsonOrinNano => "Jetson Orin Nano (Edge)",
-            HardwarePlatform::MiniPcCpu => "Mini PC N100 / CPU (8-16 GB)",
-            HardwarePlatform::Gpu8Gb => "8 GB (RTX 4060)",
-            HardwarePlatform::Gpu12Gb => "12 GB (RTX 4070)",
-            HardwarePlatform::Gpu16Gb => "16 GB (RTX 4080)",
-            HardwarePlatform::Gpu24Gb => "24 GB (RTX 3090/4090)",
-            HardwarePlatform::Gpu32Gb => "32 GB (RTX 5090)",
-            HardwarePlatform::Workstation => "48+ GB (Workstation/Mac)",
+            HardwarePlatform::MiniPcCpu => "Mini PC N100 / CPU (8-16 Go)",
         }
     }
 
@@ -117,13 +117,13 @@ impl HardwarePlatform {
             HardwarePlatform::RaspberryPi5 => "Raspberry Pi 5",
             HardwarePlatform::JetsonOrinNano => "Jetson Edge",
             HardwarePlatform::MiniPcCpu => "Mini PC CPU",
-            HardwarePlatform::Gpu8Gb => "RTX 4060",
-            HardwarePlatform::Gpu12Gb => "RTX 4070",
-            HardwarePlatform::Gpu16Gb => "RTX 4080",
-            HardwarePlatform::Gpu24Gb => "RTX 4090",
-            HardwarePlatform::Gpu32Gb => "RTX 5090",
-            HardwarePlatform::Workstation => "Workstation",
-            HardwarePlatform::All => "Universal",
+            HardwarePlatform::Gpu8Gb => "GPU 8 Go",
+            HardwarePlatform::Gpu12Gb => "GPU 12 Go",
+            HardwarePlatform::Gpu16Gb => "GPU 16 Go",
+            HardwarePlatform::Gpu24Gb => "GPU 24 Go",
+            HardwarePlatform::Gpu32Gb => "GPU 32 Go",
+            HardwarePlatform::Workstation => "Station 48G+",
+            HardwarePlatform::All => "Tous Matériels",
         }
     }
 }

@@ -204,24 +204,57 @@ pub fn estimate_tps(params_b: Option<f32>) -> (Option<f32>, Option<String>) {
 }
 
 pub fn extract_release_year(id: &str, name: &str, created_at: Option<&str>) -> Option<u16> {
+    let combined = format!("{id} {name}").to_lowercase();
+
+    // 1. Explicit generational architectures (2026 frontier takes precedence over upload metadata)
+    if combined.contains("2026")
+        || combined.contains("gemini-4")
+        || combined.contains("argon")
+        || combined.contains("claude-4")
+        || combined.contains("claude-5")
+        || combined.contains("qwen3")
+        || combined.contains("qwen-3")
+        || combined.contains("gpt-6")
+        || combined.contains("deepseek-v4")
+        || combined.contains("mistral-small-4")
+        || combined.contains("mistral-large-4")
+    {
+        return Some(2026);
+    }
+
+    // 2. Repository upload timestamp if available
     if let Some(c) = created_at {
         if c.len() >= 4 {
             if let Ok(y) = c[0..4].parse::<u16>() {
-                if y >= 2020 && y <= 2030 {
+                if (2020..=2030).contains(&y) {
                     return Some(y);
                 }
             }
         }
     }
 
-    let combined = format!("{id} {name}").to_lowercase();
-    if combined.contains("2026") || combined.contains("gemini-4") || combined.contains("argon") || combined.contains("claude-4") || combined.contains("claude-5") || combined.contains("qwen3") || combined.contains("qwen-3") || combined.contains("gpt-6") || combined.contains("deepseek-v4") {
-        Some(2026)
-    } else if combined.contains("2025") || combined.contains("2501") || combined.contains("2502") || combined.contains("r1") || combined.contains("deepseek-v3") || combined.contains("gpt-5") || combined.contains("o3") {
+    // 3. Fallback heuristic detection
+    if combined.contains("2025")
+        || combined.contains("2501")
+        || combined.contains("2502")
+        || combined.contains("r1")
+        || combined.contains("deepseek-v3")
+        || combined.contains("gpt-5")
+        || combined.contains("o3")
+    {
         Some(2025)
-    } else if combined.contains("2024") || combined.contains("2411") || combined.contains("llama-3") || combined.contains("smollm2") || combined.contains("gemma-2") || combined.contains("qwen2.5") {
+    } else if combined.contains("2024")
+        || combined.contains("2411")
+        || combined.contains("llama-3")
+        || combined.contains("smollm2")
+        || combined.contains("gemma-2")
+        || combined.contains("qwen2.5")
+    {
         Some(2024)
-    } else if combined.contains("2023") || combined.contains("llama-2") || combined.contains("mistral-7b-v0.1") {
+    } else if combined.contains("2023")
+        || combined.contains("llama-2")
+        || combined.contains("mistral-7b-v0.1")
+    {
         Some(2023)
     } else {
         Some(2025)

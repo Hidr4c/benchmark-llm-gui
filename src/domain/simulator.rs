@@ -35,11 +35,11 @@ impl GpuTier {
     pub fn label(&self) -> &'static str {
         match self {
             Self::None => "❌ Aucun GPU dédié (Inférence CPU/iGPU)",
-            Self::Rtx4060_8G => "🟢 RTX 4060 (8 Go GDDR6 | 272 Go/s)",
-            Self::Rtx4070_12G => "🟢 RTX 4070 (12 Go GDDR6X | 504 Go/s)",
-            Self::Rtx4080_16G => "🟢 RTX 4080 (16 Go GDDR6X | 717 Go/s)",
-            Self::Rtx4090_24G => "🟣 RTX 4090 (24 Go GDDR6X | 1008 Go/s)",
-            Self::Rtx5090_32G => "👑 RTX 5090 (32 Go GDDR7 | 1792 Go/s)",
+            Self::Rtx4060_8G => "🟢 GPU 8 Go VRAM (GDDR6 | 272 Go/s)",
+            Self::Rtx4070_12G => "🟢 GPU 12 Go VRAM (GDDR6X | 504 Go/s)",
+            Self::Rtx4080_16G => "🟢 GPU 16 Go VRAM (GDDR6X | 717 Go/s)",
+            Self::Rtx4090_24G => "🟣 GPU 24 Go VRAM (GDDR6X | 1008 Go/s)",
+            Self::Rtx5090_32G => "👑 GPU 32 Go VRAM (GDDR7 | 1792 Go/s)",
             Self::AppleM4_36G => "🍏 Apple M4 Pro (36 Go Unifié | 273 Go/s)",
             Self::AppleM4_128G => "🍏 Apple M4 Max (128 Go Unifié | 546 Go/s)",
         }
