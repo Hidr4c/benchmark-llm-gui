@@ -36,6 +36,7 @@ pub const FR_TRANSLATIONS: Translations = Translations {
     },
     update: FR_UPDATE,
     tut_guide: super::sub_translations_tutorial::FR_TUTORIAL_GUIDE,
+    table_menu: super::sub_translations::FR_TABLE_MENU,
     tab_simulator: "Simulateur Matériel & NAS",
     tab_sources: "Sources & Références",
     tab_tutorial: "Guide & Tutoriels",

@@ -1,4 +1,4 @@
-pub use super::sub_translations::{ComparatorTranslations, UpdateTranslations};
+pub use super::sub_translations::{ComparatorTranslations, TableMenuTranslations, UpdateTranslations};
 pub use super::sub_translations_tutorial::TutorialGuideTranslations;
 #[derive(Debug, Clone, Copy)]
 pub struct Translations {
@@ -14,6 +14,7 @@ pub struct Translations {
     pub comp: ComparatorTranslations,
     pub update: UpdateTranslations,
     pub tut_guide: TutorialGuideTranslations,
+    pub table_menu: TableMenuTranslations,
 
     // Filter Bar & Scopes
     pub scope_label: &'static str,

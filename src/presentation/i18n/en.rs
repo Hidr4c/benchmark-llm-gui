@@ -36,6 +36,7 @@ pub const EN_TRANSLATIONS: Translations = Translations {
     },
     update: EN_UPDATE,
     tut_guide: super::sub_translations_tutorial::EN_TUTORIAL_GUIDE,
+    table_menu: super::sub_translations::EN_TABLE_MENU,
     tab_simulator: "Hardware & NAS Simulator",
     tab_sources: "Sources & References",
     tab_tutorial: "Guide & Tutorials",

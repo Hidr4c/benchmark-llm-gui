@@ -93,6 +93,10 @@ impl FilterService {
                 } else { return None; }
             }
 
+            if !filters.table_prefs.matches_model(m, "") {
+                return None;
+            }
+
             Some(idx)
         }).collect();
 

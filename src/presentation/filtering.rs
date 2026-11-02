@@ -106,6 +106,7 @@ pub struct FilterState {
     pub sort_field: SortField,
     pub sort_order: SortOrder,
     pub compared_model_ids: Vec<String>,
+    pub table_prefs: crate::domain::table_preferences::TablePreferences,
 }
 
 impl Default for FilterState {
@@ -134,6 +135,7 @@ impl Default for FilterState {
             sort_field: SortField::Intelligence,
             sort_order: SortOrder::Descending,
             compared_model_ids: Vec::new(),
+            table_prefs: crate::domain::table_preferences::TablePreferences::default(),
         }
     }
 }
