@@ -23,3 +23,9 @@ pub trait IBenchmarkRepository: Send + Sync {
 pub trait IModelFetcher: Send + Sync {
     async fn fetch_and_unify(&self) -> Result<Vec<ModelBenchmark>, String>;
 }
+
+/// Inversion of Control Port: User Settings and Table Preferences Persistence
+pub trait IPreferencesRepository: Send + Sync {
+    fn load_table_preferences(&self) -> Result<Option<crate::domain::table_preferences::TablePreferences>, String>;
+    fn save_table_preferences(&self, prefs: &crate::domain::table_preferences::TablePreferences) -> Result<(), String>;
+}

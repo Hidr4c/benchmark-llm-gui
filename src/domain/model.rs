@@ -3,7 +3,7 @@ use crate::domain::economic::EconomicScores;
 use crate::domain::modality::ModelModality;
 use crate::domain::scoring::{ScoreBreakdown, ScoringEngine};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SortField {
     Intelligence,
     Efficiency,
@@ -19,7 +19,7 @@ pub enum SortField {
     Agentic,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SortOrder {
     Ascending,
     Descending,

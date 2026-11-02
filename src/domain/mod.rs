@@ -10,5 +10,6 @@ pub mod pricing;
 pub mod scoring;
 pub mod simulator;
 pub mod sources;
+pub mod table_preferences;
 pub mod traits;
 pub mod updater;
