@@ -13,6 +13,10 @@ pub fn render_tour_overlay(
     active_tab: &mut AppTab,
     filters: &FilterState,
     selected_model_id: Option<&str>,
+    detected_hardware: Option<&crate::domain::hardware_detector::DetectedHardware>,
+    all_models: &[crate::domain::model::ModelBenchmark],
+    matching_count: usize,
+    total_count: usize,
     lang: Language,
 ) {
     if !state.is_active {
@@ -21,7 +25,7 @@ pub fn render_tour_overlay(
 
     ctx.request_repaint();
 
-    // Render interactive Guide Summary side panel
+    // Render optional Guide Summary checklist (only when explicitly opened)
     render_quest_log(ctx, state, lang);
 
     let t = lang.t();
@@ -42,10 +46,11 @@ pub fn render_tour_overlay(
         }
     }
 
-    let (step_tab, target_id, step_accent, title, desc, action_hint, target_label) = match state.current_step {
+    let (step_tab, target_id, result_id, step_accent, title, desc, action_hint, target_label) = match state.current_step {
         0 => (
             AppTab::Table,
             egui::Id::new("tour_target_scope"),
+            egui::Id::new("tour_result_table_rows"),
             ThemeTokens::CYAN_EDGE,
             t.tour_s1_title,
             t.tour_s1_desc,
@@ -55,6 +60,7 @@ pub fn render_tour_overlay(
         1 => (
             AppTab::Table,
             egui::Id::new("tour_target_detect"),
+            egui::Id::new("tour_result_detect"),
             ThemeTokens::CYAN_EDGE,
             t.tour_s2_title,
             t.tour_s2_desc,
@@ -64,6 +70,7 @@ pub fn render_tour_overlay(
         2 => (
             AppTab::Table,
             egui::Id::new("tour_target_hardware"),
+            egui::Id::new("tour_result_table_rows"),
             ThemeTokens::GOLD_5090,
             t.tour_s3_title,
             t.tour_s3_desc,
@@ -73,6 +80,7 @@ pub fn render_tour_overlay(
         3 => (
             AppTab::Table,
             egui::Id::new("tour_target_grouped"),
+            egui::Id::new("tour_result_grouped"),
             ThemeTokens::CYAN_EDGE,
             t.tour_s4_title,
             t.tour_s4_desc,
@@ -81,7 +89,8 @@ pub fn render_tour_overlay(
         ),
         4 => (
             AppTab::Table,
-            egui::Id::new("tour_target_table_row"),
+            egui::Id::new("tour_target_model_name"),
+            egui::Id::new("tour_result_detail_panel"),
             ThemeTokens::GOLD_5090,
             t.tour_s5_title,
             t.tour_s5_desc,
@@ -90,7 +99,8 @@ pub fn render_tour_overlay(
         ),
         5 => (
             AppTab::Graph,
-            egui::Id::new("tour_target_graph_area"),
+            egui::Id::new("tour_target_recenter_btn"),
+            egui::Id::new("tour_result_graph_plot"),
             ThemeTokens::GOLD_5090,
             t.tour_s6_title,
             t.tour_s6_desc,
@@ -99,7 +109,8 @@ pub fn render_tour_overlay(
         ),
         _ => (
             AppTab::Simulator,
-            egui::Id::new("tour_target_sim_area"),
+            egui::Id::new("tour_target_sim_gpu"),
+            egui::Id::new("tour_result_sim_kpi"),
             ThemeTokens::CYAN_EDGE,
             t.tour_s7_title,
             t.tour_s7_desc,
@@ -108,33 +119,36 @@ pub fn render_tour_overlay(
         ),
     };
 
-    let accent = if state.transition_timer.is_some() {
-        ThemeTokens::SUCCESS
-    } else {
-        step_accent
-    };
+    let in_transition = state.transition_timer.is_some();
+    let accent = if in_transition { ThemeTokens::SUCCESS } else { step_accent };
 
     if *active_tab != step_tab {
         *active_tab = step_tab;
     }
 
-    let target_rect: Option<egui::Rect> = ctx.memory_mut(|m| m.data.get_temp(target_id));
-    TourSpotlight::draw_spotlight(ctx, target_rect, accent);
+    let active_id = if in_transition { result_id } else { target_id };
+    let spotlight_rect: Option<egui::Rect> = ctx.memory_mut(|m| m.data.get_temp(active_id))
+        .or_else(|| ctx.memory_mut(|m| m.data.get_temp(target_id)));
+
+    let callout = get_callout_label(state.current_step, in_transition, lang);
+    TourSpotlight::draw_spotlight(ctx, spotlight_rect, accent, in_transition, callout);
 
     let screen = ctx.screen_rect();
-    let card_w = 640.0f32.min(screen.width() - 48.0);
-    let card_h = 190.0f32;
-    let card_pos = TourSpotlight::compute_card_position(screen, target_rect, card_w, card_h, state.show_guide_summary);
+    let card_w = 580.0f32.min(screen.width() - 40.0);
+    let card_h = if in_transition { 220.0f32 } else { 185.0f32 };
+    let card_pos = TourSpotlight::compute_card_position(screen, spotlight_rect, card_w, card_h);
 
-    egui::Area::new(egui::Id::new("tour_interactive_guidance_card"))
-        .fixed_pos(card_pos)
-        .pivot(egui::Align2::LEFT_TOP)
+    egui::Window::new("tour_guidance_floating_window")
+        .title_bar(false)
+        .movable(true)
+        .resizable(false)
+        .default_pos(card_pos)
         .order(egui::Order::Foreground)
-        .show(ctx, |ui| {
-            egui::Frame::group(ui.style())
+        .frame(
+            egui::Frame::none()
                 .fill(egui::Color32::from_rgb(14, 18, 28))
                 .stroke(egui::Stroke::new(2.0, accent))
-                .inner_margin(16.0)
+                .inner_margin(14.0)
                 .rounding(10.0)
                 .shadow(egui::epaint::Shadow {
                     offset: egui::vec2(0.0, 8.0),
@@ -142,116 +156,139 @@ pub fn render_tour_overlay(
                     spread: 2.0,
                     color: egui::Color32::from_black_alpha(200),
                 })
-                .show(ui, |ui| {
-                    ui.set_width(card_w);
-                    ui.vertical(|ui| {
-                        // Header: Step counter, localized title, target badge, clean close cross
-                        ui.horizontal(|ui| {
-                            let step_badge = format!("🎬 {} {} / {} :", t.tour_step_prefix, state.current_step + 1, total_steps);
-                            ui.label(egui::RichText::new(step_badge).strong().color(ThemeTokens::GOLD_5090).size(13.5));
-                            ui.label(egui::RichText::new(title).strong().color(ThemeTokens::TEXT_PRIMARY).size(14.0));
+        )
+        .show(ctx, |ui| {
+            ui.set_width(card_w);
+            ui.vertical(|ui| {
+                // Header: Drag grip, Step badge, localized title, target badge, close cross
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new("⠿").color(ThemeTokens::TEXT_SECONDARY).size(14.0))
+                        .on_hover_text("Faites glisser pour déplacer cette boîte de dialogue");
+                    let step_badge = format!("🎬 {} {} / {} :", t.tour_step_prefix, state.current_step + 1, total_steps);
+                    ui.label(egui::RichText::new(step_badge).strong().color(ThemeTokens::GOLD_5090).size(13.5));
+                    ui.label(egui::RichText::new(title).strong().color(ThemeTokens::TEXT_PRIMARY).size(14.0));
 
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                let close_btn = egui::Button::new(
-                                    egui::RichText::new("×")
-                                        .size(16.0)
-                                        .strong()
-                                        .color(ThemeTokens::TEXT_SECONDARY),
-                                )
-                                .fill(egui::Color32::from_rgb(26, 32, 46))
-                                .rounding(4.0);
-                                if ui.add(close_btn).on_hover_text(t.tour_close).clicked() {
-                                    state.close();
-                                }
-                                ui.label(egui::RichText::new(format!("[ {target_label} ]")).strong().color(accent).size(12.0));
-                            });
-                        });
-
-                        ui.add_space(6.0);
-
-                        // Action Directive Banner OR Observation Confirmation Banner
-                        if let Some(remaining) = state.transition_timer {
-                            let feedback = state.transition_feedback.clone().unwrap_or_else(|| t.tour_step_validated.to_string());
-                            egui::Frame::none()
-                                .fill(egui::Color32::from_rgb(18, 42, 28))
-                                .stroke(egui::Stroke::new(1.5, ThemeTokens::SUCCESS))
-                                .inner_margin(8.0)
-                                .rounding(6.0)
-                                .show(ui, |ui| {
-                                    ui.horizontal(|ui| {
-                                        ui.label(egui::RichText::new("✓").strong().color(ThemeTokens::SUCCESS).size(13.5));
-                                        ui.label(egui::RichText::new(feedback).color(ThemeTokens::SUCCESS).strong().size(12.5));
-                                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                            if ui.button(egui::RichText::new(t.tour_skip_transition).size(11.0).color(ThemeTokens::CYAN_EDGE)).clicked() {
-                                                state.next(total_steps);
-                                            }
-                                            ui.label(egui::RichText::new(format!("({:.1}s)", remaining)).color(ThemeTokens::TEXT_SECONDARY).size(11.0));
-                                        });
-                                    });
-                                });
-                        } else {
-                            egui::Frame::none()
-                                .fill(egui::Color32::from_rgb(20, 29, 46))
-                                .stroke(egui::Stroke::new(1.0, accent))
-                                .inner_margin(8.0)
-                                .rounding(6.0)
-                                .show(ui, |ui| {
-                                    ui.horizontal(|ui| {
-                                        ui.label(egui::RichText::new(t.tour_action_label).strong().color(accent).size(12.5));
-                                        ui.label(egui::RichText::new(action_hint).color(ThemeTokens::TEXT_PRIMARY).strong().size(12.5));
-                                    });
-                                });
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        let close_btn = egui::Button::new(
+                            egui::RichText::new("×").size(16.0).strong().color(ThemeTokens::TEXT_SECONDARY),
+                        )
+                        .fill(egui::Color32::from_rgb(26, 32, 46))
+                        .rounding(4.0);
+                        if ui.add(close_btn).on_hover_text(t.tour_close).clicked() {
+                            state.close();
                         }
-
-                        ui.add_space(6.0);
-                        ui.label(egui::RichText::new(desc).color(ThemeTokens::TEXT_SECONDARY).size(12.0));
-
-                        ui.add_space(8.0);
-                        // Bottom Navigation Toolbar
-                        ui.horizontal(|ui| {
-                            let can_prev = state.current_step > 0;
-                            if ui.add_enabled(can_prev, egui::Button::new(t.tour_prev)).clicked() {
-                                state.prev();
-                            }
-
-                            let next_lbl = if state.current_step + 1 < total_steps { t.tour_next } else { "🏁 Terminer" };
-                            if ui.button(egui::RichText::new(next_lbl).strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
-                                state.next(total_steps);
-                            }
-
-                            ui.separator();
-
-                            let auto_btn = if state.auto_play {
-                                egui::RichText::new(format!("{} ({:.0}s)", t.tour_pause, 7.5 - state.timer)).color(ThemeTokens::GOLD_5090)
-                            } else {
-                                egui::RichText::new(t.tour_autoplay).color(ThemeTokens::SUCCESS)
-                            };
-                            if ui.button(auto_btn).clicked() {
-                                state.auto_play = !state.auto_play;
-                                state.timer = 0.0;
-                            }
-
-                            // Interactive Guide Summary toggle and step progress indicator
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                let guide_lbl = format!("{} ({}/7)", t.tour_guide_btn, state.completed_count());
-                                let guide_btn = egui::Button::new(
-                                    egui::RichText::new(guide_lbl)
-                                        .color(if state.show_guide_summary { ThemeTokens::GOLD_5090 } else { ThemeTokens::CYAN_EDGE })
-                                        .strong()
-                                        .size(12.0),
-                                );
-                                if ui.add(guide_btn).clicked() {
-                                    state.show_guide_summary = !state.show_guide_summary;
-                                }
-
-                                ui.label(
-                                    egui::RichText::new(format!("{} {} / {}", t.tour_step_prefix, state.current_step + 1, total_steps))
-                                        .color(ThemeTokens::TEXT_SECONDARY)
-                                        .size(12.0),
-                                );
-                            });
-                        });
+                        ui.label(egui::RichText::new(format!("[ {target_label} ]")).strong().color(accent).size(12.0));
                     });
                 });
+
+                ui.add_space(6.0);
+
+                // Action Directive Banner OR Rich Observation Confirmation Banner
+                if state.transition_timer.is_some() {
+                    crate::presentation::components::tour_feedback::render_transition_feedback(
+                        ui, state, filters, selected_model_id, detected_hardware, all_models, matching_count, total_count, lang, total_steps,
+                    );
+                } else {
+                    egui::Frame::none()
+                        .fill(egui::Color32::from_rgb(20, 29, 46))
+                        .stroke(egui::Stroke::new(1.0, accent))
+                        .inner_margin(8.0)
+                        .rounding(6.0)
+                        .show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(egui::RichText::new(t.tour_action_label).strong().color(accent).size(12.5));
+                                ui.label(egui::RichText::new(action_hint).color(ThemeTokens::TEXT_PRIMARY).strong().size(12.5));
+                            });
+                        });
+                }
+
+                ui.add_space(6.0);
+                ui.label(egui::RichText::new(desc).color(ThemeTokens::TEXT_SECONDARY).size(12.0));
+
+                ui.add_space(8.0);
+                // Bottom Navigation Toolbar
+                ui.horizontal(|ui| {
+                    let can_prev = state.current_step > 0;
+                    if ui.add_enabled(can_prev, egui::Button::new(t.tour_prev)).clicked() {
+                        state.prev();
+                    }
+
+                    let next_lbl = if state.current_step + 1 < total_steps { t.tour_next } else { "🏁 Terminer" };
+                    if ui.button(egui::RichText::new(next_lbl).strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
+                        state.next(total_steps);
+                    }
+
+                    ui.separator();
+
+                    let auto_btn = if state.auto_play {
+                        egui::RichText::new(format!("{} ({:.0}s)", t.tour_pause, 7.5 - state.timer)).color(ThemeTokens::GOLD_5090)
+                    } else {
+                        egui::RichText::new(t.tour_autoplay).color(ThemeTokens::SUCCESS)
+                    };
+                    if ui.button(auto_btn).clicked() {
+                        state.auto_play = !state.auto_play;
+                        state.timer = 0.0;
+                    }
+
+                    // Interactive Guide Summary toggle and step progress indicator
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        let guide_lbl = format!("{} ({}/7)", t.tour_guide_btn, state.completed_count());
+                        let guide_btn = egui::Button::new(
+                            egui::RichText::new(guide_lbl)
+                                .color(if state.show_guide_summary { ThemeTokens::GOLD_5090 } else { ThemeTokens::CYAN_EDGE })
+                                .strong()
+                                .size(12.0),
+                        );
+                        if ui.add(guide_btn).clicked() {
+                            state.show_guide_summary = !state.show_guide_summary;
+                        }
+
+                        ui.label(
+                            egui::RichText::new(format!("{} {} / {}", t.tour_step_prefix, state.current_step + 1, total_steps))
+                                .color(ThemeTokens::TEXT_SECONDARY)
+                                .size(12.0),
+                        );
+                    });
+                });
+            });
         });
+}
+
+fn get_callout_label(step: usize, is_result: bool, lang: Language) -> &'static str {
+    match lang {
+        Language::French => match (step, is_result) {
+            (0, false) => "👉 Cliquez ici : choisissez 'Modèles Locaux'",
+            (0, true) => "👇 Regardez le tableau : modèles locaux affichés !",
+            (1, false) => "👉 Cliquez sur [ Détecter mon PC ]",
+            (1, true) => "👆 Matériel détecté : CPU, RAM et GPU profilés !",
+            (2, false) => "👉 Sélectionnez votre palier VRAM",
+            (2, true) => "👇 Modèles compatibles avec votre budget mémoire !",
+            (3, false) => "👉 Cliquez sur le dossier pour grouper",
+            (3, true) => "👉 Variantes repliées : cliquez sur [▶] !",
+            (4, false) => "👉 Cliquez sur le nom d'un modèle",
+            (4, true) => "👇 Fiche détaillée ouverte en bas !",
+            (5, false) => "👉 Cliquez sur [ 🎯 Recentrer ]",
+            (5, true) => "👉 Courbe de Pareto : modèles champions !",
+            (6, false) => "👉 Changez de GPU dans la liste",
+            (6, true) => "👉 Verdict simulateur : risque de crash OOM !",
+            _ => "Regardez ici",
+        },
+        Language::English => match (step, is_result) {
+            (0, false) => "👉 Click here: select 'Local Models'",
+            (0, true) => "👇 Local models displayed in table!",
+            (1, false) => "👉 Click [ Auto-Detect PC ]",
+            (1, true) => "👆 Hardware detected: CPU, RAM & GPU profiled!",
+            (2, false) => "👉 Select your VRAM budget tier",
+            (2, true) => "👇 Filtered models fitting your memory!",
+            (3, false) => "👉 Click folder icon to group variants",
+            (3, true) => "👉 Collapsed variants: click [▶]!",
+            (4, false) => "👉 Click on any model name",
+            (4, true) => "👇 Detail panel opened below!",
+            (5, false) => "👉 Click [ 🎯 Recenter ]",
+            (5, true) => "👉 Pareto frontier: peak value models!",
+            (6, false) => "👉 Switch GPU tier in dropdown",
+            (6, true) => "👉 Simulator verdict: real-time OOM risk!",
+            _ => "Look here",
+        },
+    }
 }

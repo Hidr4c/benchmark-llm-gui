@@ -54,6 +54,9 @@ fn test_tour_autoplay_mode() {
 fn test_tour_guide_and_gamified_progress() {
     let mut tour = TourState::default();
     tour.start();
+    // Guide summary is closed by default to prevent masking the table content
+    assert!(!tour.show_guide_summary);
+    tour.show_guide_summary = true;
     assert!(tour.show_guide_summary);
     assert_eq!(tour.completed_count(), 0);
 
@@ -64,7 +67,7 @@ fn test_tour_guide_and_gamified_progress() {
     assert!(tour.transition_timer.is_some());
 
     // Advancing through transition
-    tour.update_transition(2.5, 7);
+    tour.update_transition(4.0, 7);
     assert!(tour.transition_timer.is_none());
     assert_eq!(tour.current_step, 2);
     assert_eq!(tour.completed_count(), 1);
@@ -134,13 +137,13 @@ fn test_tour_end_to_end_walkthrough_flow() {
     filters.scope = ModelScope::LocalOnly;
     assert!(tour.check_and_update_progress(&filters, None, total_steps));
     assert!(tour.completed_steps[0]);
-    tour.update_transition(2.5, total_steps);
+    tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 1);
 
     // Step 1: User clicks Auto-Detect
     tour.on_auto_detect_clicked();
     assert!(tour.completed_steps[1]);
-    tour.update_transition(2.5, total_steps);
+    tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 2);
 
     // Step 2: User changes hardware filter
@@ -148,7 +151,7 @@ fn test_tour_end_to_end_walkthrough_flow() {
     filters.hardware = HardwarePlatform::Gpu24Gb;
     assert!(tour.check_and_update_progress(&filters, None, total_steps));
     assert!(tour.completed_steps[2]);
-    tour.update_transition(2.5, total_steps);
+    tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 3);
 
     // Step 3: User toggles root model group folder
@@ -156,22 +159,62 @@ fn test_tour_end_to_end_walkthrough_flow() {
     filters.group_by_root = !filters.group_by_root;
     assert!(tour.check_and_update_progress(&filters, None, total_steps));
     assert!(tour.completed_steps[3]);
-    tour.update_transition(2.5, total_steps);
+    tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 4);
 
     // Step 4: User clicks a model in table
     tour.check_and_update_progress(&filters, None, total_steps);
     assert!(tour.check_and_update_progress(&filters, Some("test/model-1"), total_steps));
     assert!(tour.completed_steps[4]);
-    tour.update_transition(2.5, total_steps);
+    tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 5);
 
-    // Step 5: Advance to step 6 (Graph -> Sim)
-    tour.next(total_steps);
+    // Step 5: User clicks Recenter on Graph
+    tour.on_recenter_clicked();
+    assert!(tour.completed_steps[5]);
+    tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 6);
 
-    // Step 6: Complete final step
-    tour.next(total_steps);
+    // Step 6: User changes GPU in Simulator
+    let mut sim_config = benchmark_llm_gui::domain::simulator::HardwareRigConfig::default();
+    tour.check_and_update_sim_progress(&sim_config);
+    sim_config.gpu = benchmark_llm_gui::domain::simulator::GpuTier::Rtx4090_24G;
+    tour.check_and_update_sim_progress(&sim_config);
+    assert!(tour.completed_steps[6]);
+    tour.update_transition(4.0, total_steps);
     assert!(!tour.is_active, "Tour must be closed upon completing step 7");
     assert_eq!(tour.completed_count(), 7, "All 7 steps must be marked as completed");
+}
+
+#[test]
+fn test_tour_step4_raw_sources_and_global_mode_compatibility() {
+    use benchmark_llm_gui::presentation::filtering::{FilterState, TableColumnMode};
+
+    let mut tour = TourState::default();
+    let mut filters = FilterState::default();
+    let total_steps = 7;
+
+    // Start tour and jump directly to Step 4 (index 3)
+    tour.start();
+    tour.jump_to(3);
+    assert_eq!(tour.current_step, 3);
+
+    // Verify under RawBenchmarkSources mode
+    filters.column_mode = TableColumnMode::RawBenchmarkSources;
+    assert_eq!(filters.group_by_root, true);
+
+    // Initial check
+    tour.check_and_update_progress(&filters, None, total_steps);
+    assert!(!tour.completed_steps[3]);
+
+    // Toggling root grouping in raw sources mode triggers completion and transition
+    filters.group_by_root = false;
+    assert!(tour.check_and_update_progress(&filters, None, total_steps));
+    assert!(tour.completed_steps[3]);
+    assert!(tour.transition_timer.is_some());
+
+    // Advance through observation pause
+    tour.update_transition(4.0, total_steps);
+    assert_eq!(tour.current_step, 4);
+    assert_eq!(tour.transition_timer, None);
 }

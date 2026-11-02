@@ -18,7 +18,8 @@ pub fn render_quest_log(
     let panel_pos = egui::pos2(screen.right() - panel_w - 16.0, screen.top() + 75.0);
 
     egui::Area::new(egui::Id::new("tour_quest_log_floating_panel"))
-        .fixed_pos(panel_pos)
+        .default_pos(panel_pos)
+        .movable(true)
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {
             egui::Frame::group(ui.style())

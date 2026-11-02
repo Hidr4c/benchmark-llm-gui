@@ -14,6 +14,7 @@ pub struct TourState {
     pub prev_hardware: Option<HardwarePlatform>,
     pub prev_grouping: Option<bool>,
     pub prev_selected_id: Option<String>,
+    pub prev_sim_gpu: Option<crate::domain::simulator::GpuTier>,
 }
 
 impl Default for TourState {
@@ -23,7 +24,7 @@ impl Default for TourState {
             current_step: 0,
             auto_play: false,
             timer: 0.0,
-            show_guide_summary: true,
+            show_guide_summary: false,
             completed_steps: [false; 7],
             transition_timer: None,
             transition_feedback: None,
@@ -31,6 +32,7 @@ impl Default for TourState {
             prev_hardware: None,
             prev_grouping: None,
             prev_selected_id: None,
+            prev_sim_gpu: None,
         }
     }
 }
@@ -41,7 +43,7 @@ impl TourState {
         self.current_step = 0;
         self.auto_play = false;
         self.timer = 0.0;
-        self.show_guide_summary = true;
+        self.show_guide_summary = false;
         self.transition_timer = None;
         self.transition_feedback = None;
         self.reset_trackers();
@@ -52,7 +54,7 @@ impl TourState {
         self.current_step = 0;
         self.auto_play = true;
         self.timer = 0.0;
-        self.show_guide_summary = true;
+        self.show_guide_summary = false;
         self.transition_timer = None;
         self.transition_feedback = None;
         self.reset_trackers();
@@ -114,8 +116,29 @@ impl TourState {
     pub fn on_auto_detect_clicked(&mut self) {
         if self.is_active && self.current_step == 1 && self.transition_timer.is_none() {
             self.completed_steps[1] = true;
-            self.transition_timer = Some(2.2);
+            self.transition_timer = Some(3.5);
             self.transition_feedback = Some("Détection matérielle réussie !".into());
+        }
+    }
+
+    pub fn on_recenter_clicked(&mut self) {
+        if self.is_active && self.current_step == 5 && self.transition_timer.is_none() {
+            self.completed_steps[5] = true;
+            self.transition_timer = Some(3.5);
+            self.transition_feedback = Some("Graphe recentré sur la frontière de Pareto !".into());
+        }
+    }
+
+    pub fn check_and_update_sim_progress(&mut self, config: &crate::domain::simulator::HardwareRigConfig) {
+        if self.is_active && self.current_step == 6 && self.transition_timer.is_none() {
+            if let Some(prev) = self.prev_sim_gpu {
+                if prev != config.gpu {
+                    self.completed_steps[6] = true;
+                    self.transition_timer = Some(3.5);
+                    self.transition_feedback = Some("Simulation actualisée en temps réel !".into());
+                }
+            }
+            self.prev_sim_gpu = Some(config.gpu);
         }
     }
 
@@ -181,7 +204,7 @@ impl TourState {
 
         if completed {
             self.completed_steps[self.current_step] = true;
-            self.transition_timer = Some(2.2);
+            self.transition_timer = Some(3.5);
             self.transition_feedback = feedback_msg.map(|s| s.to_string());
             true
         } else {

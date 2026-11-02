@@ -10,6 +10,7 @@ pub mod table_items;
 pub mod table_raw_view;
 pub mod table_view;
 pub mod top_bar;
+pub mod tour_feedback;
 pub mod tour_overlay;
 pub mod tour_quest_log;
 pub mod tour_spotlight;
