@@ -4,6 +4,7 @@ use benchmark_llm_gui::domain::traits::{IBenchmarkRepository, IModelFetcher};
 use benchmark_llm_gui::infrastructure::fetcher::unifier::LiveModelFetcher;
 use benchmark_llm_gui::infrastructure::repository::sqlite_repo::{SqliteRepository, DEFAULT_DB_PATH};
 use benchmark_llm_gui::presentation::app::BenchmarkApp;
+use benchmark_llm_gui::presentation::app_icon::generate_app_icon;
 use benchmark_llm_gui::presentation::theme::ThemeTokens;
 
 #[cfg(target_os = "windows")]
@@ -33,13 +34,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Support --sync or --cli flag for headless execution
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--sync" || a == "--cli") {
-        println!("🚀 Running in CLI / Synchronization mode...");
+        println!("Running in CLI / Synchronization mode...");
         let models = rt.block_on(fetcher.fetch_and_unify())?;
-        println!("✅ Live data retrieved: {} models found!", models.len());
+        println!("Live data retrieved: {} models found!", models.len());
 
         let mut repo = repo_box;
         let snap_id = repo.save_snapshot(&models, "CLI Synchronization")?;
-        println!("💾 Snapshot #{snap_id} saved in '{DEFAULT_DB_PATH}'!");
+        println!("[VRAM] Snapshot #{snap_id} saved in '{DEFAULT_DB_PATH}'!");
 
         println!("\nTop 5 Global Models (Frontier Cloud & Flagships - All Sources):");
         let mut sorted = models.clone();
@@ -79,7 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         if let Some(r1) = local_flagships.iter().find(|m| m.name.to_lowercase().contains("distill") && m.name.to_lowercase().contains("32b")) {
-            println!("\n🔍 Calibrated Distilled Baseline: {} | Score: {:.1} (2025 Distill decayed & quantized)",
+            println!("\nCalibrated Distilled Baseline: {} | Score: {:.1} (2025 Distill decayed & quantized)",
                 r1.name, r1.intelligence().unwrap_or(0.0)
             );
         }
@@ -101,6 +102,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("LLM Benchmark Explorer - Edge & Domestic GPU Profiler")
+            .with_icon(generate_app_icon())
             .with_inner_size([1240.0, 840.0])
             .with_min_inner_size([640.0, 480.0])
             .with_active(true),
