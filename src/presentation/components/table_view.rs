@@ -39,8 +39,8 @@ pub fn render_table(
         .striped(true)
         .resizable(true)
         .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-        .column(Column::exact(42.0))                                      // # Rank
-        .column(Column::initial(210.0).at_least(160.0).clip(true))        // Model Name
+        .column(Column::exact(64.0))                                      // # Rank
+        .column(Column::initial(220.0).at_least(160.0).clip(true))        // Model Name & Grouping Toggle
         .column(Column::exact(68.0))                                      // Release Year / Date
         .column(Column::initial(135.0).at_least(105.0))                   // Target Hardware
         .column(Column::initial(80.0).at_least(65.0))                     // Size
@@ -51,8 +51,21 @@ pub fn render_table(
         .column(Column::initial(90.0).at_least(75.0))                     // Popularity
         .column(Column::initial(115.0).at_least(90.0))                    // Cloud Pricing
         .header(28.0, |mut header| {
-            header.col(|ui| { ui.strong(t.col_rank); });
-            header.col(|ui| { header_sort_col(ui, t.col_model, SortField::Name, SortOrder::Ascending, filters); });
+            header.col(|ui| {
+                ui.strong(t.col_rank);
+            });
+            header.col(|ui| {
+                ui.horizontal(|ui| {
+                    header_sort_col(ui, t.col_model, SortField::Name, SortOrder::Ascending, filters);
+                    let folder_icon = if filters.group_by_root { "📁" } else { "📂" };
+                    let folder_resp = ui.small_button(folder_icon)
+                        .on_hover_text(t.group_tooltip);
+                    ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_grouped"), folder_resp.rect));
+                    if folder_resp.clicked() {
+                        filters.group_by_root = !filters.group_by_root;
+                    }
+                });
+            });
             header.col(|ui| { header_sort_col(ui, t.col_year, SortField::Year, SortOrder::Descending, filters); });
             header.col(|ui| { header_sort_col(ui, t.col_hardware, SortField::Memory, SortOrder::Ascending, filters); });
             header.col(|ui| { header_sort_col(ui, t.col_size, SortField::Size, SortOrder::Ascending, filters); });
@@ -70,10 +83,19 @@ pub fn render_table(
                 let is_selected = selected_model_id.as_deref() == Some(&model.id);
                 row.set_selected(is_selected);
 
-                // Col 1: Rank
+                let is_first_row = row.index() == 0;
+
+                // Col 1: Rank (Stable hierarchical rank, e.g. #11.1, #11.2, #12)
                 row.col(|ui| {
+                    if is_first_row {
+                        let row_rect = egui::Rect::from_min_max(
+                            ui.min_rect().min,
+                            egui::pos2(ui.ctx().screen_rect().right() - 24.0, ui.min_rect().min.y + 30.0),
+                        );
+                        ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_table_row"), row_rect));
+                    }
                     if item.is_child {
-                        ui.label(egui::RichText::new(" ↳").color(ThemeTokens::TEXT_MUTED));
+                        ui.label(egui::RichText::new(&item.rank_str).color(ThemeTokens::TEXT_SECONDARY).size(11.5));
                     } else {
                         ui.label(egui::RichText::new(&item.rank_str).strong().color(ThemeTokens::TEXT_PRIMARY));
                     }
@@ -93,7 +115,7 @@ pub fn render_table(
 
                         let display_name = if item.is_child {
                             format!("  └─ {}", model.name)
-                        } else if filters.group_by_root {
+                        } else if filters.group_by_root && !item.is_expanded {
                             item.root_name.clone()
                         } else {
                             model.name.clone()
@@ -131,8 +153,8 @@ pub fn render_table(
                 // Col 3: Release Year
                 row.col(|ui| {
                     match model.release_year {
-                        Some(2026) => { ui.label(egui::RichText::new("✨ 2026").color(ThemeTokens::CYAN_EDGE).strong()); }
-                        Some(2025) => { ui.label(egui::RichText::new("🔹 2025").color(egui::Color32::from_rgb(100, 180, 255)).strong()); }
+                        Some(2026) => { ui.label(egui::RichText::new("2026").color(ThemeTokens::CYAN_EDGE).strong()); }
+                        Some(2025) => { ui.label(egui::RichText::new("2025").color(egui::Color32::from_rgb(100, 180, 255)).strong()); }
                         Some(y) => { ui.label(egui::RichText::new(format!("{y}")).color(ThemeTokens::TEXT_MUTED)); }
                         None => { ui.label(egui::RichText::new("—").color(ThemeTokens::TEXT_MUTED)); }
                     }

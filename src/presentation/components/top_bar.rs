@@ -88,20 +88,15 @@ pub fn render_top_header(
 
             ui.separator();
 
-            // Language ComboBox
-            let lang_lbl = match *language {
-                Language::French => "🇫🇷 FR",
-                Language::English => "🇬🇧 EN",
-            };
-            egui::ComboBox::from_id_salt("fixed_lang_dropdown")
-                .selected_text(lang_lbl)
-                .width(68.0)
+            // Language Dropdown Selector (Strictly "FR" or "EN")
+            egui::ComboBox::from_id_salt("top_language_combobox")
+                .selected_text(language.label())
+                .width(55.0)
                 .show_ui(ui, |ui| {
-                    if ui.selectable_label(*language == Language::French, "🇫🇷 FR (Français)").clicked() {
-                        *language = Language::French;
-                    }
-                    if ui.selectable_label(*language == Language::English, "🇬🇧 EN (English)").clicked() {
-                        *language = Language::English;
+                    for lang in Language::all() {
+                        if ui.selectable_label(*language == lang, lang.label()).clicked() {
+                            *language = lang;
+                        }
                     }
                 });
 

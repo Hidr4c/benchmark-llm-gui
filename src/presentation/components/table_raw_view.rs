@@ -22,8 +22,8 @@ pub fn render_raw_benchmark_table(
         .striped(true)
         .resizable(true)
         .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-        .column(Column::exact(42.0))                                      // # Rank
-        .column(Column::initial(210.0).at_least(160.0).clip(true))        // Model Name
+        .column(Column::exact(64.0))                                      // # Rank
+        .column(Column::initial(220.0).at_least(160.0).clip(true))        // Model Name & Grouping Toggle
         .column(Column::exact(68.0))                                      // Year
         .column(Column::initial(95.0).at_least(80.0))                     // Open LLM 2
         .column(Column::initial(100.0).at_least(85.0))                    // SWE-Bench (Code)
@@ -35,7 +35,15 @@ pub fn render_raw_benchmark_table(
         .column(Column::initial(115.0).at_least(95.0))                    // Real-World / Eco
         .header(28.0, |mut header| {
             header.col(|ui| { ui.strong(t.col_rank); });
-            header.col(|ui| { header_sort_col(ui, t.col_model, SortField::Name, SortOrder::Ascending, filters); });
+            header.col(|ui| {
+                ui.horizontal(|ui| {
+                    header_sort_col(ui, t.col_model, SortField::Name, SortOrder::Ascending, filters);
+                    let folder_icon = if filters.group_by_root { "📁" } else { "📂" };
+                    if ui.small_button(folder_icon).on_hover_text(t.group_tooltip).clicked() {
+                        filters.group_by_root = !filters.group_by_root;
+                    }
+                });
+            });
             header.col(|ui| { header_sort_col(ui, t.col_year, SortField::Year, SortOrder::Descending, filters); });
             header.col(|ui| { header_sort_col(ui, t.col_open_llm, SortField::Intelligence, SortOrder::Descending, filters); });
             header.col(|ui| { header_sort_col(ui, t.col_swe_bench, SortField::Coding, SortOrder::Descending, filters); });
@@ -53,9 +61,9 @@ pub fn render_raw_benchmark_table(
                 let is_selected = selected_model_id.as_deref() == Some(&model.id);
                 row.set_selected(is_selected);
 
-                // Col 1: Rank
+                // Col 1: Rank (Stable hierarchical rank)
                 row.col(|ui| {
-                    if item.is_child { ui.label(egui::RichText::new(" ↳").color(ThemeTokens::TEXT_MUTED)); }
+                    if item.is_child { ui.label(egui::RichText::new(&item.rank_str).color(ThemeTokens::TEXT_SECONDARY).size(11.5)); }
                     else { ui.label(egui::RichText::new(&item.rank_str).strong().color(ThemeTokens::TEXT_PRIMARY)); }
                 });
 
