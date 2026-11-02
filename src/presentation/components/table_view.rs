@@ -35,9 +35,13 @@ pub fn render_table(
     let items = build_display_items(all_models, filtered_indices, filters);
     let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
 
-    TableBuilder::new(ui)
-        .striped(true)
-        .resizable(true)
+    egui::ScrollArea::horizontal()
+        .auto_shrink([false, false])
+        .show(ui, |ui| {
+            ui.set_min_width(1220.0);
+            TableBuilder::new(ui)
+                .striped(true)
+                .resizable(true)
         .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
         .column(Column::exact(64.0))                                      // # Rank
         .column(Column::initial(220.0).at_least(160.0).clip(true))        // Model Name & Grouping Toggle
@@ -90,9 +94,12 @@ pub fn render_table(
                     if is_first_row {
                         let row_rect = egui::Rect::from_min_max(
                             ui.min_rect().min,
-                            egui::pos2(ui.ctx().screen_rect().right() - 24.0, ui.min_rect().min.y + 30.0),
+                            egui::pos2(ui.ctx().screen_rect().right() - 24.0, ui.min_rect().min.y + 70.0),
                         );
-                        ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_table_row"), row_rect));
+                        ui.ctx().memory_mut(|m| {
+                            m.data.insert_temp(egui::Id::new("tour_target_table_row"), row_rect);
+                            m.data.insert_temp(egui::Id::new("tour_result_table_rows"), row_rect);
+                        });
                     }
                     if item.is_child {
                         ui.label(egui::RichText::new(&item.rank_str).color(ThemeTokens::TEXT_SECONDARY).size(11.5));
@@ -107,7 +114,11 @@ pub fn render_table(
                         if !item.is_child && item.variant_count > 1 {
                             let arrow = if item.is_expanded { "▼" } else { "▶" };
                             let tag = format!("{arrow} [{} var.]", item.variant_count);
-                            if ui.small_button(egui::RichText::new(tag).size(10.0).color(ThemeTokens::PRIMARY)).clicked() {
+                            let tag_resp = ui.small_button(egui::RichText::new(tag).size(10.0).color(ThemeTokens::PRIMARY));
+                            if is_first_row {
+                                ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_result_grouped"), tag_resp.rect));
+                            }
+                            if tag_resp.clicked() {
                                 if item.is_expanded { filters.expanded_roots.remove(&item.root_name); }
                                 else { filters.expanded_roots.insert(item.root_name.clone()); }
                             }
@@ -121,7 +132,11 @@ pub fn render_table(
                             model.name.clone()
                         };
 
-                        if ui.selectable_label(is_selected, egui::RichText::new(display_name).strong()).clicked() {
+                        let name_resp = ui.selectable_label(is_selected, egui::RichText::new(display_name).strong());
+                        if is_first_row {
+                            ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_model_name"), name_resp.rect));
+                        }
+                        if name_resp.clicked() {
                             *selected_model_id = Some(model.id.clone());
                         }
 
@@ -270,4 +285,5 @@ pub fn render_table(
                 });
             });
         });
+    });
 }

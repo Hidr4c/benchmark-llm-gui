@@ -135,10 +135,10 @@ pub fn hardware_badge_text(model: &ModelBenchmark) -> &'static str {
     else if model.size_gb <= 1.5 { "Pi 4 (2-4G)" }
     else if model.size_gb <= 3.2 { "Pi 5 (8G)" }
     else if model.size_gb <= 5.5 { "Jetson (8G)" }
-    else if model.vram_rec_gb <= 8.5 { "RTX 4060 (8G)" }
-    else if model.vram_rec_gb <= 12.5 { "RTX 4070 (12G)" }
-    else if model.vram_rec_gb <= 16.5 { "RTX 4080 (16G)" }
-    else if model.vram_rec_gb <= 24.5 { "RTX 4090 (24G)" }
-    else if model.vram_rec_gb <= 32.5 { "RTX 5090 (32G)" }
-    else { "Workstation 48G+" }
+    else if model.vram_rec_gb <= 8.5 { "GPU 8 Go" }
+    else if model.vram_rec_gb <= 12.5 { "GPU 12 Go" }
+    else if model.vram_rec_gb <= 16.5 { "GPU 16 Go" }
+    else if model.vram_rec_gb <= 24.5 { "GPU 24 Go" }
+    else if model.vram_rec_gb <= 32.5 { "GPU 32 Go" }
+    else { "Station 48G+" }
 }

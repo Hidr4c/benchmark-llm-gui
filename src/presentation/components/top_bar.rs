@@ -1,5 +1,6 @@
 use eframe::egui;
 use crate::domain::traits::SnapshotMeta;
+use crate::presentation::filtering::TableColumnMode;
 use crate::presentation::i18n::Language;
 use crate::presentation::theme::ThemeTokens;
 
@@ -28,6 +29,7 @@ impl AppTab {
 pub fn render_top_header(
     ui: &mut egui::Ui,
     active_tab: &mut AppTab,
+    column_mode: &mut TableColumnMode,
     language: &mut Language,
     is_syncing: bool,
     snapshots: &[SnapshotMeta],
@@ -58,7 +60,7 @@ pub fn render_top_header(
                     .strong()
                     .color(ThemeTokens::CYAN_EDGE)
             )
-            .width(210.0)
+            .width(200.0)
             .show_ui(ui, |ui| {
                 let views = [
                     AppTab::Table,
@@ -76,19 +78,32 @@ pub fn render_top_header(
                 }
             });
 
+        // 2. Table Mode Dropdown List (Prominent sub-view selector when on the Benchmark Table)
+        if *active_tab == AppTab::Table {
+            let col_mode_lbl = match *column_mode {
+                TableColumnMode::GlobalEvaluation => t.col_mode_global,
+                TableColumnMode::RawBenchmarkSources => t.col_mode_raw,
+            };
+            egui::ComboBox::from_id_salt("top_table_mode_dropdown")
+                .selected_text(
+                    egui::RichText::new(col_mode_lbl)
+                        .strong()
+                        .color(ThemeTokens::GOLD_5090)
+                )
+                .width(170.0)
+                .show_ui(ui, |ui| {
+                    if ui.selectable_label(*column_mode == TableColumnMode::GlobalEvaluation, t.col_mode_global).clicked() {
+                        *column_mode = TableColumnMode::GlobalEvaluation;
+                    }
+                    if ui.selectable_label(*column_mode == TableColumnMode::RawBenchmarkSources, t.col_mode_raw).clicked() {
+                        *column_mode = TableColumnMode::RawBenchmarkSources;
+                    }
+                }).response.on_hover_text(t.col_mode_label);
+        }
+
         // 2. Right-Aligned Global Actions
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            // Interactive Guided Demo / Walkthrough Button
-            if ui.button(egui::RichText::new(t.btn_tour_demo).color(ThemeTokens::GOLD_5090).strong())
-                .on_hover_text(t.tooltip_tour_demo)
-                .clicked()
-            {
-                *on_launch_tour = true;
-            }
-
-            ui.separator();
-
-            // Language Dropdown Selector (Strictly "FR" or "EN")
+            // 1. Language Dropdown Selector (Strictly "FR" or "EN") - Placed FIRST in right_to_left so it appears at the EXTREME RIGHT
             egui::ComboBox::from_id_salt("top_language_combobox")
                 .selected_text(language.label())
                 .width(55.0)
@@ -102,7 +117,17 @@ pub fn render_top_header(
 
             ui.separator();
 
-            // Refresh / Sync Button (clearly styled as a button)
+            // 2. Interactive Guided Demo / Walkthrough Button
+            if ui.button(egui::RichText::new(t.btn_tour_demo).color(ThemeTokens::GOLD_5090).strong())
+                .on_hover_text(t.tooltip_tour_demo)
+                .clicked()
+            {
+                *on_launch_tour = true;
+            }
+
+            ui.separator();
+
+            // 3. Refresh / Sync Button (clearly styled as a button)
             let sync_text = if is_syncing {
                 egui::RichText::new(t.sync_downloading).color(ThemeTokens::PRIMARY)
             } else {
@@ -115,7 +140,7 @@ pub fn render_top_header(
                 *on_sync = true;
             }
 
-            // Snapshot time-travel dropdown
+            // 4. Snapshot time-travel dropdown
             let snap_title = if let Some(id) = selected_snapshot_id {
                 snapshots
                     .iter()
@@ -145,6 +170,7 @@ pub fn render_top_header(
     if let Some((msg, is_err)) = status_message {
         ui.add_space(2.0);
         let color = if *is_err { ThemeTokens::DANGER } else { ThemeTokens::SUCCESS };
-        ui.label(egui::RichText::new(msg).color(color).size(12.0));
+        let resp = ui.label(egui::RichText::new(msg).color(color).size(12.0));
+        ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_result_detect"), resp.rect));
     }
 }

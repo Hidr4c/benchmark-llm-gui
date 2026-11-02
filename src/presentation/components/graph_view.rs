@@ -113,10 +113,12 @@ pub fn render_graph_view(
 
             ui.separator();
 
-            if ui.button(egui::RichText::new(t.recenter_btn).strong().color(ThemeTokens::CYAN_EDGE))
-                .on_hover_text(t.recenter_tooltip)
-                .clicked()
-            {
+            let recenter_btn = egui::Button::new(
+                egui::RichText::new(t.recenter_btn).strong().color(ThemeTokens::CYAN_EDGE)
+            );
+            let recenter_resp = ui.add(recenter_btn).on_hover_text(t.recenter_tooltip);
+            ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_recenter_btn"), recenter_resp.rect));
+            if recenter_resp.clicked() {
                 state.reset_requested = true;
             }
         });
@@ -225,6 +227,8 @@ pub fn render_graph_view(
 
 
         });
+
+        ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_result_graph_plot"), plot_resp.response.rect));
 
         // Click detection on plot canvas to select nearest node or cycle through co-located cluster
         if plot_resp.response.clicked() {
