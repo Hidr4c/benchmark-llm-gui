@@ -214,6 +214,7 @@ fn test_tour_end_to_end_walkthrough_flow() {
     assert_eq!(tour.current_step, 7);
 
     // Step 7: User selects models in Comparator Face-à-Face
+    tour.check_and_update_comp_progress(&[None, None]);
     tour.check_and_update_comp_progress(&[Some("qwen-7b".into()), None]);
     assert!(tour.completed_steps[7]);
     tour.update_transition(4.0, total_steps);
@@ -255,6 +256,7 @@ fn test_tour_step4_raw_sources_and_global_mode_compatibility() {
     tour.start();
     tour.jump_to(3);
     assert_eq!(tour.current_step, 3);
+    assert!(!tour.is_paused);
 
     tour.check_and_update_progress(&filters, None, total_steps);
     assert!(!tour.completed_steps[3]);
@@ -264,9 +266,7 @@ fn test_tour_step4_raw_sources_and_global_mode_compatibility() {
     assert!(tour.completed_steps[3]);
     assert!(tour.transition_timer.is_some());
 
-    // When jumped to, tour is paused to allow reading; resume to advance transition
-    assert!(tour.is_paused);
-    tour.is_paused = false;
+    // When jumped to, tour is active and responsive to transitions
     tour.update_transition(4.0, total_steps);
     assert_eq!(tour.current_step, 4);
     assert_eq!(tour.transition_timer, None);

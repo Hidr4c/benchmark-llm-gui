@@ -155,6 +155,7 @@ pub fn render_tour_overlay(
     let card_pos = TourSpotlight::compute_card_position(screen, spotlight_rect, card_w, card_h);
 
     egui::Window::new("tour_guidance_floating_window")
+        .id(egui::Id::new("tour_guidance_floating_window").with(state.current_step))
         .title_bar(false)
         .movable(true)
         .resizable(false)

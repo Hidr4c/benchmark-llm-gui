@@ -160,6 +160,10 @@ impl eframe::App for BenchmarkApp {
         });
 
         if trigger_launch_tour { self.tour_state.start(); }
+        if self.tour_state.request_clear_selection {
+            self.selected_model_id = None;
+            self.tour_state.request_clear_selection = false;
+        }
         if let Some(snap_id) = trigger_switch_snapshot { self.switch_snapshot(snap_id); }
         if trigger_sync { self.trigger_live_sync(ctx.clone()); }
         if trigger_export { self.export_indices_to_csv(&filtered_indices); }
@@ -214,7 +218,7 @@ impl eframe::App for BenchmarkApp {
                     AppTab::Table => render_table(ui, &self.all_models, &filtered_indices, &mut self.filters, &mut self.selected_model_id, self.language),
                     AppTab::Graph => {
                         render_graph_view(ui, &mut self.graph_state, &self.all_models, &filtered_indices, &self.filters, &mut self.selected_model_id, self.language);
-                        if ctx.memory_mut(|m| m.data.remove_temp::<bool>(egui::Id::new("tour_evt_recenter_clicked"))).unwrap_or(false) || self.graph_state.reset_requested {
+                        if ctx.memory_mut(|m| m.data.remove_temp::<bool>(egui::Id::new("tour_evt_recenter_clicked"))).unwrap_or(false) {
                             self.tour_state.on_recenter_clicked();
                         }
                     }

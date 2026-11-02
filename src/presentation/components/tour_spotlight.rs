@@ -11,7 +11,7 @@ impl TourSpotlight {
         callout_label: &str,
     ) {
         let dim_painter = ctx.layer_painter(egui::LayerId::new(
-            egui::Order::Middle,
+            egui::Order::Foreground,
             egui::Id::new("tour_spotlight_dim_layer"),
         ));
         let fg_painter = ctx.layer_painter(egui::LayerId::new(
@@ -23,7 +23,7 @@ impl TourSpotlight {
         let dim_color = if is_in_transition {
             egui::Color32::from_black_alpha(20)
         } else {
-            egui::Color32::from_black_alpha(130)
+            egui::Color32::from_black_alpha(110)
         };
 
         if let Some(raw_target) = target_rect {
@@ -99,8 +99,6 @@ impl TourSpotlight {
             fg_painter.rect_stroke(target, 8.0, inner_stroke);
 
             // 3. Animated Bouncing Pointing Finger with Callout Badge (drawn in foreground)
-            // Auto-hide the pointing hand and callout tag whenever any dropdown menu is open
-            // or when the user hovers their mouse directly over the target to interact with it.
             let is_popup_open = ctx.memory(|m| m.any_popup_open());
             let is_hovered = ctx.input(|i| i.pointer.hover_pos().map_or(false, |pos| target.expand(6.0).contains(pos)));
 
@@ -152,15 +150,13 @@ fn draw_pointing_hand(
     bounce: f32,
 ) {
     let is_pointing_up = target.center().y < screen.top() + screen.height() * 0.55;
-    let min_x = screen.left() + 150.0;
-    let max_x = screen.right() - 150.0;
-    let center_x = if min_x <= max_x { target.center().x.clamp(min_x, max_x) } else { screen.center().x };
+    let hand_x = target.center().x.clamp(screen.left() + 24.0, screen.right() - 24.0);
     let hand_y = if is_pointing_up {
         target.bottom() + 18.0 + bounce
     } else {
         target.top() - 18.0 + bounce
     };
-    let hand_pos = egui::pos2(center_x, hand_y);
+    let hand_pos = egui::pos2(hand_x, hand_y);
 
     // High-contrast background disk with glowing accent ring
     let bg_color = egui::Color32::from_rgba_unmultiplied(12, 17, 28, 250);
@@ -201,7 +197,8 @@ fn draw_pointing_hand(
         };
         let tag_text = format!("  {callout_text}  ");
         let approx_w = (tag_text.len() as f32 * 7.5).max(120.0);
-        let tag_rect = egui::Rect::from_center_size(egui::pos2(center_x, badge_y), egui::vec2(approx_w, 24.0));
+        let bubble_x = hand_x.clamp(screen.left() + approx_w * 0.5 + 12.0, screen.right() - approx_w * 0.5 - 12.0);
+        let tag_rect = egui::Rect::from_center_size(egui::pos2(bubble_x, badge_y), egui::vec2(approx_w, 24.0));
 
         painter.rect_filled(tag_rect, 6.0, egui::Color32::from_rgba_unmultiplied(10, 16, 26, 250));
         painter.rect_stroke(tag_rect, 6.0, egui::Stroke::new(1.5, accent));

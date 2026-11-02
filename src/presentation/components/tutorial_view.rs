@@ -84,7 +84,7 @@ fn render_hero_banner(ui: &mut egui::Ui, tour_state: &mut TourState, lang: Langu
         .inner_margin(14.0)
         .rounding(8.0)
         .show(ui, |ui| {
-            if avail_w < 680.0 {
+            if avail_w < 880.0 {
                 ui.vertical(|ui| {
                     ui.heading(egui::RichText::new(t.tut_hero_title).color(ThemeTokens::TEXT_PRIMARY).strong().size(15.0));
                     ui.add_space(4.0);
@@ -140,14 +140,14 @@ fn render_columns_guide(ui: &mut egui::Ui, active_tab: &mut AppTab, lang: Langua
             ui.label(egui::RichText::new(guide.table_guide_desc).color(ThemeTokens::TEXT_MUTED).size(11.5));
             ui.add_space(8.0);
 
-            if avail_w < 700.0 {
+            if avail_w < 780.0 {
                 render_subcard(ui, avail_w - 32.0, guide.col_essential_badge, ThemeTokens::CYAN_EDGE, guide.col_essential_desc);
                 ui.add_space(6.0);
                 render_subcard(ui, avail_w - 32.0, guide.col_adv_badge, ThemeTokens::GOLD_5090, guide.col_adv_desc);
                 ui.add_space(6.0);
                 render_subcard(ui, avail_w - 32.0, guide.col_raw_badge, ThemeTokens::SUCCESS, guide.col_raw_desc);
             } else {
-                let col_w = ((avail_w - 48.0) / 3.0).max(180.0);
+                let col_w = ((avail_w - 40.0) / 3.0 - 20.0).max(160.0);
                 ui.horizontal(|ui| {
                     render_subcard(ui, col_w, guide.col_essential_badge, ThemeTokens::CYAN_EDGE, guide.col_essential_desc);
                     ui.add_space(8.0);
@@ -183,14 +183,14 @@ fn render_filters_guide(ui: &mut egui::Ui, active_tab: &mut AppTab, filters: &mu
             ui.label(egui::RichText::new(guide.filters_guide_desc).color(ThemeTokens::TEXT_MUTED).size(11.5));
             ui.add_space(8.0);
 
-            if avail_w < 700.0 {
+            if avail_w < 780.0 {
                 render_subcard(ui, avail_w - 32.0, guide.filter_ram_title, ThemeTokens::CYAN_EDGE, guide.filter_ram_desc);
                 ui.add_space(6.0);
                 render_subcard(ui, avail_w - 32.0, guide.filter_rel_title, ThemeTokens::SUCCESS, guide.filter_rel_desc);
                 ui.add_space(6.0);
                 render_subcard(ui, avail_w - 32.0, guide.filter_license_title, ThemeTokens::GOLD_5090, guide.filter_license_desc);
             } else {
-                let col_w = ((avail_w - 48.0) / 3.0).max(180.0);
+                let col_w = ((avail_w - 40.0) / 3.0 - 20.0).max(160.0);
                 ui.horizontal(|ui| {
                     render_subcard(ui, col_w, guide.filter_ram_title, ThemeTokens::CYAN_EDGE, guide.filter_ram_desc);
                     ui.add_space(8.0);
@@ -208,7 +208,7 @@ fn render_practical_guides(ui: &mut egui::Ui, tour_state: &mut TourState, lang: 
     ui.label(egui::RichText::new(" Guides Pratiques & Cas d'Usage Cles").size(14.5).color(ThemeTokens::CYAN_EDGE).strong());
     ui.add_space(4.0);
 
-    if avail_w < 650.0 {
+    if avail_w < 780.0 {
         let card_w = (avail_w - 20.0).max(200.0);
         render_card(ui, card_w, "", t.tut_card1_title, t.tut_card1_desc, " Voir le Classement des Modeles", || tour_state.jump_to(2));
         ui.add_space(8.0);
@@ -218,7 +218,7 @@ fn render_practical_guides(ui: &mut egui::Ui, tour_state: &mut TourState, lang: 
         ui.add_space(8.0);
         render_card(ui, card_w, "", t.tut_card4_title, t.tut_card4_desc, " Inspecter les Benchmarks", || tour_state.jump_to(5));
     } else {
-        let card_w = ((avail_w - 14.0) * 0.5 - 20.0).max(200.0);
+        let card_w = ((avail_w - 36.0) * 0.5 - 24.0).max(180.0);
         ui.horizontal(|ui| {
             render_card(ui, card_w, "", t.tut_card1_title, t.tut_card1_desc, " Voir le Classement des Modeles", || tour_state.jump_to(2));
             ui.add_space(12.0);

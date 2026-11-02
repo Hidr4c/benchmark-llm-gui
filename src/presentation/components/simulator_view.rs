@@ -92,7 +92,7 @@ pub fn render_simulator_view(
                                 }).response;
                             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_sim_gpu"), gpu_resp.rect));
 
-                            ui.separator();
+                            ui.add_space(10.0);
                             ui.label(egui::RichText::new(t.sim_ram_label).strong());
                             ui.add(egui::Slider::new(&mut config.ram_gb, 8.0..=128.0).suffix(" Go").logarithmic(true));
                         });
@@ -102,7 +102,7 @@ pub fn render_simulator_view(
                             ui.label(egui::RichText::new(t.sim_ram_label).strong());
                             ui.add(egui::Slider::new(&mut config.ram_gb, 4.0..=64.0).suffix(" Go Total").logarithmic(true));
 
-                            ui.separator();
+                            ui.add_space(10.0);
                             ui.label(egui::RichText::new(t.sim_nas_web_ram).strong());
                             ui.add(egui::Slider::new(&mut config.nas_web_ram_gb, 1.0..=16.0).suffix(" Go Réservés"));
                         });
@@ -128,7 +128,7 @@ pub fn render_simulator_view(
         let oom_verdict = if sim.stability_percent >= 80.0 { "Stable & Fluide" } else if sim.stability_percent >= 50.0 { "Marge Restreinte" } else { "Risque OOM !" };
 
         let avail_w = ui.available_width();
-        if avail_w < 780.0 {
+        if avail_w < 960.0 {
             ui.columns(2, |cols| {
                 render_card(&mut cols[0], "[VRAM] MEMOIRE ALLOUEE", &format!("{:.1} Go", sim.usable_vram_gb), &format!("RAM : {:.1} Go | IA Total : {:.1} Go", sim.usable_ram_gb, sim.total_ai_capacity_gb), ThemeTokens::TEXT_PRIMARY);
                 render_card(&mut cols[1], "[~] DEBIT INFERENCE", &format!("{:.0} tok/s", sim.projected_speed_tps), &format!("{} | Bandwidth : {:.0} Go/s", speed_level, sim.effective_bandwidth_gbps), speed_color);
@@ -221,7 +221,7 @@ fn render_recommended_models_grid(
     }
 
     let avail_w = ui.available_width();
-    let num_cols = if avail_w < 600.0 { 1 } else if avail_w < 900.0 { 2 } else { unique_models.len().min(4).max(1) };
+    let num_cols = if avail_w < 680.0 { 1 } else if avail_w < 1000.0 { 2 } else { unique_models.len().min(4).max(1) };
 
     ui.add_space(6.0);
     for chunk in unique_models.chunks(num_cols) {

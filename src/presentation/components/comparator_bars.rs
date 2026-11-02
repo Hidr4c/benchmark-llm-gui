@@ -196,10 +196,10 @@ fn render_theme_card(
             let pct1 = (val1 / common_max).clamp(0.0, 1.0);
             let pct2 = (val2 / common_max).clamp(0.0, 1.0);
 
-            let col0_w = 205.0;
-            let col1_w = 165.0;
+            let col0_w = 210.0;
+            let col1_w = 185.0;
             let spacing_x = 10.0;
-            let bar_w = (ui.available_width() - col0_w - col1_w - spacing_x * 2.0 - 4.0).max(100.0);
+            let bar_w = (ui.available_width() - col0_w - col1_w - spacing_x * 2.0 - 4.0).max(120.0);
 
             // Row 1: Model #1 (Cyan)
             ui.horizontal(|ui| {
