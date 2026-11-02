@@ -15,6 +15,10 @@ use super::sub_translations_features::{
 use super::sub_translations_tools::{
     EN_TOOLS_GUIDE, FR_TOOLS_GUIDE, LocalToolsTranslations,
 };
+use super::sub_translations_issue::{
+    ContactTranslations, SyncErrorTranslations,
+    EN_CONTACT, EN_SYNC_ERROR, FR_CONTACT, FR_SYNC_ERROR,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Language {
@@ -95,6 +99,20 @@ impl Language {
         match self {
             Self::French => &FR_TOOLS_GUIDE,
             Self::English => &EN_TOOLS_GUIDE,
+        }
+    }
+
+    pub fn sync_error(&self) -> &'static SyncErrorTranslations {
+        match self {
+            Self::French => &FR_SYNC_ERROR,
+            Self::English => &EN_SYNC_ERROR,
+        }
+    }
+
+    pub fn contact(&self) -> &'static ContactTranslations {
+        match self {
+            Self::French => &FR_CONTACT,
+            Self::English => &EN_CONTACT,
         }
     }
 }

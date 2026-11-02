@@ -195,9 +195,13 @@ pub struct TableMenuTranslations {
     pub active_filters_summary: &'static str,
     pub op_contains: &'static str,
     pub op_exact: &'static str,
+    pub op_less_equal: &'static str,
+    pub op_greater_equal: &'static str,
     pub op_not_contains: &'static str,
     pub op_match_regex: &'static str,
     pub op_not_match_regex: &'static str,
+    pub btn_column_chooser: &'static str,
+    pub menu_column_chooser: &'static str,
 }
 
 pub const FR_TABLE_MENU: TableMenuTranslations = TableMenuTranslations {
@@ -215,11 +219,15 @@ pub const FR_TABLE_MENU: TableMenuTranslations = TableMenuTranslations {
     menu_clear_all_filters: "🗑  Effacer tous les filtres colonnes",
     filter_active_badge: " [Filtre actif]",
     active_filters_summary: "Filtres colonnes actifs :",
-    op_contains: "Contient",
-    op_exact: "Égalité exacte",
-    op_not_contains: "Ne contient pas",
-    op_match_regex: "Match Regex",
+    op_contains: "Contient (~)",
+    op_exact: "Égal (=)",
+    op_less_equal: "<= Inférieur ou égal / Top N",
+    op_greater_equal: ">= Supérieur ou égal",
+    op_not_contains: "Ne contient pas (!~)",
+    op_match_regex: "Match Regex (.*)",
     op_not_match_regex: "Ne match pas Regex",
+    btn_column_chooser: "⚙ Colonnes",
+    menu_column_chooser: "⚙ Sélecteur de colonnes...",
 };
 
 pub const EN_TABLE_MENU: TableMenuTranslations = TableMenuTranslations {
@@ -237,9 +245,13 @@ pub const EN_TABLE_MENU: TableMenuTranslations = TableMenuTranslations {
     menu_clear_all_filters: "🗑  Clear All Column Filters",
     filter_active_badge: " [Filtered]",
     active_filters_summary: "Active column filters:",
-    op_contains: "Contains",
-    op_exact: "Exact Match",
-    op_not_contains: "Does not contain",
-    op_match_regex: "Matches Regex",
+    op_contains: "Contains (~)",
+    op_exact: "Exact (=)",
+    op_less_equal: "<= Less or equal / Top N",
+    op_greater_equal: ">= Greater or equal",
+    op_not_contains: "Does not contain (!~)",
+    op_match_regex: "Matches Regex (.*)",
     op_not_match_regex: "Does not match Regex",
+    btn_column_chooser: "⚙ Columns",
+    menu_column_chooser: "⚙ Column Chooser...",
 };
