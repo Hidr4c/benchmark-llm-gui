@@ -141,11 +141,15 @@ impl LiveModelFetcher {
                     let fam = family.to_lowercase();
                     let p_tag = format!("{:.0}b", p);
                     vram_bench.iter().find_map(|(k, v)| {
-                        if k.contains(&fam) && k.contains(&p_tag) {
-                            Some(v)
-                        } else {
-                            None
+                        if k.contains(&fam) {
+                            if let Some(idx) = k.find(&p_tag) {
+                                let is_preceded_by_digit = idx > 0 && k.as_bytes()[idx - 1].is_ascii_digit();
+                                if !is_preceded_by_digit {
+                                    return Some(v);
+                                }
+                            }
                         }
+                        None
                     })
                 })
             });

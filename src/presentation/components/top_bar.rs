@@ -82,6 +82,7 @@ pub fn render_top_header(
         if *active_tab == AppTab::Table {
             let col_mode_lbl = match *column_mode {
                 TableColumnMode::GlobalEvaluation => t.col_mode_global,
+                TableColumnMode::StrictVerified => t.col_mode_strict,
                 TableColumnMode::RawBenchmarkSources => t.col_mode_raw,
             };
             egui::ComboBox::from_id_salt("top_table_mode_dropdown")
@@ -90,10 +91,13 @@ pub fn render_top_header(
                         .strong()
                         .color(ThemeTokens::GOLD_5090)
                 )
-                .width(170.0)
+                .width(185.0)
                 .show_ui(ui, |ui| {
                     if ui.selectable_label(*column_mode == TableColumnMode::GlobalEvaluation, t.col_mode_global).clicked() {
                         *column_mode = TableColumnMode::GlobalEvaluation;
+                    }
+                    if ui.selectable_label(*column_mode == TableColumnMode::StrictVerified, t.col_mode_strict).clicked() {
+                        *column_mode = TableColumnMode::StrictVerified;
                     }
                     if ui.selectable_label(*column_mode == TableColumnMode::RawBenchmarkSources, t.col_mode_raw).clicked() {
                         *column_mode = TableColumnMode::RawBenchmarkSources;

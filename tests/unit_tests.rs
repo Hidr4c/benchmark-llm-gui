@@ -290,6 +290,8 @@ fn test_table_column_mode_toggle() {
     use benchmark_llm_gui::presentation::filtering::{FilterState, TableColumnMode};
     let mut state = FilterState::default();
     assert_eq!(state.column_mode, TableColumnMode::GlobalEvaluation);
+    state.column_mode = TableColumnMode::StrictVerified;
+    assert_eq!(state.column_mode, TableColumnMode::StrictVerified);
     state.column_mode = TableColumnMode::RawBenchmarkSources;
     assert_eq!(state.column_mode, TableColumnMode::RawBenchmarkSources);
 }

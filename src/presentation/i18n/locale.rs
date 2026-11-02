@@ -112,6 +112,7 @@ pub struct Translations {
     pub price_free_local: &'static str,
     pub col_mode_label: &'static str,
     pub col_mode_global: &'static str,
+    pub col_mode_strict: &'static str,
     pub col_mode_raw: &'static str,
     pub col_open_llm: &'static str,
     pub col_swe_bench: &'static str,
