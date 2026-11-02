@@ -26,23 +26,23 @@ impl ModelModality {
 
     pub fn label(&self) -> &'static str {
         match self {
-            Self::Text => "📝 Text (LLM)",
-            Self::Multimodal => "👁️ Multimodal (Vision+Text)",
-            Self::ImageGen => "🎨 Image Generation",
-            Self::VideoGen => "🎬 Video Generation",
-            Self::AudioSpeech => "🎙️ Audio & Speech",
-            Self::Embedding => "🔢 Embeddings",
+            Self::Text => "Text (LLM)",
+            Self::Multimodal => "Multimodal (Vision+Text)",
+            Self::ImageGen => "Image Generation",
+            Self::VideoGen => "Video Generation",
+            Self::AudioSpeech => "Audio & Speech",
+            Self::Embedding => "Embeddings",
         }
     }
 
     pub fn icon(&self) -> &'static str {
         match self {
-            Self::Text => "📝",
-            Self::Multimodal => "👁️",
-            Self::ImageGen => "🎨",
-            Self::VideoGen => "🎬",
-            Self::AudioSpeech => "🎙️",
-            Self::Embedding => "🔢",
+            Self::Text => "TXT",
+            Self::Multimodal => "VIS",
+            Self::ImageGen => "IMG",
+            Self::VideoGen => "VID",
+            Self::AudioSpeech => "AUD",
+            Self::Embedding => "EMB",
         }
     }
 

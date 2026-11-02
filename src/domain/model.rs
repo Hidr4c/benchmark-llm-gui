@@ -48,17 +48,17 @@ impl SourceSelection {
     pub fn active_count(&self) -> usize { (self.open_llm as usize) + (self.coding as usize) + (self.agentic as usize) + (self.real_world as usize) }
     pub fn label(&self) -> &'static str {
         if self.is_all() {
-            "🌟 Cross-Referenced Average (4 sources)"
+            "Cross-Referenced Average (4 sources)"
         } else if self.is_open_llm_only() {
-            "📚 General (Open LLM 2)"
+            "General (Open LLM 2)"
         } else if self.is_coding_only() {
-            "💻 Code & Dev (SWE-Bench)"
+            "Code & Dev (SWE-Bench)"
         } else if self.is_agentic_only() {
-            "🤖 Agents & Tool-Calling (Agentic)"
+            "Agents & Tool-Calling (Agentic)"
         } else if self.is_real_world_only() {
-            "💼 Real-World & Economic (RLI, SWE-Lancer, SWE-Clar)"
+            "Real-World & Economic (RLI, SWE-Lancer, SWE-Clar)"
         } else {
-            "🎯 Custom Blend"
+            "Custom Blend"
         }
     }
 }
@@ -263,7 +263,7 @@ impl ModelBenchmark {
     }
 
     pub fn release_year_label(&self) -> String {
-        self.release_year.map(|y| y.to_string()).unwrap_or_else(|| "—".into())
+        self.release_year.map(|y| y.to_string()).unwrap_or_else(|| "-".into())
     }
 
     pub fn is_very_recent(&self) -> bool {

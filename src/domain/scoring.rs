@@ -11,9 +11,9 @@ pub enum ScoreConfidence {
 impl ScoreConfidence {
     pub fn badge(&self) -> &'static str {
         match self {
-            ScoreConfidence::High => "🟢",
-            ScoreConfidence::Medium => "🟡",
-            ScoreConfidence::Low => "🔴",
+            ScoreConfidence::High => "[OK]",
+            ScoreConfidence::Medium => "[~]",
+            ScoreConfidence::Low => "[!]",
         }
     }
 
@@ -22,6 +22,38 @@ impl ScoreConfidence {
             ScoreConfidence::High => (46, 204, 113),
             ScoreConfidence::Medium => (241, 196, 15),
             ScoreConfidence::Low => (231, 76, 60),
+        }
+    }
+
+    pub fn label_fr(&self) -> &'static str {
+        match self {
+            ScoreConfidence::High => "Élevé (Haute Fiabilité)",
+            ScoreConfidence::Medium => "Modéré (Fiabilité Moyenne)",
+            ScoreConfidence::Low => "Faible (Prudence)",
+        }
+    }
+
+    pub fn label_en(&self) -> &'static str {
+        match self {
+            ScoreConfidence::High => "High (High Reliability)",
+            ScoreConfidence::Medium => "Medium (Moderate Reliability)",
+            ScoreConfidence::Low => "Low (Caution)",
+        }
+    }
+
+    pub fn tooltip_fr(&self) -> &'static str {
+        match self {
+            ScoreConfidence::High => "Indice de Confiance : [OK] ÉLEVÉ\n• 3+ benchmarks croisés concordants\n• Faible variance entre les sources (< 16 pts)\n• Résultat stable, robuste et hautement reproductible.",
+            ScoreConfidence::Medium => "Indice de Confiance : [~] MODÉRÉ\n• Sources de benchmarks limitées ou variance modérée\n• Estimation indicative fiable mais à affiner avec de futurs tests.",
+            ScoreConfidence::Low => "Indice de Confiance : [!] FAIBLE\n• Données parcellaires ou forte divergence entre les sources (> 25 pts)\n• Résultat à considérer avec précaution.",
+        }
+    }
+
+    pub fn tooltip_en(&self) -> &'static str {
+        match self {
+            ScoreConfidence::High => "Confidence Index: [OK] HIGH\n• At least 3 agreeing cross-referenced benchmarks\n• Low variance between sources (< 16 pts)\n• Highly robust and reproducible result.",
+            ScoreConfidence::Medium => "Confidence Index: [~] MODERATE\n• Limited benchmark sources or moderate variance\n• Reliable indicative estimation, subject to refinement.",
+            ScoreConfidence::Low => "Confidence Index: [!] LOW\n• Sparse data or significant divergence between sources (> 25 pts)\n• Use with caution.",
         }
     }
 }

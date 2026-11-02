@@ -35,7 +35,7 @@ impl ModelLicense {
         match self {
             Self::Apache2 => "Apache 2.0 (Commercial Libre)",
             Self::Mit => "MIT (Libre & Sans Restriction)",
-            Self::LlamaCommunity => "Llama Community (Gratuit ≤ 700M MAU)",
+            Self::LlamaCommunity => "Llama Community (Gratuit <= 700M MAU)",
             Self::GemmaTerms => "Gemma Terms (Open Commercial)",
             Self::OpenRail => "OpenRAIL-M (Recherche & Prod)",
             Self::ProprietaryCloud => "Propriétaire (API Payante)",

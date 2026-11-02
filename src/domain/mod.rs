@@ -1,3 +1,4 @@
+pub mod comparator;
 pub mod consistency;
 pub mod economic;
 pub mod hardware;
@@ -10,3 +11,4 @@ pub mod scoring;
 pub mod simulator;
 pub mod sources;
 pub mod traits;
+pub mod updater;
