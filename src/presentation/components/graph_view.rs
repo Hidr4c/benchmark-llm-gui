@@ -118,6 +118,8 @@ pub fn render_graph_view(
                 });
 
             ui.checkbox(&mut state.show_pareto_curve, t.pareto_curve);
+            ui.checkbox(&mut state.show_node_labels, t.graph_show_labels)
+                .on_hover_text(t.graph_show_labels_tooltip);
 
             if state.x_metric == GraphMetric::PriceUsd {
                 ui.checkbox(&mut state.include_electricity_cost, t.graph_include_electricity)
@@ -229,15 +231,30 @@ pub fn render_graph_view(
             let zoom_ratio = (28.0 / bounds.width().max(0.3)).clamp(1.0, 3.2) as f32;
             let dynamic_font_size = (11.0 * zoom_ratio).min(24.0);
 
+            // Render intelligent, collision-free node labels if enabled
+            if state.show_node_labels {
+                crate::presentation::components::graph_labels::render_graph_node_labels(
+                    plot_ui,
+                    &plotted,
+                    all_models,
+                    &pareto_indices,
+                    sel_id_clone.as_deref(),
+                    vram_lim,
+                    dynamic_font_size,
+                );
+            }
+
             // Highlight selected model with golden target halo and dynamic text
             if let Some(sel_id) = sel_id_clone.as_deref() {
                 if let Some(p) = plotted.iter().find(|p| all_models[p.index].id == sel_id) {
                     plot_ui.points(Points::new(PlotPoints::new(vec![[p.x, p.y]])).radius(11.0).color(ThemeTokens::GOLD_5090).name("Cible"));
-                    let txt = egui::RichText::new(format!("[Cible] {}", p.name))
-                        .size(dynamic_font_size)
-                        .color(ThemeTokens::GOLD_5090)
-                        .strong();
-                    plot_ui.text(Text::new(PlotPoint::new(p.x, p.y), txt).highlight(true).anchor(egui::Align2::LEFT_BOTTOM));
+                    if !state.show_node_labels {
+                        let txt = egui::RichText::new(format!("[Cible] {}", p.name))
+                            .size(dynamic_font_size)
+                            .color(ThemeTokens::GOLD_5090)
+                            .strong();
+                        plot_ui.text(Text::new(PlotPoint::new(p.x, p.y), txt).highlight(true).anchor(egui::Align2::LEFT_BOTTOM));
+                    }
                 }
             }
 

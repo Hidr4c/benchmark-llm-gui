@@ -176,3 +176,12 @@ fn test_graph_data_bounds_computation() {
     assert_eq!(bounds_price.0, [0.25, 88.0]);
     assert_eq!(bounds_price.1, [1.50, 92.5]);
 }
+
+#[test]
+fn test_graph_view_state_and_node_labels() {
+    use benchmark_llm_gui::presentation::components::graph_types::GraphViewState;
+    let state = GraphViewState::default();
+    assert!(!state.show_node_labels);
+    assert!(state.show_pareto_curve);
+    assert_eq!(state.vram_budget_gb, 48.0);
+}

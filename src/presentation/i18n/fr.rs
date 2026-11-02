@@ -127,6 +127,8 @@ pub const FR_TRANSLATIONS: Translations = Translations {
     axis_x: "Axe X :",
     axis_y: "Axe Y :",
     pareto_curve: "Courbe Pareto",
+    graph_show_labels: "Afficher les noms",
+    graph_show_labels_tooltip: "Affiche le nom des modèles directement sur le graphique avec anti-collision intelligent",
     recenter_btn: "Recentrer",
     recenter_tooltip: "Recentrer le graphe et adapter le zoom à l'ensemble des points (Double-clic sur le graphe fonctionne aussi).",
     pareto_champions: "Champions Pareto :",

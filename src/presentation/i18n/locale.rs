@@ -102,6 +102,8 @@ pub struct Translations {
     pub axis_x: &'static str,
     pub axis_y: &'static str,
     pub pareto_curve: &'static str,
+    pub graph_show_labels: &'static str,
+    pub graph_show_labels_tooltip: &'static str,
     pub recenter_btn: &'static str,
     pub recenter_tooltip: &'static str,
     pub pareto_champions: &'static str,

@@ -127,6 +127,8 @@ pub const EN_TRANSLATIONS: Translations = Translations {
     axis_x: "X Axis:",
     axis_y: "Y Axis:",
     pareto_curve: "Pareto Curve",
+    graph_show_labels: "Display Names",
+    graph_show_labels_tooltip: "Display model names directly on plot nodes with collision avoidance",
     recenter_btn: "Recenter",
     recenter_tooltip: "Recenter graph and fit zoom to visible points (Double-clicking the plot also works).",
     pareto_champions: "Pareto Champions:",

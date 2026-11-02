@@ -11,6 +11,7 @@ pub mod filter_bar;
 pub mod filter_bar_advanced;
 pub mod graph_bounds;
 pub mod graph_clustering;
+pub mod graph_labels;
 pub mod graph_types;
 pub mod graph_view;
 pub mod issue_reporter_modal;
