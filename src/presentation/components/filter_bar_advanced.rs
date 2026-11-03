@@ -1,7 +1,8 @@
 use eframe::egui;
 use crate::domain::license::LicenseCategory;
 use crate::domain::modality::ModelModality;
-use crate::presentation::filtering::{ConfidenceFilter, FilterState, ModalityFilter};
+use crate::presentation::filtering::{ConfidenceFilter, FilterState, ModalityFilter, SpecialtyFilter};
+use crate::domain::specialty::DomainSpecialty;
 use crate::presentation::i18n::Language;
 use crate::presentation::theme::ThemeTokens;
 
@@ -92,7 +93,29 @@ pub fn render_advanced_panel(
                 ui.separator();
                 ui.add_space(6.0);
 
-                // 3. Family / Architecture
+                // 3. Spécialité / Domaine Métier
+                ui.label(egui::RichText::new(if lang == Language::French { "Domaine :" } else { "Specialty:" }).size(11.5).color(ThemeTokens::TEXT_MUTED));
+                let spec_lbl = match filters.specialty {
+                    SpecialtyFilter::All => if lang == Language::French { "Tous domaines" } else { "All Specialties" },
+                    SpecialtyFilter::Specific(s) => if lang == Language::French { s.label_fr() } else { s.label_en() },
+                };
+                egui::ComboBox::from_id_salt("adv_specialty_combo")
+                    .selected_text(spec_lbl)
+                    .width(135.0)
+                    .show_ui(ui, |ui| {
+                        let all_lbl = if lang == Language::French { "Tous domaines" } else { "All Specialties" };
+                        if ui.selectable_label(filters.specialty == SpecialtyFilter::All, all_lbl).clicked() { filters.specialty = SpecialtyFilter::All; }
+                        for s in DomainSpecialty::all() {
+                            let s_lbl = if lang == Language::French { s.label_fr() } else { s.label_en() };
+                            if ui.selectable_label(filters.specialty == SpecialtyFilter::Specific(s), s_lbl).clicked() { filters.specialty = SpecialtyFilter::Specific(s); }
+                        }
+                    });
+
+                ui.add_space(6.0);
+                ui.separator();
+                ui.add_space(6.0);
+
+                // 4. Family / Architecture
                 ui.label(egui::RichText::new(adv.lbl_family).size(11.5).color(ThemeTokens::TEXT_MUTED));
                 let families = ["All", "Mistral", "Qwen", "Llama", "DeepSeek", "SmolLM", "Gemma", "Phi"];
                 egui::ComboBox::from_id_salt("adv_family_combo")
@@ -110,7 +133,7 @@ pub fn render_advanced_panel(
                 ui.separator();
                 ui.add_space(6.0);
 
-                // 4. Maximum RAM Required Slider - Explicitly Labeled!
+                // 5. Maximum RAM Required Slider
                 ui.label(egui::RichText::new(adv.lbl_max_ram).size(11.5).strong().color(ThemeTokens::CYAN_EDGE));
                 ui.add(
                     egui::Slider::new(&mut filters.max_size_gb, 0.5..=100.0)
@@ -122,7 +145,7 @@ pub fn render_advanced_panel(
                 ui.separator();
                 ui.add_space(6.0);
 
-                // 5. Score Min Slider
+                // 6. Score Min Slider
                 ui.label(egui::RichText::new(adv.lbl_min_score).size(11.5).strong().color(ThemeTokens::GOLD_5090));
                 ui.add(
                     egui::Slider::new(&mut filters.min_intelligence, 0.0..=100.0)
@@ -133,7 +156,7 @@ pub fn render_advanced_panel(
                 ui.separator();
                 ui.add_space(6.0);
 
-                // 6. Score Confidence / Reliability Level
+                // 7. Score Confidence / Reliability Level
                 ui.label(egui::RichText::new("Fiabilité :").size(11.5).color(ThemeTokens::TEXT_MUTED));
                 if ui.selectable_label(filters.confidence_level == ConfidenceFilter::All, "Tous").on_hover_text("Tous les scores (y compris source unique)").clicked() {
                     filters.confidence_level = ConfidenceFilter::All;
@@ -144,6 +167,35 @@ pub fn render_advanced_panel(
                 if ui.selectable_label(filters.confidence_level == ConfidenceFilter::HighOnly, "Haute (3+)").on_hover_text("Haute fiabilité uniquement (au moins 3 sources croisées)").clicked() {
                     filters.confidence_level = ConfidenceFilter::HighOnly;
                 }
+
+                ui.add_space(6.0);
+                ui.separator();
+                ui.add_space(6.0);
+
+                // 8. Colonnes & Affichage du tableau
+                filters.show_advanced_columns = filters.table_prefs.are_advanced_columns_visible();
+                filters.show_raw_sources = filters.table_prefs.are_raw_sources_visible();
+
+                let chk_adv = ui.checkbox(&mut filters.show_advanced_columns, egui::RichText::new("Avancé").size(11.5).strong())
+                    .on_hover_text("Afficher les colonnes détaillées : Année, Efficacité, Valeur Réelle / Éco, Popularité");
+                if chk_adv.changed() {
+                    filters.table_prefs.set_advanced_columns_visible(filters.show_advanced_columns);
+                }
+
+                let chk_raw = ui.checkbox(&mut filters.show_raw_sources, egui::RichText::new("Sources Brutes").size(11.5).strong())
+                    .on_hover_text("Afficher les scores bruts par benchmark : MMLU-Pro, SWE-bench, Tool-Calling, OpenLLM");
+                if chk_raw.changed() {
+                    filters.table_prefs.set_raw_sources_visible(filters.show_raw_sources);
+                }
+
+                let col_btn = ui.button(egui::RichText::new(t.table_menu.btn_column_chooser).size(11.5))
+                    .on_hover_text(t.table_menu.menu_column_chooser);
+                if col_btn.clicked() {
+                    filters.column_chooser_open = true;
+                }
+
+                let cols_rect = chk_adv.rect.union(chk_raw.rect).union(col_btn.rect);
+                ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_adv_cols"), cols_rect));
             });
         });
 }

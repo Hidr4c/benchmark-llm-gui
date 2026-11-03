@@ -113,6 +113,13 @@ fn render_cell_by_column(
                     ui.label(egui::RichText::new(model.modality.tag_short()).size(9.0).color(egui::Color32::from_rgb(mod_rgb.0, mod_rgb.1, mod_rgb.2)))
                         .on_hover_text(model.modality.label());
 
+                    if model.specialty != crate::domain::specialty::DomainSpecialty::General {
+                        let (sr, sg, sb) = model.specialty.badge_color_rgb();
+                        let spec_lbl = if lang == Language::French { model.specialty.label_fr() } else { model.specialty.label_en() };
+                        ui.label(egui::RichText::new(model.specialty.badge_text()).size(9.0).color(egui::Color32::from_rgb(sr, sg, sb)).strong())
+                            .on_hover_text(format!("Domaine: {spec_lbl}"));
+                    }
+
                     if model.is_cloud {
                         ui.label(egui::RichText::new("CLOUD").size(9.0).color(egui::Color32::from_rgb(175, 110, 245)));
                     } else if model.is_embedded_friendly() {
@@ -213,6 +220,15 @@ fn render_cell_by_column(
         }
         TableColumnId::OpenLlm => {
             row.col(|ui| { render_score_badge_cell(ui, model.scores.open_llm); });
+        }
+        TableColumnId::Math => {
+            row.col(|ui| { render_score_badge_cell(ui, model.scores.math_lvl5); });
+        }
+        TableColumnId::Gpqa => {
+            row.col(|ui| { render_score_badge_cell(ui, model.scores.gpqa); });
+        }
+        TableColumnId::Ifeval => {
+            row.col(|ui| { render_score_badge_cell(ui, model.scores.ifeval); });
         }
         TableColumnId::CloudPrice => {
             row.col(|ui| {

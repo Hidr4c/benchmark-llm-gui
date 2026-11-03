@@ -22,6 +22,7 @@ pub fn render_model_hardware_specs_grid(
         .num_columns(2)
         .spacing([8.0, 3.0])
         .show(ui, |ui| {
+            ui.set_width(ui.available_width());
             ui.label(egui::RichText::new("Stabilité Machine :").color(ThemeTokens::TEXT_MUTED).size(11.0));
             let (stab_text, stab_color) = if m.fits_pure_vram && pct <= 0.70 {
                 ("100% Stable (Confort)", ThemeTokens::SUCCESS)
@@ -93,6 +94,7 @@ pub fn render_machine_fitness_box(
         .stroke(egui::Stroke::new(1.0, ThemeTokens::PRIMARY))
         .inner_margin(egui::Margin::symmetric(10.0, 6.0))
         .show(ui, |ui| {
+            ui.set_width(ui.available_width());
             // Row 1: Stability Verdict (wrapped so it never overflows)
             ui.horizontal_wrapped(|ui| {
                 ui.label(egui::RichText::new("* Stabilité Machine :").strong().color(ThemeTokens::SUCCESS).size(11.5));

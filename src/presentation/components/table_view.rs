@@ -125,7 +125,10 @@ fn column_spec(col: TableColumnId) -> Column {
         TableColumnId::MmluPro
         | TableColumnId::SweBench
         | TableColumnId::Agentic
-        | TableColumnId::OpenLlm => Column::initial(80.0).at_least(65.0).clip(true),
+        | TableColumnId::OpenLlm
+        | TableColumnId::Math
+        | TableColumnId::Gpqa
+        | TableColumnId::Ifeval => Column::initial(80.0).at_least(65.0).clip(true),
         TableColumnId::CloudPrice => Column::initial(115.0).at_least(90.0).clip(true),
     }
 }
@@ -150,6 +153,9 @@ fn column_header_info(
         TableColumnId::SweBench => (t.col_swe_bench, Some(SortField::Coding), SortOrder::Descending),
         TableColumnId::Agentic => (t.col_agentic, Some(SortField::Agentic), SortOrder::Descending),
         TableColumnId::OpenLlm => (t.col_open_llm, Some(SortField::Intelligence), SortOrder::Descending),
+        TableColumnId::Math => (t.col_math, None, SortOrder::Descending),
+        TableColumnId::Gpqa => (t.col_gpqa, None, SortOrder::Descending),
+        TableColumnId::Ifeval => (t.col_ifeval, None, SortOrder::Descending),
         TableColumnId::CloudPrice => (t.col_cloud_price, Some(SortField::Price), SortOrder::Ascending),
     }
 }

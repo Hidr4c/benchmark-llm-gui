@@ -46,6 +46,7 @@ pub fn render_graph_search_picker(
                 .stroke(egui::Stroke::new(1.0, ThemeTokens::CYAN_EDGE))
                 .inner_margin(egui::Margin::symmetric(8.0, 4.0))
                 .show(ui, |ui| {
+            ui.set_width(ui.available_width());
                     ui.label(
                         egui::RichText::new(format!("Résultats ({}) - Cliquez pour localiser :", matches.len()))
                             .size(11.0)
@@ -87,6 +88,7 @@ pub fn render_slot_model_card(
         .stroke(egui::Stroke::new(1.5, color))
         .inner_margin(egui::Margin::symmetric(10.0, 7.0))
         .show(ui, |ui| {
+            ui.set_width(ui.available_width());
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new(format!("[Modèle #{}]", slot_num)).color(color).strong().size(13.0));
                 if let Some(m) = current_model {
@@ -134,6 +136,7 @@ pub fn render_slot_model_card(
                         .stroke(egui::Stroke::new(1.0, color))
                         .inner_margin(egui::Margin::symmetric(6.0, 3.0))
                         .show(ui, |ui| {
+            ui.set_width(ui.available_width());
                             ui.label(egui::RichText::new(format!("Cliquez pour choisir ({}) :", matches.len())).size(10.5).color(ThemeTokens::TEXT_MUTED));
                             for m in matches {
                                 ui.horizontal(|ui| {

@@ -54,8 +54,8 @@ fn render_header_cell_content(
     let is_sorted = sort_field == Some(filters.sort_field);
     let arrow = if is_sorted {
         match filters.sort_order {
-            SortOrder::Ascending => " ▲",
-            SortOrder::Descending => " ▼",
+            SortOrder::Ascending => " ^",
+            SortOrder::Descending => " v",
         }
     } else {
         ""

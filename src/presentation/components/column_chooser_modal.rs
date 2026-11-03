@@ -17,7 +17,13 @@ pub fn render_column_chooser_modal(
     let mut win_open = true;
     let mut should_close = false;
 
-    egui::Window::new(egui::RichText::new("⚙ Sélecteur de Colonnes & Agencement").strong().color(ThemeTokens::CYAN_EDGE))
+    let win_title = if lang == Language::French {
+        "[*] Sélecteur de Colonnes & Agencement"
+    } else {
+        "[*] Column Chooser & Layout"
+    };
+
+    egui::Window::new(egui::RichText::new(win_title).strong().color(ThemeTokens::CYAN_EDGE))
         .open(&mut win_open)
         .collapsible(false)
         .resizable(true)
@@ -25,7 +31,13 @@ pub fn render_column_chooser_modal(
         .default_pos(ctx.screen_rect().center())
         .pivot(egui::Align2::CENTER_CENTER)
         .show(ctx, |ui| {
-            ui.label(egui::RichText::new("Cochez les colonnes à afficher et utilisez les flèches pour modifier leur ordre d'apparition :").size(11.5).color(ThemeTokens::TEXT_SECONDARY));
+            ui.label(egui::RichText::new(
+                if lang == Language::French {
+                    "Cochez les colonnes à afficher et utilisez les flèches pour modifier leur ordre d'apparition :"
+                } else {
+                    "Check columns to display and use arrows to reorder them:"
+                }
+            ).size(11.5).color(ThemeTokens::TEXT_SECONDARY));
             ui.add_space(8.0);
 
             let cols = prefs.column_order.clone();
@@ -53,10 +65,10 @@ pub fn render_column_chooser_modal(
                                     let down_enabled = idx < total_cols - 1;
                                     let up_enabled = idx > 0;
 
-                                    if ui.add_enabled(down_enabled, egui::Button::new("⬇")).on_hover_text("Déplacer vers le bas (droite)").clicked() {
+                                    if ui.add_enabled(down_enabled, egui::Button::new("v")).on_hover_text("Déplacer vers le bas (droite)").clicked() {
                                         move_op = Some((col, 1));
                                     }
-                                    if ui.add_enabled(up_enabled, egui::Button::new("⬆")).on_hover_text("Déplacer vers le haut (gauche)").clicked() {
+                                    if ui.add_enabled(up_enabled, egui::Button::new("^")).on_hover_text("Déplacer vers le haut (gauche)").clicked() {
                                         move_op = Some((col, -1));
                                     }
                                 });
@@ -72,7 +84,7 @@ pub fn render_column_chooser_modal(
 
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                if ui.button(egui::RichText::new("↺ Vue par défaut").size(11.0)).on_hover_text("Rétablir l'ordre d'origine et la sélection essentielle").clicked() {
+                if ui.button(egui::RichText::new(if lang == Language::French { "Par défaut" } else { "Default" }).size(11.0)).on_hover_text("Rétablir l'ordre d'origine et la sélection essentielle").clicked() {
                     prefs.reset_defaults();
                 }
                 if ui.button(egui::RichText::new("+ Avancé").size(11.0)).on_hover_text("Afficher ou masquer les colonnes avancées").clicked() {
@@ -83,12 +95,12 @@ pub fn render_column_chooser_modal(
                     let vis = !prefs.are_raw_sources_visible();
                     prefs.set_raw_sources_visible(vis);
                 }
-                if ui.button(egui::RichText::new("Tout cocher").size(11.0)).on_hover_text("Cocher et afficher l'ensemble des colonnes").clicked() {
+                if ui.button(egui::RichText::new(if lang == Language::French { "Tout cocher" } else { "Select All" }).size(11.0)).on_hover_text("Cocher et afficher l'ensemble des colonnes").clicked() {
                     prefs.show_all_columns();
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button(egui::RichText::new("Fermer").strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
+                    if ui.button(egui::RichText::new(if lang == Language::French { "Fermer" } else { "Close" }).strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
                         should_close = true;
                     }
                 });
@@ -116,6 +128,9 @@ fn column_display_name(col: TableColumnId, t: &'static crate::presentation::i18n
         TableColumnId::SweBench => t.col_swe_bench,
         TableColumnId::Agentic => t.col_agentic,
         TableColumnId::OpenLlm => t.col_open_llm,
+        TableColumnId::Math => t.col_math,
+        TableColumnId::Gpqa => t.col_gpqa,
+        TableColumnId::Ifeval => t.col_ifeval,
         TableColumnId::CloudPrice => t.col_cloud_price,
     }
 }
