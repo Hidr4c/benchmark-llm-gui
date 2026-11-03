@@ -6,7 +6,8 @@
   - Validates repository hygiene and test suites.
   - Creates and manages dedicated release/vX.Y.Z branches.
   - Bumps Cargo.toml and updates Cargo.lock.
-  - Merges into master and develop with annotated git tags.
+  - Merges into master (squashed: 1 commit per release) and develop.
+  - Manages granular release branches (vX.Y.Z) and annotated release tags.
   - Synchronizes all branches and release tags to origin.
 .EXAMPLE
   .\scripts\release.ps1 -Version "1.1.0" -Action full
@@ -92,34 +93,39 @@ function Step-FinishRelease {
 
     Assert-GitClean
 
-    # 1. Merge into master
-    Write-Host ">>> Merging $ReleaseBranch into master..." -ForegroundColor Yellow
+    # 1. Squash merge into master (strictly 1 commit per release version)
+    Write-Host ">>> Squash merging $ReleaseBranch into master..." -ForegroundColor Yellow
     git checkout master
     git pull origin master
-    git merge --no-ff $ReleaseBranch -m "merge: release $Tag into master"
+    git merge --squash $ReleaseBranch
+    git commit -m "feat: release $Tag - Universal LLM Benchmark Explorer & Hardware Profiler"
 
-    # 2. Create annotated tag
+    # 2. Create annotated tag pointing to master release commit
     Write-Host ">>> Creating annotated release tag $Tag..." -ForegroundColor Yellow
-    git tag -a $Tag -m "Release $Tag - Universal LLM Benchmark Explorer & Hardware Profiler"
+    git tag -a $Tag -m "Release $Tag - Universal LLM Benchmark Explorer & Hardware Profiler" -f
 
-    # 3. Merge back into develop
+    # 3. Create or update granular release branch vX.Y.Z
+    Write-Host ">>> Updating granular release branch $Tag..." -ForegroundColor Yellow
+    git branch -f $Tag $ReleaseBranch
+
+    # 4. Merge back into develop
     Write-Host ">>> Merging $ReleaseBranch back into develop..." -ForegroundColor Yellow
     git checkout develop
     git pull origin develop
     git merge --no-ff $ReleaseBranch -m "merge: sync release $Tag into develop"
 
-    # 4. Push all changes
-    Write-Host ">>> Pushing master, develop, $ReleaseBranch, and tag $Tag to origin..." -ForegroundColor Yellow
+    # 5. Push all branches and tag
+    Write-Host ">>> Pushing master, develop, $Tag, and tag $Tag to origin..." -ForegroundColor Yellow
     git push origin master
     git push origin develop
-    git push origin $ReleaseBranch
-    git push origin $Tag
+    git push origin "refs/heads/$Tag`:refs/heads/$Tag" --force
+    git push origin "refs/tags/$Tag`:refs/tags/$Tag" --force
 
     Write-Host "`n==========================================================" -ForegroundColor Green
     Write-Host "  RELEASE $Tag COMPLETED AND DEPLOYED!" -ForegroundColor Green
-    Write-Host "  - Master: updated and merged" -ForegroundColor Green
+    Write-Host "  - Master: updated (squashed 1 commit per release)" -ForegroundColor Green
+    Write-Host "  - Granular branch: $Tag synchronized" -ForegroundColor Green
     Write-Host "  - Develop: updated and synchronized" -ForegroundColor Green
-    Write-Host "  - Release branch: $ReleaseBranch preserved" -ForegroundColor Green
     Write-Host "  - Tag: $Tag pushed (GitHub Actions release workflow triggered)" -ForegroundColor Green
     Write-Host "==========================================================" -ForegroundColor Green
 }
