@@ -35,9 +35,6 @@ pub fn render_advanced_panel(
                 );
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.small_button(egui::RichText::new(adv.btn_reset).color(ThemeTokens::WARNING)).clicked() {
-                        filters.reset();
-                    }
                     if ui.small_button(egui::RichText::new(adv.btn_export).color(ThemeTokens::CYAN_EDGE).strong()).on_hover_text(adv.tooltip_export).clicked() {
                         *on_export = true;
                     }
