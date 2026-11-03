@@ -75,7 +75,7 @@ pub fn render_tour_overlay(
         ),
         3 => (
             AppTab::Table,
-            egui::Id::new("tour_target_adv_cols"),
+            egui::Id::new(if filters.show_advanced { "tour_target_adv_cols" } else { "tour_target_adv_filters" }),
             egui::Id::new("tour_result_table_rows"),
             ThemeTokens::CYAN_EDGE,
             t.tut_guide.tour_s3b_title,

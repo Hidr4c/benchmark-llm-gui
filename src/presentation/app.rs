@@ -9,6 +9,7 @@ use crate::infrastructure::hardware::system_detector::SystemHardwareDetector;
 use crate::infrastructure::updater::GitHubReleaseAdapter;
 use crate::presentation::components::comparator_view::{render_comparator_view, ComparatorState};
 use crate::presentation::components::detail_view::render_detail_panel;
+use crate::presentation::components::domains_view::render_domains_view;
 use crate::presentation::components::filter_bar::{render_filter_bar, FilterState};
 use crate::presentation::components::graph_view::{render_graph_view, GraphViewState};
 use crate::presentation::components::issue_reporter_modal::{render_contact_modal, render_sync_error_modal};
@@ -230,6 +231,7 @@ impl eframe::App for BenchmarkApp {
                         egui::ScrollArea::vertical().show(ui, |ui| render_simulator_view(ui, &mut self.sim_config, self.detected_hardware.as_ref(), &self.all_models, &self.filters, &mut self.selected_model_id, self.language));
                         self.tour_state.check_and_update_sim_progress(&self.sim_config);
                     }
+                    AppTab::Domains => render_domains_view(ui, &self.all_models, &mut self.filters, &mut self.active_tab, &mut self.selected_model_id, self.language),
                     AppTab::Sources => render_sources_view(ui, self.language),
                     AppTab::Tutorial => render_tutorial_view(ui, &mut self.tour_state, &mut self.active_tab, &mut self.filters, self.language),
                 }

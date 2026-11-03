@@ -11,6 +11,7 @@ pub enum AppTab {
     Graph,
     Comparator,
     Simulator,
+    Domains,
     Sources,
     Tutorial,
 }
@@ -23,6 +24,7 @@ impl AppTab {
             Self::Graph => t.tab_graph,
             Self::Comparator => t.tab_comparator,
             Self::Simulator => t.tab_simulator,
+            Self::Domains => match lang { Language::French => "Domaines Métiers & Spécialités", Language::English => "Specialized Domains & Verticals" },
             Self::Sources => t.tab_sources,
             Self::Tutorial => t.tab_tutorial,
         }
@@ -35,6 +37,7 @@ impl AppTab {
                 Self::Graph => "Graphique Pareto",
                 Self::Comparator => "Comparateur VS",
                 Self::Simulator => "Simulateur",
+                Self::Domains => "Domaines",
                 Self::Sources => "Sources",
                 Self::Tutorial => "Guide IA",
             },
@@ -43,6 +46,7 @@ impl AppTab {
                 Self::Graph => "Pareto Chart",
                 Self::Comparator => "VS Comparator",
                 Self::Simulator => "Simulator",
+                Self::Domains => "Specialties",
                 Self::Sources => "Sources",
                 Self::Tutorial => "AI Guide",
             },
@@ -117,6 +121,7 @@ pub fn render_top_header(
                     AppTab::Graph,
                     AppTab::Comparator,
                     AppTab::Simulator,
+                    AppTab::Domains,
                     AppTab::Sources,
                     AppTab::Tutorial,
                 ];

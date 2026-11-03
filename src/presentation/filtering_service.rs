@@ -2,7 +2,7 @@ use crate::domain::hardware::HardwarePlatform;
 use crate::domain::license::LicenseCategory;
 use crate::domain::model::{ModelBenchmark, SortField, SortOrder};
 use crate::presentation::filtering::{
-    ConfidenceFilter, FilterState, ModalityFilter, ModelScope, RootModelGroup, TableColumnMode,
+    ConfidenceFilter, FilterState, ModalityFilter, ModelScope, RootModelGroup, SpecialtyFilter, TableColumnMode,
 };
 
 fn cmp_f32(a: f32, b: f32, order: SortOrder) -> std::cmp::Ordering {
@@ -42,6 +42,12 @@ impl FilterService {
 
             if let ModalityFilter::Specific(target_mod) = filters.modality {
                 if m.modality != target_mod {
+                    return None;
+                }
+            }
+
+            if let SpecialtyFilter::Specific(target_spec) = filters.specialty {
+                if m.specialty != target_spec {
                     return None;
                 }
             }

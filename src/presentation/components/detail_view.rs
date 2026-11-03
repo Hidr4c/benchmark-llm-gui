@@ -21,6 +21,11 @@ pub fn render_detail_panel(
                     ui.heading(egui::RichText::new(&model.name).color(ThemeTokens::TEXT_PRIMARY).strong());
                     let (mr, mg, mb) = model.modality.badge_color_rgb();
                     ui.label(egui::RichText::new(model.modality.label()).color(egui::Color32::from_rgb(mr, mg, mb)).strong());
+                    if model.specialty != crate::domain::specialty::DomainSpecialty::General {
+                        let (sr, sg, sb) = model.specialty.badge_color_rgb();
+                        let spec_lbl = if lang == Language::French { model.specialty.label_fr() } else { model.specialty.label_en() };
+                        ui.label(egui::RichText::new(format!("[{}] {}", model.specialty.badge_text(), spec_lbl)).color(egui::Color32::from_rgb(sr, sg, sb)).strong());
+                    }
                     let year_badge = format!(" {}", model.release_year_label());
                     let year_color = if model.is_very_recent() { ThemeTokens::CYAN_EDGE } else { ThemeTokens::TEXT_MUTED };
                     ui.label(egui::RichText::new(year_badge).color(year_color).strong());
