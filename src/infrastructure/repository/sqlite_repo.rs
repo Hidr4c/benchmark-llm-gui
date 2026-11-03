@@ -208,8 +208,22 @@ impl IBenchmarkRepository for SqliteRepository {
             let raw_spec = row.get::<_, Option<String>>(31).ok().flatten()
                 .map(|s| DomainSpecialty::from_str_lenient(&s))
                 .unwrap_or_default();
+            let scores = BenchmarkScores {
+                average: row.get(8)?,
+                ifeval: row.get(9)?,
+                bbh: row.get(10)?,
+                math_lvl5: row.get(11)?,
+                gpqa: row.get(12)?,
+                mmlu_pro: row.get(13)?,
+                musr: row.get(14)?,
+                open_llm: row.get(21).ok(),
+                coding: row.get(22).ok(),
+                agentic: row.get(23).ok(),
+                real_world: rw_score,
+            };
+            let modality = row.get::<_, Option<String>>(29).ok().flatten().map(|s| ModelModality::from_str_lenient(&s)).unwrap_or_default();
             let specialty = if raw_spec == DomainSpecialty::General {
-                DomainSpecialty::detect(&id, &name, None, &[], "")
+                DomainSpecialty::detect_with_context(&id, &name, None, &[], "", Some(&scores), modality)
             } else {
                 raw_spec
             };
@@ -223,19 +237,7 @@ impl IBenchmarkRepository for SqliteRepository {
                 vram_rec_gb: row.get(5)?,
                 tokens_per_sec: row.get(6)?,
                 tps_hardware: row.get(7)?,
-                scores: BenchmarkScores {
-                    average: row.get(8)?,
-                    ifeval: row.get(9)?,
-                    bbh: row.get(10)?,
-                    math_lvl5: row.get(11)?,
-                    gpqa: row.get(12)?,
-                    mmlu_pro: row.get(13)?,
-                    musr: row.get(14)?,
-                    open_llm: row.get(21).ok(),
-                    coding: row.get(22).ok(),
-                    agentic: row.get(23).ok(),
-                    real_world: rw_score,
-                },
+                scores,
                 downloads: row.get::<_, i64>(15)? as u64,
                 likes: row.get::<_, i64>(16)? as u64,
                 ollama_tag: row.get(17)?,
@@ -247,7 +249,7 @@ impl IBenchmarkRepository for SqliteRepository {
                 pricing_input_usd: row.get(26).ok(),
                 pricing_output_usd: row.get(27).ok(),
                 release_year: row.get::<_, Option<i64>>(28).ok().flatten().map(|y| y as u16),
-                modality: row.get::<_, Option<String>>(29).ok().flatten().map(|s| ModelModality::from_str_lenient(&s)).unwrap_or_default(),
+                modality,
                 specialty,
                 economic: econ,
             })

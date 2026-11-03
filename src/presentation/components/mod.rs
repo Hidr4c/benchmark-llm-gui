@@ -7,7 +7,6 @@ pub mod compare_floating_dock;
 pub mod detail_roi;
 pub mod detail_runner;
 pub mod detail_view;
-pub mod domains_view;
 pub mod filter_bar;
 pub mod filter_bar_advanced;
 pub mod graph_bounds;

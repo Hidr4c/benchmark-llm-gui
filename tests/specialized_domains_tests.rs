@@ -182,3 +182,66 @@ fn test_sqlite_backward_compatibility_fallback_detection() {
     let loaded = repo.load_snapshot_models(snap_id).expect("load snapshot failed");
     assert_eq!(loaded[0].specialty, DomainSpecialty::SoftwareDev);
 }
+
+#[test]
+fn test_score_and_modality_based_domain_detection() {
+    use benchmark_llm_gui::domain::modality::ModelModality;
+
+    // 1. Model without code keywords, but with dominant SWE-Bench score
+    let scores_code = BenchmarkScores {
+        coding: Some(84.5),
+        open_llm: Some(52.0),
+        ..Default::default()
+    };
+    let spec_code = DomainSpecialty::detect_with_context(
+        "author/custom-eval-v1",
+        "Custom-Eval-V1",
+        None,
+        &[],
+        "Unlabeled community model checkpoint",
+        Some(&scores_code),
+        ModelModality::Text,
+    );
+    assert_eq!(spec_code, DomainSpecialty::SoftwareDev);
+
+    // 2. Model without agent keywords, but with dominant BFCL tool score
+    let scores_agent = BenchmarkScores {
+        agentic: Some(82.0),
+        open_llm: Some(48.0),
+        ..Default::default()
+    };
+    let spec_agent = DomainSpecialty::detect_with_context(
+        "author/pipeline-runner-v2",
+        "Pipeline-Runner-V2",
+        None,
+        &[],
+        "Unlabeled model",
+        Some(&scores_agent),
+        ModelModality::Text,
+    );
+    assert_eq!(spec_agent, DomainSpecialty::MultiAgent);
+
+    // 3. Model without vision keywords, but with Multimodal modality
+    let spec_vlm = DomainSpecialty::detect_with_context(
+        "author/checkpoint-vlm",
+        "Checkpoint-VLM",
+        None,
+        &[],
+        "Unlabeled model",
+        None,
+        ModelModality::Multimodal,
+    );
+    assert_eq!(spec_vlm, DomainSpecialty::VisionCreative);
+
+    // 4. Model without voice keywords, but with AudioSpeech modality
+    let spec_audio = DomainSpecialty::detect_with_context(
+        "author/checkpoint-tts",
+        "Checkpoint-TTS",
+        None,
+        &[],
+        "Unlabeled model",
+        None,
+        ModelModality::AudioSpeech,
+    );
+    assert_eq!(spec_audio, DomainSpecialty::VoiceSpeech);
+}

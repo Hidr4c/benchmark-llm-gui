@@ -115,7 +115,6 @@ impl LiveModelFetcher {
             let norm_id = normalize(&hf.id);
             let norm_name = normalize(&name);
             let modality = ModelModality::detect(&hf.id, &name, hf.pipeline_tag.as_deref(), &hf.tags);
-            let specialty = DomainSpecialty::detect(&hf.id, &name, hf.pipeline_tag.as_deref(), &hf.tags, "");
             let is_embedding = norm_id.contains("gte") || norm_id.contains("embed") || norm_id.contains("bge");
 
             let lb_match = if is_embedding {
@@ -264,6 +263,7 @@ impl LiveModelFetcher {
                 || hf.tags.iter().any(|t| t == "moe" || t == "mixture-of-experts");
 
             let release_year = extract_release_year(&hf.id, &name, hf.created_at.as_deref());
+            let specialty = DomainSpecialty::detect_with_context(&hf.id, &name, hf.pipeline_tag.as_deref(), &hf.tags, "", Some(&scores), modality);
 
             results.push(ModelBenchmark {
                 id: hf.id,

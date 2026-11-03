@@ -98,7 +98,15 @@ impl DomainSpecialty {
         }
     }
 
-    pub fn detect(id: &str, name: &str, pipeline_tag: Option<&str>, tags: &[String], desc: &str) -> Self {
+    pub fn detect_with_context(
+        id: &str,
+        name: &str,
+        pipeline_tag: Option<&str>,
+        tags: &[String],
+        desc: &str,
+        scores: Option<&crate::domain::model::BenchmarkScores>,
+        modality: crate::domain::modality::ModelModality,
+    ) -> Self {
         let text_lower = format!("{} {} {} {}", id, name, pipeline_tag.unwrap_or(""), desc).to_lowercase();
 
         // 1. Multi-Agent Swarms & Autonomous Workflows (Takes precedence over domain application)
@@ -152,6 +160,35 @@ impl DomainSpecialty {
             return Self::SoftwareDev;
         }
 
+        // 7. Modality-based fallback when tags are absent
+        match modality {
+            crate::domain::modality::ModelModality::Multimodal | crate::domain::modality::ModelModality::ImageGen => {
+                return Self::VisionCreative;
+            }
+            crate::domain::modality::ModelModality::AudioSpeech => {
+                return Self::VoiceSpeech;
+            }
+            _ => {}
+        }
+
+        // 8. Self-adapting fallback using benchmark scores
+        if let Some(sc) = scores {
+            let coding_val = sc.coding.unwrap_or(0.0);
+            let agentic_val = sc.agentic.unwrap_or(0.0);
+            let open_llm_val = sc.open_llm.unwrap_or(0.0);
+
+            if coding_val > 70.0 && (coding_val > open_llm_val + 10.0 || open_llm_val == 0.0) {
+                return Self::SoftwareDev;
+            }
+            if agentic_val > 70.0 && (agentic_val > open_llm_val + 10.0 || open_llm_val == 0.0) {
+                return Self::MultiAgent;
+            }
+        }
+
         Self::General
+    }
+
+    pub fn detect(id: &str, name: &str, pipeline_tag: Option<&str>, tags: &[String], desc: &str) -> Self {
+        Self::detect_with_context(id, name, pipeline_tag, tags, desc, None, crate::domain::modality::ModelModality::Text)
     }
 }

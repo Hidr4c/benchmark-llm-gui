@@ -1,5 +1,6 @@
 use eframe::egui;
 use crate::domain::hardware::HardwarePlatform;
+use crate::domain::specialty::DomainSpecialty;
 use crate::presentation::components::filter_bar_advanced::render_advanced_panel;
 pub use crate::presentation::filtering::{FilterState, ModalityFilter, ModelScope, SizeCategory, SpecialtyFilter, TableColumnMode, UserPriority};
 use crate::presentation::i18n::Language;
@@ -85,7 +86,50 @@ pub fn render_filter_bar(
                     if ui.selectable_label(filters.priority == UserPriority::Efficiency, t.priority_efficiency).clicked() { filters.set_priority(UserPriority::Efficiency); }
                     if ui.selectable_label(filters.priority == UserPriority::RealWorld, t.priority_real_world).clicked() { filters.set_priority(UserPriority::RealWorld); }
                     if ui.selectable_label(filters.priority == UserPriority::Compactness, t.priority_compact).clicked() { filters.set_priority(UserPriority::Compactness); }
-                }).response.on_hover_text(t.priority_tooltip);
+                }).response.on_hover_text(t.priority_tooltip);
+
+            ui.separator();
+
+            // 4. Choix du Domaine Metier / Specialite (7 options: Tous + 6 specialites)
+            let spec_label = match filters.specialty {
+                SpecialtyFilter::All => if lang == Language::French { "Tous les domaines" } else { "All Domains" },
+                SpecialtyFilter::Specific(s) => if lang == Language::French { s.label_fr() } else { s.label_en() },
+            };
+            egui::ComboBox::from_id_salt("filter_bar_domain_combo")
+                .selected_text(spec_label)
+                .width(140.0)
+                .show_ui(ui, |ui| {
+                    let all_lbl = if lang == Language::French { "Tous les domaines (7/7)" } else { "All Domains (7/7)" };
+                    if ui.selectable_label(filters.specialty == SpecialtyFilter::All, all_lbl).clicked() {
+                        filters.specialty = SpecialtyFilter::All;
+                    }
+                    ui.separator();
+                    let specs = [
+                        DomainSpecialty::SoftwareDev,
+                        DomainSpecialty::VisionCreative,
+                        DomainSpecialty::VoiceSpeech,
+                        DomainSpecialty::GenomicsBio,
+                        DomainSpecialty::WorldModel3D,
+                        DomainSpecialty::MultiAgent,
+                    ];
+                    for s in specs {
+                        let is_sel = filters.specialty == SpecialtyFilter::Specific(s);
+                        let (r, g, b) = s.badge_color_rgb();
+                        let item_lbl = format!("[{}] {}", s.badge_text(), if lang == Language::French { s.label_fr() } else { s.label_en() });
+                        if ui.selectable_label(is_sel, egui::RichText::new(item_lbl).color(egui::Color32::from_rgb(r, g, b))).clicked() {
+                            filters.specialty = SpecialtyFilter::Specific(s);
+                        }
+                    }
+                }).response.on_hover_text(if lang == Language::French {
+                    "Filtrer par domaine metier (Code, Vision, Voix, ADN, 3D, Multi-Agents)"
+                } else {
+                    "Filter by domain specialty (Code, Vision, Voice, DNA, 3D, Multi-Agents)"
+                });
+
+            if filters.specialty != SpecialtyFilter::All && ui.small_button("X").on_hover_text("Reinitialiser le domaine").clicked() {
+                filters.specialty = SpecialtyFilter::All;
+            }
+
 
             ui.separator();
 
@@ -198,21 +242,6 @@ pub fn render_filter_bar(
                 m.data.insert_temp(egui::Id::new("tour_result_hardware"), counter_resp.rect);
             });
 
-            // 8. Indicateur du filtre domaine actif
-            if let SpecialtyFilter::Specific(active_spec) = filters.specialty {
-                ui.separator();
-                let (r, g, b) = active_spec.badge_color_rgb();
-                let spec_col = egui::Color32::from_rgb(r, g, b);
-                let lbl = format!("Domaine : {} x", active_spec.badge_text());
-                if ui.button(
-                    egui::RichText::new(lbl)
-                        .color(spec_col)
-                        .strong()
-                        .size(11.0)
-                ).on_hover_text("Cliquer pour desactiver le filtre de domaine").clicked() {
-                    filters.specialty = SpecialtyFilter::All;
-                }
-            }
 
             // 9. Indicateur des filtres de colonnes actifs (intégré en ligne sans saut de layout)
             let active_filters = filters.table_prefs.active_filter_count();
