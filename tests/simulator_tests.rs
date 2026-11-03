@@ -51,6 +51,8 @@ fn test_dedicated_workstation_simulation() {
         gpu: GpuTier::Rtx5090_32G,
         ram_gb: 64.0,
         nas_web_ram_gb: 0.0,
+        platform: HardwarePlatform::Gpu32Gb,
+        max_storage_gb: None,
     };
 
     let sim = rig.simulate();
@@ -69,6 +71,8 @@ fn test_multi_service_nas_web_scenario_stability() {
         gpu: GpuTier::None,
         ram_gb: 8.0,
         nas_web_ram_gb: 6.5,
+        platform: HardwarePlatform::MiniPcCpu,
+        max_storage_gb: None,
     };
 
     let sim = nas_rig.simulate();
@@ -107,4 +111,49 @@ fn test_license_category_filtering() {
     let filtered = FilterService::compute_filtered_indices(&models, &filters);
     assert_eq!(filtered.len(), 1);
     assert_eq!(models[filtered[0]].name, "Qwen 2.5 Coder 7B");
+}
+
+#[test]
+fn test_smartphone_on_device_hardware_tiers() {
+    let mid = HardwarePlatform::SmartphoneMid;
+    assert!(mid.is_embedded());
+    assert_eq!(mid.max_usable_memory_gb(), Some(2.2));
+    assert!(mid.fits_model(1.8, 2.5));
+    assert!(!mid.fits_model(3.5, 5.0));
+
+    let high = HardwarePlatform::SmartphoneHigh;
+    assert!(high.is_embedded());
+    assert_eq!(high.max_usable_memory_gb(), Some(5.5));
+    assert!(high.fits_model(5.2, 7.0));
+    assert!(!high.fits_model(8.5, 12.0));
+
+    let pro = HardwarePlatform::SmartphonePro;
+    assert!(pro.is_embedded());
+    assert_eq!(pro.max_usable_memory_gb(), Some(9.0));
+    assert!(pro.fits_model(8.2, 11.0));
+    assert!(!pro.fits_model(15.0, 19.0));
+}
+
+#[test]
+fn test_live_system_detector() {
+    use benchmark_llm_gui::infrastructure::hardware::system_detector::SystemHardwareDetector;
+    use benchmark_llm_gui::domain::hardware_detector::IHardwareDetector;
+    let detector = SystemHardwareDetector::new();
+    let res = detector.detect();
+    println!("Live detect result: {:?}", res);
+    assert!(res.is_ok());
+}
+
+#[test]
+fn test_storage_footprint_filtering_in_simulation() {
+    let rig_storage = HardwareRigConfig {
+        mode: SimTargetMode::WorkstationPc,
+        platform: HardwarePlatform::SmartphoneMid,
+        gpu: GpuTier::SmartphoneMid,
+        ram_gb: 4.0,
+        nas_web_ram_gb: 0.0,
+        max_storage_gb: Some(1.0),
+    };
+    let sim = rig_storage.simulate();
+    assert!(sim.total_ai_capacity_gb <= 1.25);
 }

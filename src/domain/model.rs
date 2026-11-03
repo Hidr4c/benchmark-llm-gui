@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 use crate::domain::economic::EconomicScores;
 use crate::domain::modality::ModelModality;
+use crate::domain::specialty::DomainSpecialty;
 use crate::domain::scoring::{ScoreBreakdown, ScoringEngine};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SortField {
     Intelligence,
     Efficiency,
@@ -19,7 +20,7 @@ pub enum SortField {
     Agentic,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SortOrder {
     Ascending,
     Descending,
@@ -48,17 +49,17 @@ impl SourceSelection {
     pub fn active_count(&self) -> usize { (self.open_llm as usize) + (self.coding as usize) + (self.agentic as usize) + (self.real_world as usize) }
     pub fn label(&self) -> &'static str {
         if self.is_all() {
-            "🌟 Cross-Referenced Average (4 sources)"
+            "Cross-Referenced Pillars (All)"
         } else if self.is_open_llm_only() {
-            "📚 General (Open LLM 2)"
+            "General & Academic (Open LLM)"
         } else if self.is_coding_only() {
-            "💻 Code & Dev (SWE-Bench)"
+            "Code & Dev (SWE-Bench)"
         } else if self.is_agentic_only() {
-            "🤖 Agents & Tool-Calling (Agentic)"
+            "Agents & Tool-Calling (BFCL)"
         } else if self.is_real_world_only() {
-            "💼 Real-World & Economic (RLI, SWE-Lancer, SWE-Clar)"
+            "Real-World & Economic (RLI, SWE-Lancer)"
         } else {
-            "🎯 Custom Blend"
+            "Custom Blend"
         }
     }
 }
@@ -101,6 +102,7 @@ pub struct ModelBenchmark {
     pub pricing_output_usd: Option<f32>,
     pub release_year: Option<u16>,
     pub modality: ModelModality,
+    pub specialty: DomainSpecialty,
     pub economic: Option<EconomicScores>,
 }
 
@@ -263,7 +265,7 @@ impl ModelBenchmark {
     }
 
     pub fn release_year_label(&self) -> String {
-        self.release_year.map(|y| y.to_string()).unwrap_or_else(|| "—".into())
+        self.release_year.map(|y| y.to_string()).unwrap_or_else(|| "-".into())
     }
 
     pub fn is_very_recent(&self) -> bool {

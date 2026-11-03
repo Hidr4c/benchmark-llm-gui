@@ -14,13 +14,13 @@ pub enum SourceCategory {
 impl SourceCategory {
     pub fn label(&self) -> &'static str {
         match self {
-            SourceCategory::AcademicGeneral => "📚 General Intelligence, Reasoning & Uncontaminated Benchmarks",
-            SourceCategory::CodingDevelopment => "💻 Code, Software Engineering & Real Bug Fixing",
-            SourceCategory::AgenticTools => "🤖 Autonomous Agents & Tool-Calling on Dedicated GPUs",
-            SourceCategory::RealWorldEconomic => "💼 Real-World Value, Freelance Work & Economic Tasks",
-            SourceCategory::HardwareSpeed => "🚀 Hardware Throughput, Latency (TTFT) & Speed (tok/s)",
-            SourceCategory::CommunityLibrary => "📦 Model Registries & Quantized GGUF Catalogs",
-            SourceCategory::CloudProprietary => "☁️ Proprietary Cloud Models, Pricing & Human ELO",
+            SourceCategory::AcademicGeneral => "General Intelligence, Reasoning & Uncontaminated Benchmarks",
+            SourceCategory::CodingDevelopment => "Code, Software Engineering & Real Bug Fixing",
+            SourceCategory::AgenticTools => "Autonomous Agents & Tool-Calling on Dedicated GPUs",
+            SourceCategory::RealWorldEconomic => "Real-World Value, Freelance Work & Economic Tasks",
+            SourceCategory::HardwareSpeed => "Hardware Throughput, Latency (TTFT) & Speed (tok/s)",
+            SourceCategory::CommunityLibrary => "Model Registries & Quantized GGUF Catalogs",
+            SourceCategory::CloudProprietary => "Proprietary Cloud Models, Pricing & Human ELO",
         }
     }
 }
@@ -69,6 +69,38 @@ impl BenchmarkSourceInfo {
                 url: "https://benchlm.ai/",
                 description: "Independent frequently updated leaderboard ranking modern open-weight LLMs.",
                 metrics_measured: "Synthetic general score, multi-task ranking.",
+                is_connected_live: true,
+            },
+            BenchmarkSourceInfo {
+                name: "Arena-Hard-Auto (LMSYS Real-World Queries)",
+                category: SourceCategory::AcademicGeneral,
+                url: "https://github.com/lm-sys/arena-hard-auto",
+                description: "Evaluation on 500 challenging prompts with 91% correlation to Chatbot Arena human preference.",
+                metrics_measured: "Length-controlled win rate against GPT-4-0314 baseline.",
+                is_connected_live: true,
+            },
+            BenchmarkSourceInfo {
+                name: "MixEval / MixEval-Hard (Leakage-Free)",
+                category: SourceCategory::AcademicGeneral,
+                url: "https://mixeval.github.io/",
+                description: "Real-world dynamic benchmark derived from web queries with 0.96 correlation to human ELO.",
+                metrics_measured: "Multi-domain free-form reasoning and hard problem resolution accuracy.",
+                is_connected_live: true,
+            },
+            BenchmarkSourceInfo {
+                name: "AIME 2024 & MATH-500 (Olympiad Reasoning)",
+                category: SourceCategory::AcademicGeneral,
+                url: "https://github.com/openai/prm800k",
+                description: "High-school Olympiad math evaluating multi-step reasoning models (R1, o1, o3, QwQ).",
+                metrics_measured: "Pass@1 accuracy on competition math problems.",
+                is_connected_live: true,
+            },
+            BenchmarkSourceInfo {
+                name: "AlpacaEval 2.0 (Length-Controlled)",
+                category: SourceCategory::AcademicGeneral,
+                url: "https://github.com/tatsu-lab/alpaca_eval",
+                description: "Fast instruction-following benchmark with debiased length-controlled win rate.",
+                metrics_measured: "Length-controlled win rate (LC-Win-Rate %) against reference outputs.",
                 is_connected_live: true,
             },
 
@@ -126,7 +158,7 @@ impl BenchmarkSourceInfo {
 
             // 4. Real-World Economic & Concrete Tasks
             BenchmarkSourceInfo {
-                name: "Remote Labor Index (RLI) — Scale AI / CAIS",
+                name: "Remote Labor Index (RLI) - Scale AI / CAIS",
                 category: SourceCategory::RealWorldEconomic,
                 url: "https://labs.scale.com/leaderboard/rli",
                 description: "Evaluates AI agent capability to complete genuine freelance projects from Upwork and Fiverr.",
@@ -134,7 +166,7 @@ impl BenchmarkSourceInfo {
                 is_connected_live: true,
             },
             BenchmarkSourceInfo {
-                name: "SWE-Lancer — OpenAI",
+                name: "SWE-Lancer - OpenAI",
                 category: SourceCategory::RealWorldEconomic,
                 url: "https://github.com/openai/SWELancer-Benchmark",
                 description: "Over 1,400 real software dev tasks from Upwork representing $1,000,000 in actual paid bounties.",
@@ -142,7 +174,7 @@ impl BenchmarkSourceInfo {
                 is_connected_live: true,
             },
             BenchmarkSourceInfo {
-                name: "SWE-Clar — Upwork",
+                name: "SWE-Clar - Upwork",
                 category: SourceCategory::RealWorldEconomic,
                 url: "https://github.com/upwork/SWE-Clar",
                 description: "100 high-value greenfield dev missions (min. $4,000 each) evaluating client clarification & code delivery.",
@@ -150,7 +182,7 @@ impl BenchmarkSourceInfo {
                 is_connected_live: true,
             },
             BenchmarkSourceInfo {
-                name: "OSWorld — Computer Use Agents",
+                name: "OSWorld - Computer Use Agents",
                 category: SourceCategory::RealWorldEconomic,
                 url: "https://os-world.github.io/",
                 description: "Open-ended computer task evaluation across full operating systems (Ubuntu, Windows, macOS).",
@@ -158,7 +190,7 @@ impl BenchmarkSourceInfo {
                 is_connected_live: true,
             },
             BenchmarkSourceInfo {
-                name: "WebArena — Autonomous Web Agents",
+                name: "WebArena - Autonomous Web Agents",
                 category: SourceCategory::RealWorldEconomic,
                 url: "https://github.com/web-arena-x/webarena",
                 description: "End-to-end self-hostable web environment assessing multi-page navigation and transactions.",
@@ -166,7 +198,7 @@ impl BenchmarkSourceInfo {
                 is_connected_live: true,
             },
             BenchmarkSourceInfo {
-                name: "MLE-bench — OpenAI Kaggle Engineering",
+                name: "MLE-bench - OpenAI Kaggle Engineering",
                 category: SourceCategory::RealWorldEconomic,
                 url: "https://github.com/openai/mle-bench",
                 description: "Machine learning engineering benchmark based on 75 competitive Kaggle competitions.",

@@ -22,7 +22,7 @@ pub fn format_cluster_tooltip(val: &PlotPoint, _series_name: &str, lookup_data: 
     if closest.len() == 1 {
         let (px, _, mname, _, mvram, mscore, _, _, is_cloud) = closest[0];
         if is_price_metric {
-            let tag = if *is_cloud { "API" } else { "Élec" };
+            let tag = if *is_cloud { "API" } else { "Elec" };
             format!("{mname} | ${px:.2}/1M ({tag}) | {mscore:.1} pts")
         } else {
             format!("{mname} | {mvram:.1} Go VRAM | {mscore:.1} pts")
@@ -31,7 +31,7 @@ pub fn format_cluster_tooltip(val: &PlotPoint, _series_name: &str, lookup_data: 
         let (px, _, mname, _, mvram, mscore, _, _, is_cloud) = closest[0];
         let extra = closest.len() - 1;
         if is_price_metric {
-            let tag = if *is_cloud { "API" } else { "Élec" };
+            let tag = if *is_cloud { "API" } else { "Elec" };
             format!("{mname} (+{extra} autres) | ${px:.2}/1M ({tag}) | {mscore:.1} pts")
         } else {
             format!("{mname} (+{extra} autres) | {mvram:.1} Go | {mscore:.1} pts")

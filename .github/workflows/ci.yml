@@ -2,9 +2,9 @@ name: CI & Build Release
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, develop, 'release/**', 'feature/**' ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, develop, 'release/**', 'feature/**' ]
   workflow_dispatch:
 
 jobs:

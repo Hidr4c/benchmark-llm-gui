@@ -60,7 +60,7 @@ fn test_embedded_size_and_efficiency_ratio() {
     assert!(model_360m.is_embedded_friendly());
     assert_eq!(model_360m.embedded_recommendation(), "Micro-IoT / ESP32-P4 / 1 GB SBC (Ultra-Light)");
 
-    // Efficiency ratio: 15.2 / 0.22 ≈ 69 pts/GB!
+    // Efficiency ratio: 15.2 / 0.22  69 pts/GB!
     let efficiency = model_360m.efficiency_ratio();
     assert!(efficiency >= 35.0, "Expected high efficiency ratio for ultra-light model, got {}", efficiency);
 }
@@ -268,14 +268,9 @@ fn test_economic_scores_composite_and_metrics() {
     use benchmark_llm_gui::domain::economic::EconomicScores;
 
     let econ = EconomicScores {
-        rli_automation_rate: Some(12.5), // 12.5 / 25.0 * 100 = 50.0
-        swe_lancer_score: Some(38.0),
-        swe_lancer_dollars: Some(380000.0),
-        swe_clar_impl: Some(60.0),
-        swe_clar_clarif: Some(80.0), // 60 * 0.6 + 80 * 0.4 = 68.0
-        os_world_success: Some(19.0), // 19 / 38 * 100 = 50.0
-        web_arena_success: Some(65.0),
-        mle_bench_score: Some(55.0),
+        rli_automation_rate: Some(12.5), swe_lancer_score: Some(38.0), swe_lancer_dollars: Some(380000.0),
+        swe_clar_impl: Some(60.0), swe_clar_clarif: Some(80.0), os_world_success: Some(19.0),
+        web_arena_success: Some(65.0), mle_bench_score: Some(55.0),
         mle_bench_medals: Some("Low: 75% | Med: 50% | High: 40%".into()),
     };
 
@@ -287,9 +282,17 @@ fn test_economic_scores_composite_and_metrics() {
 
 #[test]
 fn test_table_column_mode_toggle() {
-    use benchmark_llm_gui::presentation::filtering::{FilterState, TableColumnMode};
+    use benchmark_llm_gui::presentation::filtering::{ConfidenceFilter, FilterState, TableColumnMode};
     let mut state = FilterState::default();
     assert_eq!(state.column_mode, TableColumnMode::GlobalEvaluation);
-    state.column_mode = TableColumnMode::RawBenchmarkSources;
-    assert_eq!(state.column_mode, TableColumnMode::RawBenchmarkSources);
+    assert!(!state.show_advanced_columns);
+    assert!(!state.show_raw_sources);
+    assert_eq!(state.confidence_level, ConfidenceFilter::All);
+
+    state.show_advanced_columns = true;
+    state.show_raw_sources = true;
+    state.confidence_level = ConfidenceFilter::HighOnly;
+    assert!(state.show_advanced_columns);
+    assert!(state.show_raw_sources);
+    assert_eq!(state.confidence_level, ConfidenceFilter::HighOnly);
 }

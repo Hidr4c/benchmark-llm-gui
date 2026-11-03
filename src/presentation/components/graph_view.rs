@@ -6,12 +6,13 @@ use crate::presentation::components::graph_clustering::{
     detect_clicked_model_id, format_cluster_tooltip, LookupItem,
 };
 pub use crate::presentation::components::graph_types::{
-    clamp_plot_bounds, compute_pareto_frontier, render_champion_bar, render_inspection_card,
+    apply_optimal_data_bounds, clamp_plot_bounds, compute_pareto_frontier, render_champion_bar, render_inspection_card,
     render_pareto_chips, GraphMetric, GraphViewState, PlottedPoint,
 };
 use crate::presentation::filtering::ModelScope;
 use crate::presentation::i18n::Language;
 use crate::presentation::theme::ThemeTokens;
+use crate::presentation::components::model_search_picker::render_graph_search_picker;
 
 pub fn render_graph_view(
     ui: &mut egui::Ui,
@@ -29,7 +30,28 @@ pub fn render_graph_view(
         state.x_metric = GraphMetric::VramRecGb;
     }
 
+    let criteria_key = (
+        state.x_metric,
+        state.y_metric,
+        state.include_electricity_cost,
+        filters.scope as usize,
+        filtered_indices.len(),
+    );
+    if state.last_criteria_key != Some(criteria_key) {
+        state.reset_requested = true;
+        state.last_criteria_key = Some(criteria_key);
+    }
+
     ui.vertical(|ui| {
+        let preset_row_rect = ui.available_rect_before_wrap();
+        ui.ctx().memory_mut(|m| {
+            let area = egui::Rect::from_min_size(
+                preset_row_rect.min,
+                egui::vec2(preset_row_rect.width(), 42.0),
+            );
+            m.data.insert_temp(egui::Id::new("tour_target_graph_area"), area);
+        });
+
         // --- 1. Preset & Metric Configuration Dropdowns ---
         ui.horizontal_wrapped(|ui| {
             ui.label(egui::RichText::new(t.graph_preset_label).strong());
@@ -40,7 +62,7 @@ pub fn render_graph_view(
                 (GraphMetric::SizeGb, GraphMetric::Efficiency) => t.preset_embedded_efficiency,
                 (GraphMetric::VramRecGb, GraphMetric::CodingScore) => t.preset_code_vram,
                 (GraphMetric::VramRecGb, GraphMetric::AgenticScore) => t.preset_agent_vram,
-                _ => "🎯 Custom",
+                _ => " Custom",
             };
             egui::ComboBox::from_id_salt("graph_preset_combo")
                 .selected_text(current_preset_lbl)
@@ -96,6 +118,8 @@ pub fn render_graph_view(
                 });
 
             ui.checkbox(&mut state.show_pareto_curve, t.pareto_curve);
+            ui.checkbox(&mut state.show_node_labels, t.graph_show_labels)
+                .on_hover_text(t.graph_show_labels_tooltip);
 
             if state.x_metric == GraphMetric::PriceUsd {
                 ui.checkbox(&mut state.include_electricity_cost, t.graph_include_electricity)
@@ -104,15 +128,20 @@ pub fn render_graph_view(
 
             ui.separator();
 
-            if ui.button(egui::RichText::new(t.recenter_btn).strong().color(ThemeTokens::CYAN_EDGE))
-                .on_hover_text(t.recenter_tooltip)
-                .clicked()
-            {
+            let recenter_btn = egui::Button::new(
+                egui::RichText::new(t.recenter_btn).strong().color(ThemeTokens::CYAN_EDGE)
+            );
+            let recenter_resp = ui.add(recenter_btn).on_hover_text(t.recenter_tooltip);
+            ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_recenter_btn"), recenter_resp.rect));
+            if recenter_resp.clicked() {
                 state.reset_requested = true;
+                ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_evt_recenter_clicked"), true));
             }
         });
 
-        ui.add_space(4.0);
+        ui.add_space(3.0);
+        render_graph_search_picker(ui, &mut state.search_query, all_models, selected_model_id, lang);
+        ui.add_space(3.0);
 
         // --- 2. Prepare plotted points and Pareto frontier ---
         let mut plotted: Vec<PlottedPoint> = Vec::new();
@@ -166,10 +195,10 @@ pub fn render_graph_view(
 
         let plot_resp = plot.show(ui, |plot_ui| {
             if state.reset_requested {
-                plot_ui.set_auto_bounds([true, true].into());
+                apply_optimal_data_bounds(plot_ui, state.x_metric, state.y_metric, &plotted);
                 state.reset_requested = false;
             } else {
-                clamp_plot_bounds(plot_ui);
+                clamp_plot_bounds(plot_ui, state.x_metric, state.y_metric, &plotted);
             }
 
             // Scatter points (highlighted if cloud or within VRAM budget, dimmed if exceeding)
@@ -202,20 +231,37 @@ pub fn render_graph_view(
             let zoom_ratio = (28.0 / bounds.width().max(0.3)).clamp(1.0, 3.2) as f32;
             let dynamic_font_size = (11.0 * zoom_ratio).min(24.0);
 
+            // Render intelligent, collision-free node labels if enabled
+            if state.show_node_labels {
+                crate::presentation::components::graph_labels::render_graph_node_labels(
+                    plot_ui,
+                    &plotted,
+                    all_models,
+                    &pareto_indices,
+                    sel_id_clone.as_deref(),
+                    vram_lim,
+                    dynamic_font_size,
+                );
+            }
+
             // Highlight selected model with golden target halo and dynamic text
             if let Some(sel_id) = sel_id_clone.as_deref() {
                 if let Some(p) = plotted.iter().find(|p| all_models[p.index].id == sel_id) {
                     plot_ui.points(Points::new(PlotPoints::new(vec![[p.x, p.y]])).radius(11.0).color(ThemeTokens::GOLD_5090).name("Cible"));
-                    let txt = egui::RichText::new(format!("🎯 {}", p.name))
-                        .size(dynamic_font_size)
-                        .color(ThemeTokens::GOLD_5090)
-                        .strong();
-                    plot_ui.text(Text::new(PlotPoint::new(p.x, p.y), txt).highlight(true).anchor(egui::Align2::LEFT_BOTTOM));
+                    if !state.show_node_labels {
+                        let txt = egui::RichText::new(format!("[Cible] {}", p.name))
+                            .size(dynamic_font_size)
+                            .color(ThemeTokens::GOLD_5090)
+                            .strong();
+                        plot_ui.text(Text::new(PlotPoint::new(p.x, p.y), txt).highlight(true).anchor(egui::Align2::LEFT_BOTTOM));
+                    }
                 }
             }
 
 
         });
+
+        ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_result_graph_plot"), plot_resp.response.rect));
 
         // Click detection on plot canvas to select nearest node or cycle through co-located cluster
         if plot_resp.response.clicked() {

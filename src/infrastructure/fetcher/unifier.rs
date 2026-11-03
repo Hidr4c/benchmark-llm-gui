@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use async_trait::async_trait;
 use crate::domain::modality::ModelModality;
+use crate::domain::specialty::DomainSpecialty;
 use crate::domain::model::{BenchmarkScores, ModelBenchmark};
 use crate::domain::traits::IModelFetcher;
 use super::helpers::{
@@ -141,11 +142,15 @@ impl LiveModelFetcher {
                     let fam = family.to_lowercase();
                     let p_tag = format!("{:.0}b", p);
                     vram_bench.iter().find_map(|(k, v)| {
-                        if k.contains(&fam) && k.contains(&p_tag) {
-                            Some(v)
-                        } else {
-                            None
+                        if k.contains(&fam) {
+                            if let Some(idx) = k.find(&p_tag) {
+                                let is_preceded_by_digit = idx > 0 && k.as_bytes()[idx - 1].is_ascii_digit();
+                                if !is_preceded_by_digit {
+                                    return Some(v);
+                                }
+                            }
                         }
+                        None
                     })
                 })
             });
@@ -258,6 +263,7 @@ impl LiveModelFetcher {
                 || hf.tags.iter().any(|t| t == "moe" || t == "mixture-of-experts");
 
             let release_year = extract_release_year(&hf.id, &name, hf.created_at.as_deref());
+            let specialty = DomainSpecialty::detect_with_context(&hf.id, &name, hf.pipeline_tag.as_deref(), &hf.tags, "", Some(&scores), modality);
 
             results.push(ModelBenchmark {
                 id: hf.id,
@@ -281,6 +287,7 @@ impl LiveModelFetcher {
                 pricing_output_usd: None,
                 release_year,
                 modality,
+                specialty,
                 economic: econ_match.cloned(),
             });
         }

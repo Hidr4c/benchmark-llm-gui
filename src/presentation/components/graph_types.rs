@@ -1,4 +1,3 @@
-use egui_plot::{PlotBounds, PlotUi};
 use crate::domain::modality::ModelModality;
 use crate::domain::model::ModelBenchmark;
 use crate::presentation::components::filter_bar::FilterState;
@@ -33,7 +32,7 @@ impl GraphMetric {
             GraphMetric::Efficiency => "Efficiency Ratio (pts/GB)",
             GraphMetric::PriceUsd => {
                 if include_electricity {
-                    "Coût Global ($/1M | API & Élec)"
+                    "Coût Global ($/1M | API & Elec)"
                 } else {
                     "Tarif Cloud ($/1M tokens)"
                 }
@@ -68,10 +67,13 @@ pub struct GraphViewState {
     pub x_metric: GraphMetric,
     pub y_metric: GraphMetric,
     pub show_pareto_curve: bool,
+    pub show_node_labels: bool,
     pub show_champion_labels: bool,
     pub reset_requested: bool,
     pub vram_budget_gb: f32,
     pub include_electricity_cost: bool,
+    pub search_query: String,
+    pub last_criteria_key: Option<(GraphMetric, GraphMetric, bool, usize, usize)>,
 }
 
 impl Default for GraphViewState {
@@ -80,10 +82,13 @@ impl Default for GraphViewState {
             x_metric: GraphMetric::VramRecGb,
             y_metric: GraphMetric::CrossScore,
             show_pareto_curve: true,
+            show_node_labels: true,
             show_champion_labels: true,
             reset_requested: false,
             vram_budget_gb: 48.0,
             include_electricity_cost: true,
+            search_query: String::new(),
+            last_criteria_key: None,
         }
     }
 }
@@ -140,7 +145,7 @@ pub fn render_inspection_card(
         .inner_margin(8.0)
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.heading(eframe::egui::RichText::new(format!("🎯 {}", m.name)).color(crate::presentation::theme::ThemeTokens::TEXT_PRIMARY).strong());
+                ui.heading(eframe::egui::RichText::new(format!("[Cible] {}", m.name)).color(crate::presentation::theme::ThemeTokens::TEXT_PRIMARY).strong());
                 ui.label(eframe::egui::RichText::new(format!("({}, {})", m.family, m.release_year_label())).color(crate::presentation::theme::ThemeTokens::CYAN_EDGE).strong());
                 ui.with_layout(eframe::egui::Layout::right_to_left(eframe::egui::Align::Center), |ui| {
                     if ui.button(t.close_inspection).clicked() { *selected_model_id = None; }
@@ -154,21 +159,21 @@ pub fn render_inspection_card(
             });
             ui.horizontal(|ui| {
                 let sc = m.score_for_sources(&filters.sources).unwrap_or(0.0);
-                ui.label(eframe::egui::RichText::new(format!("⭐ {} : {:.1} pts", t.col_score, sc)).strong().color(crate::presentation::theme::ThemeTokens::GOLD_5090));
+                ui.label(eframe::egui::RichText::new(format!("* {} : {:.1} pts", t.col_score, sc)).strong().color(crate::presentation::theme::ThemeTokens::GOLD_5090));
                 ui.separator();
                 if m.is_cloud {
                     let p_in = m.pricing_input_usd.map(|p| format!("${:.2}", p)).unwrap_or_else(|| "N/A".to_string());
                     let p_out = m.pricing_output_usd.map(|p| format!("${:.2}", p)).unwrap_or_else(|| "N/A".to_string());
-                    ui.label(eframe::egui::RichText::new(format!("💰 In: {p_in}/1M | Out: {p_out}/1M ({})", m.provider.as_deref().unwrap_or("API"))).color(crate::presentation::theme::ThemeTokens::GOLD_5090));
+                    ui.label(eframe::egui::RichText::new(format!(" In: {p_in}/1M | Out: {p_out}/1M ({})", m.provider.as_deref().unwrap_or("API"))).color(crate::presentation::theme::ThemeTokens::GOLD_5090));
                 } else {
                     let elec = m.estimated_electricity_cost_usd_per_1m();
-                    ui.label(eframe::egui::RichText::new(format!("💰 0$ API | ⚡ Élec: ~${:.2}/1M", elec)).color(crate::presentation::theme::ThemeTokens::SUCCESS));
+                    ui.label(eframe::egui::RichText::new(format!(" 0$ API | [~] Elec: ~${:.2}/1M", elec)).color(crate::presentation::theme::ThemeTokens::SUCCESS));
                     ui.separator();
-                    ui.label(eframe::egui::RichText::new(format!("💾 VRAM: {:.1} GB", m.vram_rec_gb)).color(crate::presentation::theme::ThemeTokens::TEXT_SECONDARY));
+                    ui.label(eframe::egui::RichText::new(format!("[VRAM] VRAM: {:.1} GB", m.vram_rec_gb)).color(crate::presentation::theme::ThemeTokens::TEXT_SECONDARY));
                 }
                 ui.separator();
                 if let Some(tps) = m.tokens_per_sec {
-                    ui.label(eframe::egui::RichText::new(format!("⚡ {:.0} tok/s ({})", tps, m.tps_hardware.as_deref().unwrap_or("GPU"))).color(crate::presentation::theme::ThemeTokens::SUCCESS));
+                    ui.label(eframe::egui::RichText::new(format!("[~] {:.0} tok/s ({})", tps, m.tps_hardware.as_deref().unwrap_or("GPU"))).color(crate::presentation::theme::ThemeTokens::SUCCESS));
                 }
                 ui.separator();
                 ui.label(eframe::egui::RichText::new(m.embedded_recommendation()).color(crate::presentation::theme::ThemeTokens::CYAN_EDGE));
@@ -183,7 +188,7 @@ pub fn render_inspection_card(
                 if co_located.len() > 1 {
                     ui.add_space(4.0);
                     ui.horizontal_wrapped(|ui| {
-                        ui.label(eframe::egui::RichText::new(format!("📦 {} modèles co-localisés à ce point :", co_located.len())).strong().color(crate::presentation::theme::ThemeTokens::CYAN_EDGE));
+                        ui.label(eframe::egui::RichText::new(format!(" {} modèles co-localisés à ce point :", co_located.len())).strong().color(crate::presentation::theme::ThemeTokens::CYAN_EDGE));
                         for cp in co_located {
                             let is_cur = all_models[cp.index].id == m.id;
                             let chip_txt = format!("{} ({:.1} pts)", cp.name, cp.score);
@@ -197,18 +202,7 @@ pub fn render_inspection_card(
         });
 }
 
-pub fn clamp_plot_bounds(plot_ui: &mut PlotUi) {
-    let bounds = plot_ui.plot_bounds();
-    if bounds.is_finite() {
-        let (min, max) = (bounds.min(), bounds.max());
-        let (w, h) = (bounds.width().clamp(1.0, 140.0), bounds.height().clamp(1.0, 160.0));
-        let cx = ((min[0] + max[0]) * 0.5).max(-10.0 + w * 0.5);
-        let cy = ((min[1] + max[1]) * 0.5).max(-10.0 + h * 0.5);
-        if (bounds.width() - w).abs() > 0.01 || (bounds.height() - h).abs() > 0.01 || min[0] < -10.0 || min[1] < -10.0 {
-            plot_ui.set_plot_bounds(PlotBounds::from_min_max([cx - w * 0.5, cy - h * 0.5], [cx + w * 0.5, cy + h * 0.5]));
-        }
-    }
-}
+pub use crate::presentation::components::graph_bounds::{apply_optimal_data_bounds, clamp_plot_bounds, compute_data_bounds};
 
 pub fn render_champion_bar(
     ui: &mut eframe::egui::Ui,
@@ -224,7 +218,7 @@ pub fn render_champion_bar(
         if filters.scope == crate::presentation::filtering::ModelScope::CloudOnly || state.x_metric == GraphMetric::PriceUsd {
             let best_cost = plotted.iter().max_by(|a, b| a.y.partial_cmp(&b.y).unwrap_or(std::cmp::Ordering::Equal));
             if let Some(b) = best_cost {
-                let champ_lbl = format!("🏆 Best Score : {} ({:.1} pts, ${:.2}/1M)", b.name, b.y, b.x);
+                let champ_lbl = format!(" Best Score : {} ({:.1} pts, ${:.2}/1M)", b.name, b.y, b.x);
                 if ui.button(eframe::egui::RichText::new(champ_lbl).strong().color(crate::presentation::theme::ThemeTokens::GOLD_5090)).clicked() {
                     *selected_model_id = Some(all_models[b.index].id.clone());
                 }

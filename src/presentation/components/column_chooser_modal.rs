@@ -1,0 +1,136 @@
+use eframe::egui;
+use crate::domain::table_preferences::{TableColumnId, TablePreferences};
+use crate::presentation::i18n::Language;
+use crate::presentation::theme::ThemeTokens;
+
+pub fn render_column_chooser_modal(
+    ctx: &egui::Context,
+    open: &mut bool,
+    prefs: &mut TablePreferences,
+    lang: Language,
+) {
+    if !*open {
+        return;
+    }
+
+    let t = lang.t();
+    let mut win_open = true;
+    let mut should_close = false;
+
+    let win_title = if lang == Language::French {
+        "[*] Sélecteur de Colonnes & Agencement"
+    } else {
+        "[*] Column Chooser & Layout"
+    };
+
+    egui::Window::new(egui::RichText::new(win_title).strong().color(ThemeTokens::CYAN_EDGE))
+        .open(&mut win_open)
+        .collapsible(false)
+        .resizable(true)
+        .default_size(egui::vec2(440.0, 480.0))
+        .default_pos(ctx.screen_rect().center())
+        .pivot(egui::Align2::CENTER_CENTER)
+        .show(ctx, |ui| {
+            ui.label(egui::RichText::new(
+                if lang == Language::French {
+                    "Cochez les colonnes à afficher et utilisez les flèches pour modifier leur ordre d'apparition :"
+                } else {
+                    "Check columns to display and use arrows to reorder them:"
+                }
+            ).size(11.5).color(ThemeTokens::TEXT_SECONDARY));
+            ui.add_space(8.0);
+
+            let cols = prefs.column_order.clone();
+            let total_cols = cols.len();
+            let mut move_op: Option<(TableColumnId, isize)> = None;
+
+            egui::Frame::group(ui.style())
+                .fill(egui::Color32::from_rgb(18, 24, 34))
+                .inner_margin(8.0)
+                .rounding(6.0)
+                .show(ui, |ui| {
+                    egui::ScrollArea::vertical().max_height(340.0).show(ui, |ui| {
+                        for (idx, col) in cols.into_iter().enumerate() {
+                            ui.horizontal(|ui| {
+                                let mut visible = prefs.is_visible(col);
+                                if ui.checkbox(&mut visible, "").changed() {
+                                    prefs.toggle_visibility(col);
+                                }
+
+                                let label = column_display_name(col, t);
+                                let col_color = if visible { ThemeTokens::TEXT_PRIMARY } else { ThemeTokens::TEXT_MUTED };
+                                ui.label(egui::RichText::new(label).color(col_color).strong().size(12.0));
+
+                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                    let down_enabled = idx < total_cols - 1;
+                                    let up_enabled = idx > 0;
+
+                                    if ui.add_enabled(down_enabled, egui::Button::new("v")).on_hover_text("Déplacer vers le bas (droite)").clicked() {
+                                        move_op = Some((col, 1));
+                                    }
+                                    if ui.add_enabled(up_enabled, egui::Button::new("^")).on_hover_text("Déplacer vers le haut (gauche)").clicked() {
+                                        move_op = Some((col, -1));
+                                    }
+                                });
+                            });
+                            ui.separator();
+                        }
+                    });
+                });
+
+            if let Some((col, delta)) = move_op {
+                prefs.move_column(col, delta);
+            }
+
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                if ui.button(egui::RichText::new(if lang == Language::French { "Par défaut" } else { "Default" }).size(11.0)).on_hover_text("Rétablir l'ordre d'origine et la sélection essentielle").clicked() {
+                    prefs.reset_defaults();
+                }
+                if ui.button(egui::RichText::new("+ Avancé").size(11.0)).on_hover_text("Afficher ou masquer les colonnes avancées").clicked() {
+                    let vis = !prefs.are_advanced_columns_visible();
+                    prefs.set_advanced_columns_visible(vis);
+                }
+                if ui.button(egui::RichText::new("+ Sources Brutes").size(11.0)).on_hover_text("Afficher ou masquer les sources brutes").clicked() {
+                    let vis = !prefs.are_raw_sources_visible();
+                    prefs.set_raw_sources_visible(vis);
+                }
+                if ui.button(egui::RichText::new(if lang == Language::French { "Tout cocher" } else { "Select All" }).size(11.0)).on_hover_text("Cocher et afficher l'ensemble des colonnes").clicked() {
+                    prefs.show_all_columns();
+                }
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button(egui::RichText::new(if lang == Language::French { "Fermer" } else { "Close" }).strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
+                        should_close = true;
+                    }
+                });
+            });
+        });
+
+    if should_close || !win_open {
+        *open = false;
+    }
+}
+
+fn column_display_name(col: TableColumnId, t: &'static crate::presentation::i18n::Translations) -> &'static str {
+    match col {
+        TableColumnId::Rank => t.col_rank,
+        TableColumnId::Model => t.col_model,
+        TableColumnId::Year => t.col_year,
+        TableColumnId::TargetHardware => t.col_hardware,
+        TableColumnId::Size => t.col_size,
+        TableColumnId::Efficiency => t.col_efficiency,
+        TableColumnId::Score => t.col_score,
+        TableColumnId::RealWorld => t.col_real_world,
+        TableColumnId::Speed => t.col_speed,
+        TableColumnId::Popularity => t.col_popularity,
+        TableColumnId::MmluPro => t.col_mmlu_pro,
+        TableColumnId::SweBench => t.col_swe_bench,
+        TableColumnId::Agentic => t.col_agentic,
+        TableColumnId::OpenLlm => t.col_open_llm,
+        TableColumnId::Math => t.col_math,
+        TableColumnId::Gpqa => t.col_gpqa,
+        TableColumnId::Ifeval => t.col_ifeval,
+        TableColumnId::CloudPrice => t.col_cloud_price,
+    }
+}

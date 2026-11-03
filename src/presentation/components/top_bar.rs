@@ -1,12 +1,15 @@
 use eframe::egui;
 use crate::domain::traits::SnapshotMeta;
+use crate::presentation::components::top_bar_utils::{render_utility_controls_ltr, render_utility_controls_rtl};
 use crate::presentation::i18n::Language;
 use crate::presentation::theme::ThemeTokens;
+use crate::presentation::updater_state::UpdaterState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppTab {
     Table,
     Graph,
+    Comparator,
     Simulator,
     Sources,
     Tutorial,
@@ -18,9 +21,31 @@ impl AppTab {
         match self {
             Self::Table => t.tab_table,
             Self::Graph => t.tab_graph,
+            Self::Comparator => t.tab_comparator,
             Self::Simulator => t.tab_simulator,
             Self::Sources => t.tab_sources,
             Self::Tutorial => t.tab_tutorial,
+        }
+    }
+
+    pub fn short_label(&self, lang: Language) -> &'static str {
+        match lang {
+            Language::French => match self {
+                Self::Table => "Classement",
+                Self::Graph => "Graphique Pareto",
+                Self::Comparator => "Comparateur VS",
+                Self::Simulator => "Simulateur",
+                Self::Sources => "Sources",
+                Self::Tutorial => "Guide IA",
+            },
+            Language::English => match self {
+                Self::Table => "Rankings",
+                Self::Graph => "Pareto Chart",
+                Self::Comparator => "VS Comparator",
+                Self::Simulator => "Simulator",
+                Self::Sources => "Sources",
+                Self::Tutorial => "AI Guide",
+            },
         }
     }
 }
@@ -29,127 +54,127 @@ pub fn render_top_header(
     ui: &mut egui::Ui,
     active_tab: &mut AppTab,
     language: &mut Language,
+    zoom_factor: &mut f32,
     is_syncing: bool,
     snapshots: &[SnapshotMeta],
     selected_snapshot_id: Option<i64>,
     status_message: Option<&(String, bool)>,
+    updater: &mut UpdaterState,
     on_sync: &mut bool,
     on_switch_snapshot: &mut Option<i64>,
-    on_launch_tour: &mut bool,
+    _on_launch_tour: &mut bool,
+    on_contact: &mut bool,
 ) {
-    let t = language.t();
+    ui.add_space(3.0);
+
+    // --- Row 1: Brand & Top Utilities (Responsive on Narrow Windows) ---
+    let avail_w = ui.available_width();
+    if avail_w < 780.0 {
+        ui.horizontal(|ui| {
+            ui.heading(
+                egui::RichText::new("LLM Benchmark Explorer")
+                    .size(16.5)
+                    .strong()
+                    .color(ThemeTokens::PRIMARY),
+            );
+        });
+        ui.add_space(2.0);
+        ui.horizontal_wrapped(|ui| {
+            render_utility_controls_ltr(
+                ui, language, zoom_factor, is_syncing, snapshots,
+                selected_snapshot_id, updater, on_sync, on_switch_snapshot, on_contact,
+            );
+        });
+    } else {
+        ui.horizontal(|ui| {
+            ui.heading(
+                egui::RichText::new("LLM Benchmark Explorer")
+                    .size(16.5)
+                    .strong()
+                    .color(ThemeTokens::PRIMARY),
+            );
+
+            // Right-Aligned Global Actions
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                render_utility_controls_rtl(
+                    ui, language, zoom_factor, is_syncing, snapshots,
+                    selected_snapshot_id, updater, on_sync, on_switch_snapshot, on_contact,
+                );
+            });
+        });
+    }
+
     ui.add_space(4.0);
 
-    // --- Single Header Line: Brand, Navigation View Dropdown & Utility Tools ---
-    ui.horizontal(|ui| {
-        ui.heading(
-            egui::RichText::new("🚀 LLM Benchmark Explorer")
-                .size(17.0)
-                .strong()
-                .color(ThemeTokens::PRIMARY),
-        );
-
-        ui.separator();
-
-        // 1. View Navigation Dropdown List (Single clear ComboBox instead of multiple flat buttons)
-        egui::ComboBox::from_id_salt("main_view_nav_dropdown")
-            .selected_text(
-                egui::RichText::new(active_tab.label(*language))
-                    .strong()
-                    .color(ThemeTokens::CYAN_EDGE)
-            )
-            .width(210.0)
-            .show_ui(ui, |ui| {
+    // --- Row 2: Real Binder Tabs Navigation (Onglets de classeur) ---
+    egui::ScrollArea::horizontal()
+        .auto_shrink([false, true])
+        .show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing = egui::vec2(6.0, 0.0);
                 let views = [
                     AppTab::Table,
                     AppTab::Graph,
+                    AppTab::Comparator,
                     AppTab::Simulator,
                     AppTab::Sources,
                     AppTab::Tutorial,
                 ];
+
                 for v in views {
                     let is_sel = *active_tab == v;
-                    let text = egui::RichText::new(v.label(*language)).strong();
-                    if ui.selectable_label(is_sel, text).clicked() {
+                    let (stroke, bg_fill, text_color, font_size) = if is_sel {
+                        (
+                            egui::Stroke::new(2.0, ThemeTokens::CYAN_EDGE),
+                            egui::Color32::from_rgb(16, 68, 108),
+                            egui::Color32::WHITE,
+                            13.0,
+                        )
+                    } else {
+                        (
+                            egui::Stroke::new(1.0, egui::Color32::from_rgb(55, 75, 105)),
+                            egui::Color32::from_rgb(30, 40, 58),
+                            egui::Color32::from_rgb(205, 222, 245),
+                            12.0,
+                        )
+                    };
+
+                    let btn_text = egui::RichText::new(v.short_label(*language))
+                        .size(font_size)
+                        .strong()
+                        .color(text_color);
+
+                    let tab_btn = egui::Button::new(btn_text)
+                        .fill(bg_fill)
+                        .stroke(stroke)
+                        .rounding(egui::Rounding {
+                            nw: 6.0,
+                            ne: 6.0,
+                            sw: 0.0,
+                            se: 0.0,
+                        })
+                        .min_size(egui::vec2(115.0, 32.0));
+
+                    if ui.add(tab_btn)
+                        .on_hover_text(v.label(*language))
+                        .clicked()
+                    {
                         *active_tab = v;
                     }
                 }
             });
-
-        // 2. Right-Aligned Global Actions
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            // Interactive Guided Demo / Walkthrough Button
-            if ui.button(egui::RichText::new(t.btn_tour_demo).color(ThemeTokens::GOLD_5090).strong())
-                .on_hover_text(t.tooltip_tour_demo)
-                .clicked()
-            {
-                *on_launch_tour = true;
-            }
-
-            ui.separator();
-
-            // Language ComboBox
-            let lang_lbl = match *language {
-                Language::French => "🇫🇷 FR",
-                Language::English => "🇬🇧 EN",
-            };
-            egui::ComboBox::from_id_salt("fixed_lang_dropdown")
-                .selected_text(lang_lbl)
-                .width(68.0)
-                .show_ui(ui, |ui| {
-                    if ui.selectable_label(*language == Language::French, "🇫🇷 FR (Français)").clicked() {
-                        *language = Language::French;
-                    }
-                    if ui.selectable_label(*language == Language::English, "🇬🇧 EN (English)").clicked() {
-                        *language = Language::English;
-                    }
-                });
-
-            ui.separator();
-
-            // Refresh / Sync Button (clearly styled as a button)
-            let sync_text = if is_syncing {
-                egui::RichText::new(t.sync_downloading).color(ThemeTokens::PRIMARY)
-            } else {
-                egui::RichText::new(t.sync_refresh).color(ThemeTokens::SUCCESS).strong()
-            };
-            if ui.add_enabled(!is_syncing, egui::Button::new(sync_text))
-                .on_hover_text(t.sync_tooltip)
-                .clicked()
-            {
-                *on_sync = true;
-            }
-
-            // Snapshot time-travel dropdown
-            let snap_title = if let Some(id) = selected_snapshot_id {
-                snapshots
-                    .iter()
-                    .find(|s| s.id == id)
-                    .map(|s| s.created_at.clone())
-                    .unwrap_or_else(|| "Snapshot".into())
-            } else if let Some(first) = snapshots.first() {
-                format!("{} (Latest)", first.created_at)
-            } else {
-                "Empty".into()
-            };
-            egui::ComboBox::from_id_salt("snap_history_combo_top")
-                .selected_text(format!("📅 {snap_title}"))
-                .width(150.0)
-                .show_ui(ui, |ui| {
-                    for snap in snapshots {
-                        let is_sel = selected_snapshot_id == Some(snap.id);
-                        let lbl = format!("{} ({} mod.)", snap.created_at, snap.model_count);
-                        if ui.selectable_label(is_sel, lbl).clicked() {
-                            *on_switch_snapshot = Some(snap.id);
-                        }
-                    }
-                });
         });
-    });
+
+    // Continuous baseline connecting the active binder tab to page content
+    let rect = ui.available_rect_before_wrap();
+    let line_y = ui.cursor().top() - 1.0;
+    ui.painter().hline(rect.x_range(), line_y, egui::Stroke::new(2.0, ThemeTokens::CYAN_EDGE));
+    ui.add_space(3.0);
 
     if let Some((msg, is_err)) = status_message {
-        ui.add_space(2.0);
-        let color = if *is_err { ThemeTokens::DANGER } else { ThemeTokens::SUCCESS };
-        ui.label(egui::RichText::new(msg).color(color).size(12.0));
+        if *is_err {
+            ui.add_space(2.0);
+            ui.label(egui::RichText::new(msg).color(ThemeTokens::DANGER).size(12.0));
+        }
     }
 }

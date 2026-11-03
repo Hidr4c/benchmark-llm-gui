@@ -6,7 +6,7 @@ const LEADERBOARD_URL: &str = "https://datasets-server.huggingface.co/rows?datas
 #[derive(Deserialize, Debug, Clone)]
 pub struct LeaderboardRow {
     pub fullname: Option<String>,
-    #[serde(rename = "Average ⬆️")]
+    #[serde(rename = "Average ")]
     pub average: Option<f64>,
     #[serde(rename = "#Params (B)")]
     pub params_b: Option<f64>,

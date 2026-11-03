@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build:
     name: Build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -19,15 +19,15 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: benchmark-llm-gui-windows-x64.zip
-            asset_path: benchmark-llm-gui-windows-x64.zip
+            binary_name: benchmark-llm-gui.exe
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact_name: benchmark-llm-gui-linux-x64.tar.gz
-            asset_path: benchmark-llm-gui-linux-x64.tar.gz
+            binary_name: benchmark-llm-gui
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: benchmark-llm-gui-macos-arm64.tar.gz
-            asset_path: benchmark-llm-gui-macos-arm64.tar.gz
+            binary_name: benchmark-llm-gui
 
     steps:
       - name: Checkout Repository
@@ -51,19 +51,48 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Compress-Archive -Path target/${{ matrix.target }}/release/benchmark-llm-gui.exe -DestinationPath ${{ matrix.artifact_name }}
+          Compress-Archive -Path target/${{ matrix.target }}/release/${{ matrix.binary_name }} -DestinationPath ${{ matrix.artifact_name }}
 
       - name: Package Unix Artifact
         if: runner.os != 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
-          tar -czf ../../../${{ matrix.artifact_name }} benchmark-llm-gui
+          tar -czf ../../../${{ matrix.artifact_name }} ${{ matrix.binary_name }}
 
-      - name: Upload Binary to Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: ${{ matrix.asset_path }}
+          name: ${{ matrix.target }}
+          path: ${{ matrix.artifact_name }}
+          retention-days: 1
+
+  publish:
+    name: Publish GitHub Release
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: x86_64-pc-windows-msvc
+
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: x86_64-unknown-linux-gnu
+
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: aarch64-apple-darwin
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            benchmark-llm-gui-windows-x64.zip
+            benchmark-llm-gui-linux-x64.tar.gz
+            benchmark-llm-gui-macos-arm64.tar.gz
           draft: false
           prerelease: false
           generate_release_notes: true
