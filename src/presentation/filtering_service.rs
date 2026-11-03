@@ -47,7 +47,7 @@ impl FilterService {
             }
 
             if let SpecialtyFilter::Specific(target_spec) = filters.specialty {
-                if m.specialty != target_spec {
+                if !target_spec.matches_model(m) {
                     return None;
                 }
             }

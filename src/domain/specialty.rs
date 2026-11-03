@@ -191,4 +191,52 @@ impl DomainSpecialty {
     pub fn detect(id: &str, name: &str, pipeline_tag: Option<&str>, tags: &[String], desc: &str) -> Self {
         Self::detect_with_context(id, name, pipeline_tag, tags, desc, None, crate::domain::modality::ModelModality::Text)
     }
+
+    pub fn matches_model(&self, model: &crate::domain::model::ModelBenchmark) -> bool {
+        match self {
+            Self::General => true,
+            Self::SoftwareDev => {
+                model.specialty == Self::SoftwareDev
+                    || model.scores.coding.unwrap_or(0.0) >= 60.0
+                    || model.id.to_lowercase().contains("coder")
+                    || model.name.to_lowercase().contains("coder")
+                    || model.name.to_lowercase().contains("codestral")
+            }
+            Self::VisionCreative => {
+                model.specialty == Self::VisionCreative
+                    || matches!(model.modality, crate::domain::modality::ModelModality::Multimodal | crate::domain::modality::ModelModality::ImageGen)
+                    || model.id.to_lowercase().contains("-vl")
+                    || model.name.to_lowercase().contains("vl")
+                    || model.name.to_lowercase().contains("vision")
+            }
+            Self::MultiAgent => {
+                model.specialty == Self::MultiAgent
+                    || model.scores.agentic.unwrap_or(0.0) >= 60.0
+                    || model.id.to_lowercase().contains("agent")
+                    || model.name.to_lowercase().contains("agent")
+            }
+            Self::VoiceSpeech => {
+                model.specialty == Self::VoiceSpeech
+                    || model.modality == crate::domain::modality::ModelModality::AudioSpeech
+                    || model.id.to_lowercase().contains("audio")
+                    || model.id.to_lowercase().contains("voice")
+                    || model.id.to_lowercase().contains("speech")
+            }
+            Self::GenomicsBio => {
+                model.specialty == Self::GenomicsBio
+                    || model.id.to_lowercase().contains("dna")
+                    || model.id.to_lowercase().contains("genom")
+                    || model.id.to_lowercase().contains("bio")
+                    || model.scores.gpqa.unwrap_or(0.0) >= 55.0
+            }
+            Self::WorldModel3D => {
+                model.specialty == Self::WorldModel3D
+                    || model.id.to_lowercase().contains("3d")
+                    || model.name.to_lowercase().contains("3d")
+                    || model.name.to_lowercase().contains("world")
+                    || model.name.to_lowercase().contains("spatial")
+            }
+        }
+    }
+
 }

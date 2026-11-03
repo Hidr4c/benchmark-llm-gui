@@ -11,6 +11,7 @@ pub fn render_filter_bar(
     filters: &mut FilterState,
     total_count: usize,
     matching_count: usize,
+    is_detecting: bool,
     on_auto_detect: &mut bool,
     on_export: &mut bool,
     lang: Language,
@@ -86,8 +87,10 @@ pub fn render_filter_bar(
                     if ui.selectable_label(filters.priority == UserPriority::Efficiency, t.priority_efficiency).clicked() { filters.set_priority(UserPriority::Efficiency); }
                     if ui.selectable_label(filters.priority == UserPriority::RealWorld, t.priority_real_world).clicked() { filters.set_priority(UserPriority::RealWorld); }
                     if ui.selectable_label(filters.priority == UserPriority::Compactness, t.priority_compact).clicked() { filters.set_priority(UserPriority::Compactness); }
-                }).response.on_hover_text(t.priority_tooltip);
-
+                }).response.on_hover_text(t.priority_tooltip);
+
+
+
             ui.separator();
 
             // 4. Choix du Domaine Metier / Specialite (7 options: Tous + 6 specialites)
@@ -114,9 +117,8 @@ pub fn render_filter_bar(
                     ];
                     for s in specs {
                         let is_sel = filters.specialty == SpecialtyFilter::Specific(s);
-                        let (r, g, b) = s.badge_color_rgb();
                         let item_lbl = format!("[{}] {}", s.badge_text(), if lang == Language::French { s.label_fr() } else { s.label_en() });
-                        if ui.selectable_label(is_sel, egui::RichText::new(item_lbl).color(egui::Color32::from_rgb(r, g, b))).clicked() {
+                        if ui.selectable_label(is_sel, item_lbl).clicked() {
                             filters.specialty = SpecialtyFilter::Specific(s);
                         }
                     }
@@ -204,10 +206,17 @@ pub fn render_filter_bar(
             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_hardware"), hw_resp.rect));
             hw_resp.on_hover_text(t.hw_tooltip);
 
+            let detect_lbl = if is_detecting {
+                if lang == Language::French { "[Detection...]" } else { "[Detecting...]" }
+            } else {
+                t.btn_auto_detect
+            };
             let detect_btn = egui::Button::new(
-                egui::RichText::new(t.btn_auto_detect).color(ThemeTokens::CYAN_EDGE).strong()
+                egui::RichText::new(detect_lbl)
+                    .color(if is_detecting { ThemeTokens::WARNING } else { ThemeTokens::CYAN_EDGE })
+                    .strong()
             );
-            let detect_resp = ui.add(detect_btn).on_hover_text(t.tooltip_auto_detect);
+            let detect_resp = ui.add_enabled(!is_detecting, detect_btn).on_hover_text(t.tooltip_auto_detect);
             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_detect"), detect_resp.rect));
             if detect_resp.clicked() {
                 *on_auto_detect = true;
@@ -227,6 +236,30 @@ pub fn render_filter_bar(
             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_adv_filters"), adv_resp.rect));
             if adv_resp.clicked() {
                 filters.show_advanced = !filters.show_advanced;
+            }
+
+            ui.separator();
+
+            let reset_lbl = if lang == Language::French { "Reinitialiser" } else { "Reset" };
+            if ui.button(egui::RichText::new(reset_lbl).color(ThemeTokens::WARNING).strong()).on_hover_text(if lang == Language::French {
+                "Reinitialiser tous les filtres, le materiel et les tris"
+            } else {
+                "Reset all active filters, hardware and sorts"
+            }).clicked() {
+                filters.reset();
+                filters.table_prefs.reset_filters();
+            }
+
+            ui.separator();
+
+            let reset_lbl = if lang == Language::French { "Reinitialiser" } else { "Reset" };
+            if ui.button(egui::RichText::new(reset_lbl).color(ThemeTokens::WARNING).strong()).on_hover_text(if lang == Language::French {
+                "Reinitialiser tous les filtres, le materiel et les tris"
+            } else {
+                "Reset all active filters, hardware and sorts"
+            }).clicked() {
+                filters.reset();
+                filters.table_prefs.reset_filters();
             }
 
             ui.separator();

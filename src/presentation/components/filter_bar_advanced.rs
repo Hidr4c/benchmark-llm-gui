@@ -1,8 +1,7 @@
 use eframe::egui;
 use crate::domain::license::LicenseCategory;
 use crate::domain::modality::ModelModality;
-use crate::presentation::filtering::{ConfidenceFilter, FilterState, ModalityFilter, SpecialtyFilter};
-use crate::domain::specialty::DomainSpecialty;
+use crate::presentation::filtering::{ConfidenceFilter, FilterState, ModalityFilter};
 use crate::presentation::i18n::Language;
 use crate::presentation::theme::ThemeTokens;
 
@@ -89,27 +88,6 @@ pub fn render_advanced_panel(
                         }
                     });
 
-                ui.add_space(6.0);
-                ui.separator();
-                ui.add_space(6.0);
-
-                // 3. Spécialité / Domaine Métier
-                ui.label(egui::RichText::new(if lang == Language::French { "Domaine :" } else { "Specialty:" }).size(11.5).color(ThemeTokens::TEXT_MUTED));
-                let spec_lbl = match filters.specialty {
-                    SpecialtyFilter::All => if lang == Language::French { "Tous domaines" } else { "All Specialties" },
-                    SpecialtyFilter::Specific(s) => if lang == Language::French { s.label_fr() } else { s.label_en() },
-                };
-                egui::ComboBox::from_id_salt("adv_specialty_combo")
-                    .selected_text(spec_lbl)
-                    .width(135.0)
-                    .show_ui(ui, |ui| {
-                        let all_lbl = if lang == Language::French { "Tous domaines" } else { "All Specialties" };
-                        if ui.selectable_label(filters.specialty == SpecialtyFilter::All, all_lbl).clicked() { filters.specialty = SpecialtyFilter::All; }
-                        for s in DomainSpecialty::all() {
-                            let s_lbl = if lang == Language::French { s.label_fr() } else { s.label_en() };
-                            if ui.selectable_label(filters.specialty == SpecialtyFilter::Specific(s), s_lbl).clicked() { filters.specialty = SpecialtyFilter::Specific(s); }
-                        }
-                    });
 
                 ui.add_space(6.0);
                 ui.separator();
