@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use crate::domain::hardware::HardwarePlatform;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SimTargetMode {
@@ -27,8 +28,16 @@ pub enum GpuTier {
 }
 
 impl GpuTier {
-    pub fn all() -> [Self; 8] {
+    pub fn all() -> [Self; 16] {
         [
+            Self::SmartphoneMid,
+            Self::SmartphoneHigh,
+            Self::SmartphonePro,
+            Self::MicroIoT,
+            Self::RaspberryPi4,
+            Self::RaspberryPi5,
+            Self::JetsonOrinNano,
+            Self::MiniPcCpu,
             Self::None,
             Self::Rtx4060_8G,
             Self::Rtx4070_12G,
@@ -123,42 +132,58 @@ impl GpuTier {
             Self::AppleM4_128G => 60.0,
         }
     }
+
+    pub fn is_embedded(&self) -> bool {
+        matches!(
+            self,
+            Self::SmartphoneMid | Self::SmartphoneHigh | Self::SmartphonePro
+                | Self::MicroIoT | Self::RaspberryPi4 | Self::RaspberryPi5
+                | Self::JetsonOrinNano | Self::MiniPcCpu | Self::None
+        )
+    }
+
+    pub fn from_platform(hw: HardwarePlatform) -> Self {
+        match hw {
+            HardwarePlatform::SmartphoneMid => Self::SmartphoneMid,
+            HardwarePlatform::SmartphoneHigh => Self::SmartphoneHigh,
+            HardwarePlatform::SmartphonePro => Self::SmartphonePro,
+            HardwarePlatform::MicroIoT => Self::MicroIoT,
+            HardwarePlatform::RaspberryPi4 => Self::RaspberryPi4,
+            HardwarePlatform::RaspberryPi5 => Self::RaspberryPi5,
+            HardwarePlatform::JetsonOrinNano => Self::JetsonOrinNano,
+            HardwarePlatform::MiniPcCpu => Self::MiniPcCpu,
+            HardwarePlatform::Gpu8Gb => Self::Rtx4060_8G,
+            HardwarePlatform::Gpu12Gb => Self::Rtx4070_12G,
+            HardwarePlatform::Gpu16Gb => Self::Rtx4080_16G,
+            HardwarePlatform::Gpu24Gb => Self::Rtx4090_24G,
+            HardwarePlatform::Gpu32Gb => Self::Rtx5090_32G,
+            HardwarePlatform::Workstation => Self::AppleM4_128G,
+            HardwarePlatform::All => Self::Rtx5090_32G,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HardwareRigConfig {
     pub mode: SimTargetMode,
+    pub platform: HardwarePlatform,
     pub gpu: GpuTier,
     pub ram_gb: f32,
     pub nas_web_ram_gb: f32,
+    pub max_storage_gb: Option<f32>,
 }
 
 impl HardwareRigConfig {
-    pub fn from_platform(hw: crate::domain::hardware::HardwarePlatform) -> Self {
-        use crate::domain::hardware::HardwarePlatform;
-        let gpu = match hw {
-            HardwarePlatform::SmartphoneMid => GpuTier::SmartphoneMid,
-            HardwarePlatform::SmartphoneHigh => GpuTier::SmartphoneHigh,
-            HardwarePlatform::SmartphonePro => GpuTier::SmartphonePro,
-            HardwarePlatform::MicroIoT => GpuTier::MicroIoT,
-            HardwarePlatform::RaspberryPi4 => GpuTier::RaspberryPi4,
-            HardwarePlatform::RaspberryPi5 => GpuTier::RaspberryPi5,
-            HardwarePlatform::JetsonOrinNano => GpuTier::JetsonOrinNano,
-            HardwarePlatform::MiniPcCpu => GpuTier::MiniPcCpu,
-            HardwarePlatform::Gpu8Gb => GpuTier::Rtx4060_8G,
-            HardwarePlatform::Gpu12Gb => GpuTier::Rtx4070_12G,
-            HardwarePlatform::Gpu16Gb => GpuTier::Rtx4080_16G,
-            HardwarePlatform::Gpu24Gb => GpuTier::Rtx4090_24G,
-            HardwarePlatform::Gpu32Gb => GpuTier::Rtx5090_32G,
-            HardwarePlatform::Workstation => GpuTier::AppleM4_128G,
-            HardwarePlatform::All => GpuTier::Rtx5090_32G,
-        };
+    pub fn from_platform(hw: HardwarePlatform) -> Self {
+        let gpu = GpuTier::from_platform(hw);
         let ram = hw.max_usable_memory_gb().unwrap_or(64.0).max(8.0);
         Self {
             mode: if hw.is_embedded() { SimTargetMode::HomeServerNas } else { SimTargetMode::WorkstationPc },
+            platform: hw,
             gpu,
             ram_gb: ram,
             nas_web_ram_gb: 4.0,
+            max_storage_gb: None,
         }
     }
 }
@@ -167,9 +192,11 @@ impl Default for HardwareRigConfig {
     fn default() -> Self {
         Self {
             mode: SimTargetMode::WorkstationPc,
+            platform: HardwarePlatform::Gpu32Gb,
             gpu: GpuTier::Rtx5090_32G,
             ram_gb: 64.0,
             nas_web_ram_gb: 4.0,
+            max_storage_gb: None,
         }
     }
 }
@@ -197,43 +224,47 @@ impl HardwareRigConfig {
         let (_raw_vram, usable_vram, reserved_ram, effective_bandwidth, base_watts) = match self.mode {
             SimTargetMode::WorkstationPc => {
                 let vram = self.gpu.vram_gb();
-                let usable_v = (vram - 0.6).max(0.0);
-                let bw = if vram >= 8.0 { self.gpu.bandwidth_gbps() } else { 65.0 };
-                let watts = 85.0 + self.gpu.tdp_watts();
-                (vram, usable_v, 3.5, bw, watts)
+                let usable_v = if self.gpu.is_embedded() { vram } else { (vram - 0.6).max(0.0) };
+                let bw = self.gpu.bandwidth_gbps();
+                let watts = if self.gpu.is_embedded() { self.gpu.tdp_watts() } else { 85.0 + self.gpu.tdp_watts() };
+                let reserved = if self.gpu.is_embedded() { 1.5 } else { 3.5 };
+                (vram, usable_v, reserved, bw, watts)
             }
             SimTargetMode::HomeServerNas => {
                 let reserved = 2.0 + self.nas_web_ram_gb;
-                let bw = 38.0; // DDR4/DDR5 system memory in mini-PC / NAS
-                let watts = 25.0; // Low-power 24/7 NAS
+                let bw = 38.0;
+                let watts = 25.0;
                 (0.0, 0.0, reserved, bw, watts)
             }
         };
 
         let usable_ram = (self.ram_gb - reserved_ram).max(0.0);
-        let total_capacity = usable_vram + usable_ram;
+        let mut total_capacity = if self.gpu.is_embedded() {
+            usable_vram.max(usable_ram)
+        } else {
+            usable_vram + usable_ram
+        };
+        if let Some(storage_limit) = self.max_storage_gb {
+            total_capacity = total_capacity.min(storage_limit * 1.25);
+        }
 
-        // Model capacity in billions of parameters (Q4 quantization ~0.72 GB / 1B params)
         let max_pure_vram_b = (usable_vram / 0.72).floor().max(0.0);
         let max_offloaded_b = (total_capacity / 0.75).floor().max(0.5);
 
-        // Projected throughput (reference 7B / 14B model)
         let ref_model_size_gb = if usable_vram >= 8.0 { 14.0 * 0.72 } else { 7.0 * 0.72 };
         let projected_speed_tps = ((effective_bandwidth / ref_model_size_gb) * 0.82).clamp(1.5, 300.0);
 
-        // Stability & OOM Risk Analysis
         let ram_headroom = usable_ram - (ref_model_size_gb * 0.35);
         let (stability_percent, stability_verdict) = if usable_ram < 0.8 || ram_headroom < 0.2 {
-            (25.0, "[!] Risque OOM Critique : La charge conjointe sature la RAM et risque de faire crasher le système !")
+            (25.0, "[!] Risque OOM Critique : Sature la RAM et risque de crasher !")
         } else if ram_headroom < 1.5 {
-            (65.0, "[~] Marge Restreinte : Inférence fonctionnelle, mais attention aux pics d'utilisation Web/Docker.")
+            (65.0, "[~] Marge Restreinte : Inférence fonctionnelle.")
         } else if usable_vram >= 8.0 {
-            (98.0, "[OK] Stabilité Maximale : Exécution 100% VRAM GPU isolée. Zéro impact sur les services de la machine.")
+            (98.0, "[OK] Stabilité Maximale : Exécution 100% VRAM GPU isolée.")
         } else {
-            (88.0, "[OK] Stable & Fluide : Marge RAM confortable pour l'OS et les requêtes concurrentes.")
+            (88.0, "[OK] Stable & Fluide : Marge RAM confortable pour l'OS.")
         };
 
-        // Economic calculation: 100 tasks of 200k tokens
         let duration_hours = (100.0 * 250.0 / projected_speed_tps) / 3600.0;
         let kwh = (base_watts * duration_hours) / 1000.0;
         let cost_local = kwh * 0.25;
@@ -248,7 +279,7 @@ impl HardwareRigConfig {
             max_pure_vram_params_b: max_pure_vram_b,
             max_offloaded_params_b: max_offloaded_b,
             projected_speed_tps,
-            ram_headroom_gb: ram_headroom.max(0.0),
+            ram_headroom_gb: ram_headroom,
             stability_percent,
             stability_verdict,
             total_power_watts: base_watts,

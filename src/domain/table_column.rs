@@ -18,6 +18,9 @@ pub enum TableColumnId {
     SweBench,
     Agentic,
     OpenLlm,
+    Math,
+    Gpqa,
+    Ifeval,
     CloudPrice,
 }
 
@@ -38,6 +41,9 @@ impl TableColumnId {
             TableColumnId::SweBench,
             TableColumnId::Agentic,
             TableColumnId::OpenLlm,
+            TableColumnId::Math,
+            TableColumnId::Gpqa,
+            TableColumnId::Ifeval,
             TableColumnId::CloudPrice,
         ]
     }
@@ -71,6 +77,9 @@ impl TableColumnId {
                 | TableColumnId::SweBench
                 | TableColumnId::Agentic
                 | TableColumnId::OpenLlm
+                | TableColumnId::Math
+                | TableColumnId::Gpqa
+                | TableColumnId::Ifeval
         )
     }
 
@@ -90,6 +99,9 @@ impl TableColumnId {
             TableColumnId::SweBench => Some((SortField::Coding, SortOrder::Descending)),
             TableColumnId::Agentic => Some((SortField::Agentic, SortOrder::Descending)),
             TableColumnId::OpenLlm => Some((SortField::Intelligence, SortOrder::Descending)),
+            TableColumnId::Math => None,
+            TableColumnId::Gpqa => None,
+            TableColumnId::Ifeval => None,
             TableColumnId::CloudPrice => Some((SortField::Price, SortOrder::Ascending)),
         }
     }
@@ -114,6 +126,9 @@ impl TableColumnId {
             TableColumnId::SweBench => model.scores.coding.map(|s| format!("{s:.1}")).unwrap_or_else(|| "-".into()),
             TableColumnId::Agentic => model.scores.agentic.map(|s| format!("{s:.1}")).unwrap_or_else(|| "-".into()),
             TableColumnId::OpenLlm => model.scores.open_llm.map(|s| format!("{s:.1}")).unwrap_or_else(|| "-".into()),
+            TableColumnId::Math => model.scores.math_lvl5.map(|s| format!("{s:.1}")).unwrap_or_else(|| "-".into()),
+            TableColumnId::Gpqa => model.scores.gpqa.map(|s| format!("{s:.1}")).unwrap_or_else(|| "-".into()),
+            TableColumnId::Ifeval => model.scores.ifeval.map(|s| format!("{s:.1}")).unwrap_or_else(|| "-".into()),
             TableColumnId::CloudPrice => model.pricing_output_usd.map(|p| format!("${p:.3}"))
                 .unwrap_or_else(|| if model.is_cloud { "Cloud API".into() } else { "Local (0.00€)".into() }),
         }

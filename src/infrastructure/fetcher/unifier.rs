@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use async_trait::async_trait;
 use crate::domain::modality::ModelModality;
+use crate::domain::specialty::DomainSpecialty;
 use crate::domain::model::{BenchmarkScores, ModelBenchmark};
 use crate::domain::traits::IModelFetcher;
 use super::helpers::{
@@ -114,6 +115,7 @@ impl LiveModelFetcher {
             let norm_id = normalize(&hf.id);
             let norm_name = normalize(&name);
             let modality = ModelModality::detect(&hf.id, &name, hf.pipeline_tag.as_deref(), &hf.tags);
+            let specialty = DomainSpecialty::detect(&hf.id, &name, hf.pipeline_tag.as_deref(), &hf.tags, "");
             let is_embedding = norm_id.contains("gte") || norm_id.contains("embed") || norm_id.contains("bge");
 
             let lb_match = if is_embedding {
@@ -285,6 +287,7 @@ impl LiveModelFetcher {
                 pricing_output_usd: None,
                 release_year,
                 modality,
+                specialty,
                 economic: econ_match.cloned(),
             });
         }

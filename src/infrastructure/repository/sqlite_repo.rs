@@ -3,6 +3,7 @@ use chrono::Local;
 use rusqlite::{params, Connection};
 use crate::domain::economic::EconomicScores;
 use crate::domain::modality::ModelModality;
+use crate::domain::specialty::DomainSpecialty;
 use crate::domain::model::{BenchmarkScores, ModelBenchmark};
 use crate::domain::traits::{IBenchmarkRepository, SnapshotMeta};
 
@@ -63,7 +64,8 @@ impl SqliteRepository {
                 pricing_input_usd REAL,
                 pricing_output_usd REAL,
                 release_year INTEGER,
-                modality TEXT DEFAULT 'text'
+                modality TEXT DEFAULT 'text',
+                specialty TEXT DEFAULT 'general'
             );
 
             CREATE INDEX IF NOT EXISTS idx_models_snapshot ON models(snapshot_id);
@@ -81,6 +83,12 @@ impl SqliteRepository {
         let _ = conn.execute("ALTER TABLE models ADD COLUMN release_year INTEGER;", []);
         let _ = conn.execute("ALTER TABLE models ADD COLUMN modality TEXT DEFAULT 'text';", []);
         let _ = conn.execute("ALTER TABLE models ADD COLUMN economic_data TEXT;", []);
+        let _ = conn.execute("ALTER TABLE models ADD COLUMN specialty TEXT DEFAULT 'general';", []);
+        let _ = conn.execute("UPDATE models SET specialty = 'software_dev' WHERE specialty = 'general' AND (LOWER(repo_id) LIKE '%coder%' OR LOWER(name) LIKE '%coder%' OR LOWER(repo_id) LIKE '%codestral%' OR LOWER(name) LIKE '%codestral%' OR LOWER(repo_id) LIKE '%starcoder%');", []);
+        let _ = conn.execute("UPDATE models SET specialty = 'voice_speech' WHERE specialty = 'general' AND (LOWER(repo_id) LIKE '%audio%' OR LOWER(name) LIKE '%audio%' OR LOWER(repo_id) LIKE '%voice%' OR LOWER(name) LIKE '%voice%' OR LOWER(repo_id) LIKE '%whisper%');", []);
+        let _ = conn.execute("UPDATE models SET specialty = 'vision_creative' WHERE specialty = 'general' AND (LOWER(repo_id) LIKE '%image%' OR LOWER(name) LIKE '%image%' OR LOWER(repo_id) LIKE '%diffusion%' OR LOWER(name) LIKE '%diffusion%');", []);
+        let _ = conn.execute("UPDATE models SET specialty = 'multi_agent' WHERE specialty = 'general' AND (LOWER(repo_id) LIKE '%swarm%' OR LOWER(name) LIKE '%swarm%' OR LOWER(repo_id) LIKE '%crewai%' OR LOWER(name) LIKE '%crewai%');", []);
+        let _ = conn.execute("UPDATE models SET specialty = 'genomics_bio' WHERE specialty = 'general' AND (LOWER(repo_id) LIKE '%dna%' OR LOWER(name) LIKE '%dna%' OR LOWER(repo_id) LIKE '%bio%' OR LOWER(name) LIKE '%bio%' OR LOWER(repo_id) LIKE '%med%' OR LOWER(name) LIKE '%med%');", []);
 
         Ok(())
     }
@@ -106,10 +114,10 @@ impl IBenchmarkRepository for SqliteRepository {
                     tokens_per_sec, tps_hardware, score_average, score_ifeval, score_bbh,
                     score_math, score_gpqa, score_mmlu_pro, score_musr, score_open_llm,
                     score_coding, score_agentic, downloads, likes, ollama_tag, hf_url, is_moe, context_k,
-                    is_cloud, provider, pricing_input_usd, pricing_output_usd, release_year, modality, economic_data
+                    is_cloud, provider, pricing_input_usd, pricing_output_usd, release_year, modality, economic_data, specialty
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
-                    ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32
+                    ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33
                 )",
             ).map_err(|e| e.to_string())?;
 
@@ -148,6 +156,7 @@ impl IBenchmarkRepository for SqliteRepository {
                     m.release_year.map(|y| y as i64),
                     m.modality.as_str(),
                     econ_json,
+                    m.specialty.as_str(),
                 ]).map_err(|e| e.to_string())?;
             }
         }
@@ -185,7 +194,7 @@ impl IBenchmarkRepository for SqliteRepository {
                     tokens_per_sec, tps_hardware, score_average, score_ifeval, score_bbh,
                     score_math, score_gpqa, score_mmlu_pro, score_musr, downloads, likes,
                     ollama_tag, hf_url, is_moe, context_k, score_open_llm, score_coding, score_agentic,
-                    is_cloud, provider, pricing_input_usd, pricing_output_usd, release_year, modality, economic_data
+                    is_cloud, provider, pricing_input_usd, pricing_output_usd, release_year, modality, economic_data, specialty
              FROM models WHERE snapshot_id = ?1 ORDER BY id ASC",
         ).map_err(|e| e.to_string())?;
 
@@ -194,9 +203,20 @@ impl IBenchmarkRepository for SqliteRepository {
                 .and_then(|s| serde_json::from_str(&s).ok());
             let rw_score = econ.as_ref().and_then(|e| e.composite_score());
 
+            let id: String = row.get(0)?;
+            let name: String = row.get(1)?;
+            let raw_spec = row.get::<_, Option<String>>(31).ok().flatten()
+                .map(|s| DomainSpecialty::from_str_lenient(&s))
+                .unwrap_or_default();
+            let specialty = if raw_spec == DomainSpecialty::General {
+                DomainSpecialty::detect(&id, &name, None, &[], "")
+            } else {
+                raw_spec
+            };
+
             Ok(ModelBenchmark {
-                id: row.get(0)?,
-                name: row.get(1)?,
+                id,
+                name,
                 family: row.get(2)?,
                 param_count_b: row.get(3)?,
                 size_gb: row.get(4)?,
@@ -228,6 +248,7 @@ impl IBenchmarkRepository for SqliteRepository {
                 pricing_output_usd: row.get(27).ok(),
                 release_year: row.get::<_, Option<i64>>(28).ok().flatten().map(|y| y as u16),
                 modality: row.get::<_, Option<String>>(29).ok().flatten().map(|s| ModelModality::from_str_lenient(&s)).unwrap_or_default(),
+                specialty,
                 economic: econ,
             })
         }).map_err(|e| e.to_string())?;

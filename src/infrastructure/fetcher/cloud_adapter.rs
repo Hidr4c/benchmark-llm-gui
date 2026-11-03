@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use chrono::{DateTime, Datelike};
 use serde::Deserialize;
 use crate::domain::modality::ModelModality;
+use crate::domain::specialty::DomainSpecialty;
 use crate::domain::model::{BenchmarkScores, ModelBenchmark};
 
 const LITELLM_PRICES_URL: &str = "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json";
@@ -103,6 +104,7 @@ impl CloudModelAdapter {
 
             let avg = (open_llm + coding + agentic) / 3.0;
             let modality = ModelModality::detect(id, name, None, &[]);
+            let specialty = DomainSpecialty::detect(id, name, None, &[], "");
 
             models.push(ModelBenchmark {
                 id: id.to_string(),
@@ -132,6 +134,7 @@ impl CloudModelAdapter {
                 pricing_output_usd: out_price,
                 release_year: Some(year),
                 modality,
+                specialty,
                 economic: None,
             });
         }
@@ -200,6 +203,7 @@ impl CloudModelAdapter {
                     };
 
                     let modality = ModelModality::detect(&item.id, &clean_name, None, &[]);
+                    let specialty = DomainSpecialty::detect(&item.id, &clean_name, None, &[], "");
 
                     models.push(ModelBenchmark {
                         id: item.id.clone(),
@@ -229,6 +233,7 @@ impl CloudModelAdapter {
                         pricing_output_usd: out_p,
                         release_year: Some(year),
                         modality,
+                        specialty,
                         economic: None,
                     });
                 }

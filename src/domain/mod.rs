@@ -10,6 +10,7 @@ pub mod pricing;
 pub mod scoring;
 pub mod simulator;
 pub mod sources;
+pub mod specialty;
 pub mod table_column;
 pub mod table_filter;
 pub mod table_preferences;
