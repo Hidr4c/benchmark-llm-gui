@@ -36,8 +36,8 @@ pub fn render_graph_search_picker(
         let q = search_query.trim().to_lowercase();
         let matches: Vec<&ModelBenchmark> = all_models
             .iter()
-            .filter(|m| m.name.to_lowercase().contains(&q) || m.family.to_lowercase().contains(&q))
-            .take(6)
+            .filter(|m| m.name.to_lowercase().contains(&q) || m.family.to_lowercase().contains(&q) || m.id.to_lowercase().contains(&q))
+            .take(50)
             .collect();
 
         if !matches.is_empty() {
@@ -46,25 +46,27 @@ pub fn render_graph_search_picker(
                 .stroke(egui::Stroke::new(1.0, ThemeTokens::CYAN_EDGE))
                 .inner_margin(egui::Margin::symmetric(8.0, 4.0))
                 .show(ui, |ui| {
-            ui.set_width(ui.available_width());
+                    ui.set_width(ui.available_width());
                     ui.label(
                         egui::RichText::new(format!("Résultats ({}) - Cliquez pour localiser :", matches.len()))
                             .size(11.0)
                             .color(ThemeTokens::TEXT_MUTED),
                     );
-                    for m in matches {
-                        ui.horizontal(|ui| {
-                            let is_sel = selected_model_id.as_deref() == Some(&m.id);
-                            let score_str = format!("{:.1} pts", m.score_for_sources(&SourceSelection::default()).unwrap_or(0.0));
-                            let size_str = if m.is_cloud { "Cloud API".into() } else { format!("{:.1} Go", m.size_gb) };
-                            let col = if is_sel { ThemeTokens::GOLD_5090 } else { ThemeTokens::TEXT_PRIMARY };
-                            ui.label(egui::RichText::new(&m.name).strong().size(11.5).color(col));
-                            ui.label(egui::RichText::new(format!("({}, {})", size_str, score_str)).size(11.0).color(ThemeTokens::TEXT_MUTED));
-                            if ui.button(egui::RichText::new("Localiser").strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
-                                *selected_model_id = Some(m.id.clone());
-                            }
-                        });
-                    }
+                    egui::ScrollArea::vertical().max_height(180.0).show(ui, |ui| {
+                        for m in matches {
+                            ui.horizontal(|ui| {
+                                let is_sel = selected_model_id.as_deref() == Some(&m.id);
+                                let score_str = format!("{:.1} pts", m.score_for_sources(&SourceSelection::default()).unwrap_or(0.0));
+                                let size_str = if m.is_cloud { "Cloud API".into() } else { format!("{:.1} Go", m.size_gb) };
+                                let col = if is_sel { ThemeTokens::GOLD_5090 } else { ThemeTokens::TEXT_PRIMARY };
+                                ui.label(egui::RichText::new(&m.name).strong().size(11.5).color(col));
+                                ui.label(egui::RichText::new(format!("({}, {})", size_str, score_str)).size(11.0).color(ThemeTokens::TEXT_MUTED));
+                                if ui.button(egui::RichText::new("Localiser").strong().color(ThemeTokens::CYAN_EDGE)).clicked() {
+                                    *selected_model_id = Some(m.id.clone());
+                                }
+                            });
+                        }
+                    });
                 });
         }
     }
@@ -126,8 +128,8 @@ pub fn render_slot_model_card(
                 let q = query.trim().to_lowercase();
                 let matches: Vec<&ModelBenchmark> = all_models
                     .iter()
-                    .filter(|m| m.name.to_lowercase().contains(&q) || m.family.to_lowercase().contains(&q))
-                    .take(6)
+                    .filter(|m| m.name.to_lowercase().contains(&q) || m.family.to_lowercase().contains(&q) || m.id.to_lowercase().contains(&q))
+                    .take(50)
                     .collect();
 
                 if !matches.is_empty() {
@@ -136,19 +138,21 @@ pub fn render_slot_model_card(
                         .stroke(egui::Stroke::new(1.0, color))
                         .inner_margin(egui::Margin::symmetric(6.0, 3.0))
                         .show(ui, |ui| {
-            ui.set_width(ui.available_width());
+                            ui.set_width(ui.available_width());
                             ui.label(egui::RichText::new(format!("Cliquez pour choisir ({}) :", matches.len())).size(10.5).color(ThemeTokens::TEXT_MUTED));
-                            for m in matches {
-                                ui.horizontal(|ui| {
-                                    let score_str = format!("{:.1} pts", m.score_for_sources(&SourceSelection::default()).unwrap_or(0.0));
-                                    let size_str = if m.is_cloud { "Cloud API".into() } else { format!("{:.1} Go", m.size_gb) };
-                                    if ui.button(egui::RichText::new(&m.name).strong().size(11.0).color(color)).clicked() {
-                                        *slot_id = Some(m.id.clone());
-                                        query.clear();
-                                    }
-                                    ui.label(egui::RichText::new(format!("({}, {})", size_str, score_str)).size(10.5).color(ThemeTokens::TEXT_MUTED));
-                                });
-                            }
+                            egui::ScrollArea::vertical().max_height(180.0).show(ui, |ui| {
+                                for m in matches {
+                                    ui.horizontal(|ui| {
+                                        let score_str = format!("{:.1} pts", m.score_for_sources(&SourceSelection::default()).unwrap_or(0.0));
+                                        let size_str = if m.is_cloud { "Cloud API".into() } else { format!("{:.1} Go", m.size_gb) };
+                                        if ui.button(egui::RichText::new(&m.name).strong().size(11.0).color(color)).clicked() {
+                                            *slot_id = Some(m.id.clone());
+                                            query.clear();
+                                        }
+                                        ui.label(egui::RichText::new(format!("({}, {})", size_str, score_str)).size(10.5).color(ThemeTokens::TEXT_MUTED));
+                                    });
+                                }
+                            });
                         });
                 }
             }

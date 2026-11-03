@@ -121,7 +121,17 @@ fn render_cell_by_column(
                     ui.label(egui::RichText::new(model.modality.tag_short()).size(9.0).color(egui::Color32::from_rgb(mod_rgb.0, mod_rgb.1, mod_rgb.2)))
                         .on_hover_text(model.modality.label());
 
-                    if model.specialty != crate::domain::specialty::DomainSpecialty::General {
+                    let is_redundant_badge = match model.specialty {
+                        crate::domain::specialty::DomainSpecialty::VisionCreative => {
+                            matches!(model.modality, crate::domain::modality::ModelModality::Multimodal | crate::domain::modality::ModelModality::ImageGen)
+                        }
+                        crate::domain::specialty::DomainSpecialty::VoiceSpeech => {
+                            model.modality == crate::domain::modality::ModelModality::AudioSpeech
+                        }
+                        _ => false,
+                    };
+
+                    if model.specialty != crate::domain::specialty::DomainSpecialty::General && !is_redundant_badge {
                         let (sr, sg, sb) = model.specialty.badge_color_rgb();
                         let spec_lbl = if lang == Language::French { model.specialty.label_fr() } else { model.specialty.label_en() };
                         ui.label(egui::RichText::new(model.specialty.badge_text()).size(9.0).color(egui::Color32::from_rgb(sr, sg, sb)).strong())

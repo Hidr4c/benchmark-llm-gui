@@ -23,6 +23,7 @@ pub struct TourState {
     pub prev_selected_id: Option<String>,
     pub prev_comp_slots: Option<[Option<String>; 2]>,
     pub prev_sim_gpu: Option<crate::domain::simulator::GpuTier>,
+    pub tutorial_subtab: usize,
 }
 
 impl Default for TourState {
@@ -47,6 +48,7 @@ impl Default for TourState {
             prev_selected_id: None,
             prev_comp_slots: None,
             prev_sim_gpu: None,
+            tutorial_subtab: 0,
         }
     }
 }
