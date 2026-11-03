@@ -51,6 +51,8 @@ fn test_dedicated_workstation_simulation() {
         gpu: GpuTier::Rtx5090_32G,
         ram_gb: 64.0,
         nas_web_ram_gb: 0.0,
+        platform: HardwarePlatform::Gpu32Gb,
+        max_storage_gb: None,
     };
 
     let sim = rig.simulate();
@@ -69,6 +71,8 @@ fn test_multi_service_nas_web_scenario_stability() {
         gpu: GpuTier::None,
         ram_gb: 8.0,
         nas_web_ram_gb: 6.5,
+        platform: HardwarePlatform::MiniPcCpu,
+        max_storage_gb: None,
     };
 
     let sim = nas_rig.simulate();
@@ -138,4 +142,18 @@ fn test_live_system_detector() {
     let res = detector.detect();
     println!("Live detect result: {:?}", res);
     assert!(res.is_ok());
+}
+
+#[test]
+fn test_storage_footprint_filtering_in_simulation() {
+    let rig_storage = HardwareRigConfig {
+        mode: SimTargetMode::WorkstationPc,
+        platform: HardwarePlatform::SmartphoneMid,
+        gpu: GpuTier::SmartphoneMid,
+        ram_gb: 4.0,
+        nas_web_ram_gb: 0.0,
+        max_storage_gb: Some(1.0),
+    };
+    let sim = rig_storage.simulate();
+    assert!(sim.total_ai_capacity_gb <= 1.25);
 }
