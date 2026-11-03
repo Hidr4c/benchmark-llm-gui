@@ -46,16 +46,12 @@ pub struct BenchmarkApp {
     pub updater: UpdaterState,
     pub sync_error_dialog: Option<String>,
     pub contact_dialog_open: bool,
-    is_detecting: bool,
-    detect_sender: Sender<Result<crate::domain::hardware_detector::DetectedHardware, String>>,
-    detect_receiver: Receiver<Result<crate::domain::hardware_detector::DetectedHardware, String>>,
     last_saved_prefs: Option<crate::domain::table_preferences::TablePreferences>,
 }
 
 impl BenchmarkApp {
     pub fn new(repo: Box<dyn IBenchmarkRepository>, fetcher: Arc<dyn IModelFetcher>) -> Self {
         let (tx, rx) = channel();
-        let (dtx, drx) = channel();
         let (snapshots, selected_id, models, initial_msg) = match repo.load_latest_snapshot() {
             Ok(Some((latest, models))) => (repo.list_snapshots().unwrap_or_default(), Some(latest.id), models, None),
             Ok(None) => (Vec::new(), None, Vec::new(), Some(("Empty database. Click 'Refresh' to fetch models.".into(), false))),
@@ -71,9 +67,11 @@ impl BenchmarkApp {
             }
         }
         let last_saved_prefs = Some(filters.table_prefs.clone());
+        let detector = Arc::new(SystemHardwareDetector::new());
+        let detected_hardware = detector.detect().ok();
 
         Self {
-            repo, fetcher, detector: Arc::new(SystemHardwareDetector::new()), detected_hardware: None,
+            repo, fetcher, detector, detected_hardware,
             sim_config: HardwareRigConfig::default(), snapshots, selected_snapshot_id: selected_id,
             all_models: models, filters, selected_model_id: None, active_tab: AppTab::Table,
             comp_state: ComparatorState::default(), graph_state: GraphViewState::default(),
@@ -81,7 +79,6 @@ impl BenchmarkApp {
             sync_sender: tx, sync_receiver: rx, zoom_factor: 1.0, language: Language::French,
             updater: UpdaterState::new(Arc::new(GitHubReleaseAdapter::new("Hidr4c", "benchmark-llm-gui"))),
             sync_error_dialog: None, contact_dialog_open: false, last_saved_prefs,
-            is_detecting: false, detect_sender: dtx, detect_receiver: drx,
         }
     }
 
@@ -124,23 +121,6 @@ impl eframe::App for BenchmarkApp {
         ctx.set_zoom_factor(self.zoom_factor);
         self.updater.poll();
 
-        if let Ok(detect_res) = self.detect_receiver.try_recv() {
-            self.is_detecting = false;
-            match detect_res {
-                Ok(hw) => {
-                    self.filters.hardware = hw.matched_platform;
-                    if let Some(vram) = hw.gpu_vram_gb { self.graph_state.vram_budget_gb = vram; }
-                    self.comp_state.target_platform = hw.matched_platform;
-                    self.comp_state.rig = crate::domain::simulator::HardwareRigConfig::from_platform(hw.matched_platform);
-                    self.comp_state.rig.ram_gb = hw.total_ram_gb;
-                    self.status_message = None;
-                    self.detected_hardware = Some(hw);
-                }
-                Err(e) => self.status_message = Some((format!("Detection notice: {e}"), true)),
-            }
-            self.tour_state.on_auto_detect_clicked();
-        }
-
         if let Ok(result) = self.sync_receiver.try_recv() {
             self.is_syncing = false;
             match result {
@@ -176,7 +156,7 @@ impl eframe::App for BenchmarkApp {
             );
             if self.active_tab == AppTab::Table || self.active_tab == AppTab::Graph {
                 ui.add_space(2.0); ui.separator(); ui.add_space(2.0);
-                render_filter_bar(ui, &mut self.filters, total_count, matching_count, self.is_detecting, &mut trigger_auto_detect, &mut trigger_export, self.language);
+                render_filter_bar(ui, &mut self.filters, total_count, matching_count, &mut trigger_auto_detect, &mut trigger_export, self.language);
             }
             ui.add_space(3.0);
         });
@@ -195,17 +175,23 @@ impl eframe::App for BenchmarkApp {
             if let Some(id1) = self.filters.compared_model_ids.get(1) { self.comp_state.slots[1] = Some(id1.clone()); }
             self.active_tab = AppTab::Comparator;
         }
-        if trigger_auto_detect && !self.is_detecting {
-            self.is_detecting = true;
-            let dtx = self.detect_sender.clone();
-            let ctx_clone = ctx.clone();
-            let det = self.detector.clone();
-            std::thread::spawn(move || {
-                let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| det.detect()))
-                    .unwrap_or_else(|_| Err("Panic during hardware detection".into()));
-                let _ = dtx.send(res);
-                ctx_clone.request_repaint();
-            });
+        if trigger_auto_detect {
+            let hw = self.detected_hardware.clone().or_else(|| self.detector.detect().ok());
+            if let Some(hw) = hw {
+                self.filters.hardware = hw.matched_platform;
+                if let Some(vram) = hw.gpu_vram_gb { self.graph_state.vram_budget_gb = vram; }
+                self.comp_state.target_platform = hw.matched_platform;
+                self.comp_state.rig = crate::domain::simulator::HardwareRigConfig::from_platform(hw.matched_platform);
+                self.comp_state.rig.ram_gb = hw.total_ram_gb;
+                let notice = if self.language == Language::French {
+                    format!("Matériel détecté : {} (RAM: {:.0} Go, {})", hw.matched_platform.label(), hw.total_ram_gb, hw.cpu_name)
+                } else {
+                    format!("Detected hardware: {} (RAM: {:.0} GB, {})", hw.matched_platform.label(), hw.total_ram_gb, hw.cpu_name)
+                };
+                self.status_message = Some((notice, false));
+                self.detected_hardware = Some(hw);
+            }
+            self.tour_state.on_auto_detect_clicked();
         }
 
         let selected_model = self.selected_model_id.as_ref().and_then(|id| {

@@ -11,7 +11,6 @@ pub fn render_filter_bar(
     filters: &mut FilterState,
     total_count: usize,
     matching_count: usize,
-    is_detecting: bool,
     on_auto_detect: &mut bool,
     on_export: &mut bool,
     lang: Language,
@@ -206,26 +205,16 @@ pub fn render_filter_bar(
             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_hardware"), hw_resp.rect));
             hw_resp.on_hover_text(t.hw_tooltip);
 
-            let detect_lbl = if is_detecting {
-                if lang == Language::French { "[Detection...]" } else { "[Detecting...]" }
-            } else {
-                t.btn_auto_detect
-            };
             let detect_btn = egui::Button::new(
-                egui::RichText::new(detect_lbl)
-                    .color(if is_detecting { ThemeTokens::WARNING } else { ThemeTokens::CYAN_EDGE })
+                egui::RichText::new(t.btn_auto_detect)
+                    .color(ThemeTokens::CYAN_EDGE)
                     .strong()
             );
-            let detect_resp = ui.add_enabled(!is_detecting, detect_btn).on_hover_text(t.tooltip_auto_detect);
+            let detect_resp = ui.add(detect_btn).on_hover_text(t.tooltip_auto_detect);
             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_detect"), detect_resp.rect));
             if detect_resp.clicked() {
                 *on_auto_detect = true;
                 if filters.scope == ModelScope::CloudOnly { filters.scope = ModelScope::All; }
-                ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("detect_pc_click_time"), ui.input(|i| i.time)));
-            }
-            let last_detect = ui.ctx().memory_mut(|m| m.data.get_temp::<f64>(egui::Id::new("detect_pc_click_time"))).unwrap_or(0.0);
-            if ui.input(|i| i.time) - last_detect < 3.0 && filters.hardware != HardwarePlatform::All {
-                ui.label(egui::RichText::new(format!("[OK {}]", filters.hardware.label())).color(ThemeTokens::SUCCESS).strong().size(11.0));
             }
 
             ui.separator();
