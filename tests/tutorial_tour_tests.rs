@@ -150,6 +150,40 @@ fn test_stable_hierarchical_sub_ranking() {
 }
 
 #[test]
+fn test_search_grouped_sub_variant_expansion() {
+    use benchmark_llm_gui::domain::model::ModelBenchmark;
+    use benchmark_llm_gui::presentation::components::filter_bar::FilterState;
+    use benchmark_llm_gui::presentation::components::table_items::build_display_items;
+    use benchmark_llm_gui::presentation::filtering::FilterService;
+
+    let models = vec![
+        ModelBenchmark { id: "m1".into(), name: "GPT 6.1 Sol".into(), is_cloud: true, ..Default::default() },
+        ModelBenchmark { id: "m2".into(), name: "GPT 6.1 Sol Pro".into(), is_cloud: true, ..Default::default() },
+        ModelBenchmark { id: "m3".into(), name: "Claude 3.5 Sonnet".into(), is_cloud: true, ..Default::default() },
+    ];
+
+    let mut filters = FilterState::default();
+    filters.search_text = "Pro".to_string();
+    filters.group_by_root = true;
+
+    let filtered_indices = FilterService::compute_filtered_indices(&models, &filters);
+    assert_eq!(filtered_indices, vec![1]);
+
+    let items = build_display_items(&models, &filtered_indices, &filters);
+    assert_eq!(items.len(), 2);
+    assert!(items[0].is_root);
+    assert!(!items[0].is_child);
+    assert_eq!(items[0].root_name, "GPT 6.1 Sol");
+    assert_eq!(items[0].rank_str, "#1");
+    assert!(items[0].is_expanded);
+
+    assert!(!items[1].is_root);
+    assert!(items[1].is_child);
+    assert_eq!(items[1].model_idx, 1);
+    assert_eq!(items[1].rank_str, "#1.1");
+}
+
+#[test]
 fn test_tour_end_to_end_walkthrough_flow() {
     use benchmark_llm_gui::presentation::filtering::{FilterState, ModelScope};
     use benchmark_llm_gui::domain::hardware::HardwarePlatform;

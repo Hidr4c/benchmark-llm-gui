@@ -190,6 +190,21 @@ fn render_header_cell_content(
                 filters.column_chooser_open = true;
                 ui.close_menu();
             }
+
+            filters.show_advanced_columns = filters.table_prefs.are_advanced_columns_visible();
+            filters.show_raw_sources = filters.table_prefs.are_raw_sources_visible();
+            let adv_lbl = if lang == Language::French { "Colonnes Avancees" } else { "Advanced Columns" };
+            let mut adv_vis = filters.show_advanced_columns;
+            if ui.checkbox(&mut adv_vis, adv_lbl).changed() {
+                filters.show_advanced_columns = adv_vis;
+                filters.table_prefs.set_advanced_columns_visible(adv_vis);
+            }
+            let raw_lbl = if lang == Language::French { "Sources Brutes" } else { "Raw Sources" };
+            let mut raw_vis = filters.show_raw_sources;
+            if ui.checkbox(&mut raw_vis, raw_lbl).changed() {
+                filters.show_raw_sources = raw_vis;
+                filters.table_prefs.set_raw_sources_visible(raw_vis);
+            }
             ui.separator();
 
             // Sorting

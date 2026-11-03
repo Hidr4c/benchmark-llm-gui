@@ -74,17 +74,25 @@ pub fn render_simple_table(
                         // 2. Model Name & Group
                         row.col(|ui| {
                             ui.horizontal(|ui| {
-                                if !item.is_child && item.variant_count > 1 {
+                                if !item.is_child && (item.variant_count > 1 || item.is_expanded) {
                                     let arrow = if item.is_expanded { "v" } else { ">" };
                                     let tag = format!("{arrow} [{} var.]", item.variant_count);
                                     if ui.small_button(egui::RichText::new(tag).size(10.0).color(ThemeTokens::PRIMARY)).clicked() {
-                                        if item.is_expanded { filters.expanded_roots.remove(&item.root_name); }
-                                        else { filters.expanded_roots.insert(item.root_name.clone()); }
+                                        let has_search = !filters.search_text.trim().is_empty();
+                                        if has_search {
+                                            let key = format!("collapsed:{}", item.root_name);
+                                            if item.is_expanded { filters.expanded_roots.insert(key); }
+                                            else { filters.expanded_roots.remove(&key); }
+                                        } else if item.is_expanded {
+                                            filters.expanded_roots.remove(&item.root_name);
+                                        } else {
+                                            filters.expanded_roots.insert(item.root_name.clone());
+                                        }
                                     }
                                 }
                                 let display_name = if item.is_child {
                                     format!("  |-- {}", model.name)
-                                } else if filters.group_by_root && !item.is_expanded {
+                                } else if filters.group_by_root && (item.variant_count > 1 || item.is_expanded) {
                                     item.root_name.clone()
                                 } else {
                                     model.name.clone()

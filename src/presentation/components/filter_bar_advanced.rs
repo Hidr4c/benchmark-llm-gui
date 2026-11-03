@@ -146,34 +146,7 @@ pub fn render_advanced_panel(
                     filters.confidence_level = ConfidenceFilter::HighOnly;
                 }
 
-                ui.add_space(6.0);
-                ui.separator();
-                ui.add_space(6.0);
 
-                // 8. Colonnes & Affichage du tableau
-                filters.show_advanced_columns = filters.table_prefs.are_advanced_columns_visible();
-                filters.show_raw_sources = filters.table_prefs.are_raw_sources_visible();
-
-                let chk_adv = ui.checkbox(&mut filters.show_advanced_columns, egui::RichText::new("Avancé").size(11.5).strong())
-                    .on_hover_text("Afficher les colonnes détaillées : Année, Efficacité, Valeur Réelle / Éco, Popularité");
-                if chk_adv.changed() {
-                    filters.table_prefs.set_advanced_columns_visible(filters.show_advanced_columns);
-                }
-
-                let chk_raw = ui.checkbox(&mut filters.show_raw_sources, egui::RichText::new("Sources Brutes").size(11.5).strong())
-                    .on_hover_text("Afficher les scores bruts par benchmark : MMLU-Pro, SWE-bench, Tool-Calling, OpenLLM");
-                if chk_raw.changed() {
-                    filters.table_prefs.set_raw_sources_visible(filters.show_raw_sources);
-                }
-
-                let col_btn = ui.button(egui::RichText::new(t.table_menu.btn_column_chooser).size(11.5))
-                    .on_hover_text(t.table_menu.menu_column_chooser);
-                if col_btn.clicked() {
-                    filters.column_chooser_open = true;
-                }
-
-                let cols_rect = chk_adv.rect.union(chk_raw.rect).union(col_btn.rect);
-                ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_adv_cols"), cols_rect));
             });
         });
 }

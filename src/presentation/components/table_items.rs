@@ -44,18 +44,27 @@ pub struct DisplayItem {
 }
 
 pub fn build_display_items(models: &[ModelBenchmark], indices: &[usize], filters: &FilterState) -> Vec<DisplayItem> {
+    let mut total_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for m in models {
+        *total_counts.entry(m.root_model_name()).or_insert(0) += 1;
+    }
+
     let groups = FilterService::group_into_roots(models, indices);
     let mut items = Vec::new();
+    let has_search = !filters.search_text.trim().is_empty();
 
     for (r, g) in groups.iter().enumerate() {
-        let is_expanded = !filters.group_by_root || filters.expanded_roots.contains(&g.root_name);
-        let has_multiple_variants = g.variant_indices.len() > 1;
+        let total_in_catalog = total_counts.get(&g.root_name).copied().unwrap_or(g.variant_indices.len());
+        let is_category = total_in_catalog > 1;
+        let is_expanded = if has_search {
+            !filters.expanded_roots.contains(&format!("collapsed:{}", g.root_name))
+        } else {
+            !filters.group_by_root || filters.expanded_roots.contains(&g.root_name)
+        };
 
         if !filters.group_by_root {
-            // Flat / Ungrouped View: Every model is shown with stable hierarchical ranking
-            // E.g. #11.1, #11.2 for multi-variants, and #12 for standalone models.
             for (v_pos, &v_idx) in g.variant_indices.iter().enumerate() {
-                let rank_str = if has_multiple_variants {
+                let rank_str = if is_category {
                     format!("#{}.{}", r + 1, v_pos + 1)
                 } else if r < 3 {
                     match r {
@@ -77,18 +86,18 @@ pub fn build_display_items(models: &[ModelBenchmark], indices: &[usize], filters
                     rank_str,
                 });
             }
+        } else if !is_category {
+            items.push(DisplayItem {
+                model_idx: g.champion_idx,
+                is_root: true,
+                root_name: g.root_name.clone(),
+                variant_count: 1,
+                is_expanded: false,
+                is_child: false,
+                rank_str: format!("#{}", r + 1),
+            });
         } else {
-            // Grouped View: Champion row shown, expandable to show child variants
-            let root_rank_str = if r < 3 {
-                match r {
-                    0 => "#1".into(),
-                    1 => "#2".into(),
-                    _ => "#3".into(),
-                }
-            } else {
-                format!("#{}", r + 1)
-            };
-
+            let root_rank_str = format!("#{}", r + 1);
             items.push(DisplayItem {
                 model_idx: g.champion_idx,
                 is_root: true,
@@ -96,26 +105,20 @@ pub fn build_display_items(models: &[ModelBenchmark], indices: &[usize], filters
                 variant_count: g.variant_indices.len(),
                 is_expanded,
                 is_child: false,
-                rank_str: if is_expanded && has_multiple_variants {
-                    format!("#{}.1", r + 1)
-                } else {
-                    root_rank_str
-                },
+                rank_str: root_rank_str,
             });
 
-            if is_expanded && has_multiple_variants {
+            if is_expanded {
                 for (v_pos, &v_idx) in g.variant_indices.iter().enumerate() {
-                    if v_idx != g.champion_idx {
-                        items.push(DisplayItem {
-                            model_idx: v_idx,
-                            is_root: false,
-                            root_name: g.root_name.clone(),
-                            variant_count: 1,
-                            is_expanded: false,
-                            is_child: true,
-                            rank_str: format!("#{}.{}", r + 1, v_pos + 1),
-                        });
-                    }
+                    items.push(DisplayItem {
+                        model_idx: v_idx,
+                        is_root: false,
+                        root_name: g.root_name.clone(),
+                        variant_count: 1,
+                        is_expanded: false,
+                        is_child: true,
+                        rank_str: format!("#{}.{}", r + 1, v_pos + 1),
+                    });
                 }
             }
         }

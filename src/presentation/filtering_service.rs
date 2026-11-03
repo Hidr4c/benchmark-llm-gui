@@ -24,12 +24,13 @@ pub struct FilterService;
 impl FilterService {
     pub fn compute_filtered_indices(models: &[ModelBenchmark], filters: &FilterState) -> Vec<usize> {
         let mut indices: Vec<usize> = models.iter().enumerate().filter_map(|(idx, m)| {
-            if !filters.search_text.is_empty() {
-                let q = filters.search_text.to_lowercase();
+            if !filters.search_text.trim().is_empty() {
+                let q = filters.search_text.trim().to_lowercase();
                 let matches_name = m.name.to_lowercase().contains(&q);
                 let matches_id = m.id.to_lowercase().contains(&q);
                 let matches_fam = m.family.to_lowercase().contains(&q);
-                if !matches_name && !matches_id && !matches_fam {
+                let matches_root = m.root_model_name().to_lowercase().contains(&q);
+                if !matches_name && !matches_id && !matches_fam && !matches_root {
                     return None;
                 }
             }

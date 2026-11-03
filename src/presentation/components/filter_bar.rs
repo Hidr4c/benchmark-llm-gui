@@ -250,17 +250,6 @@ pub fn render_filter_bar(
                 filters.table_prefs.reset_filters();
             }
 
-            ui.separator();
-
-            let reset_lbl = if lang == Language::French { "Reinitialiser" } else { "Reset" };
-            if ui.button(egui::RichText::new(reset_lbl).color(ThemeTokens::WARNING).strong()).on_hover_text(if lang == Language::French {
-                "Reinitialiser tous les filtres, le materiel et les tris"
-            } else {
-                "Reset all active filters, hardware and sorts"
-            }).clicked() {
-                filters.reset();
-                filters.table_prefs.reset_filters();
-            }
 
             ui.separator();
 

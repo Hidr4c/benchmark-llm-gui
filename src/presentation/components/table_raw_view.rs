@@ -88,7 +88,7 @@ pub fn render_raw_benchmark_table(
                 // Col 2: Model Name
                 row.col(|ui| {
                     ui.horizontal(|ui| {
-                        if !item.is_child && item.variant_count > 1 {
+                        if !item.is_child && (item.variant_count > 1 || item.is_expanded) {
                             let arrow = if item.is_expanded { "v" } else { ">" };
                             let tag = format!("{arrow} [{} var.]", item.variant_count);
                             let tag_resp = ui.small_button(egui::RichText::new(tag).size(10.0).color(ThemeTokens::PRIMARY));
@@ -96,13 +96,21 @@ pub fn render_raw_benchmark_table(
                                 ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_result_grouped"), tag_resp.rect));
                             }
                             if tag_resp.clicked() {
-                                if item.is_expanded { filters.expanded_roots.remove(&item.root_name); }
-                                else { filters.expanded_roots.insert(item.root_name.clone()); }
+                                let has_search = !filters.search_text.trim().is_empty();
+                                if has_search {
+                                    let key = format!("collapsed:{}", item.root_name);
+                                    if item.is_expanded { filters.expanded_roots.insert(key); }
+                                    else { filters.expanded_roots.remove(&key); }
+                                } else if item.is_expanded {
+                                    filters.expanded_roots.remove(&item.root_name);
+                                } else {
+                                    filters.expanded_roots.insert(item.root_name.clone());
+                                }
                             }
                         }
 
                         let display_name = if item.is_child { format!("  |-- {}", model.name) }
-                        else if filters.group_by_root { item.root_name.clone() }
+                        else if filters.group_by_root && (item.variant_count > 1 || item.is_expanded) { item.root_name.clone() }
                         else { model.name.clone() };
 
                         let name_resp = ui.selectable_label(is_selected, egui::RichText::new(display_name).strong());
