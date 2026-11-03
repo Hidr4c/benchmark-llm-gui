@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use async_trait::async_trait;
 use crate::domain::modality::ModelModality;
+use crate::domain::specialty::DomainSpecialty;
 use crate::domain::model::{BenchmarkScores, ModelBenchmark};
 use crate::domain::traits::IModelFetcher;
 use super::helpers::{
@@ -262,6 +263,7 @@ impl LiveModelFetcher {
                 || hf.tags.iter().any(|t| t == "moe" || t == "mixture-of-experts");
 
             let release_year = extract_release_year(&hf.id, &name, hf.created_at.as_deref());
+            let specialty = DomainSpecialty::detect_with_context(&hf.id, &name, hf.pipeline_tag.as_deref(), &hf.tags, "", Some(&scores), modality);
 
             results.push(ModelBenchmark {
                 id: hf.id,
@@ -285,6 +287,7 @@ impl LiveModelFetcher {
                 pricing_output_usd: None,
                 release_year,
                 modality,
+                specialty,
                 economic: econ_match.cloned(),
             });
         }

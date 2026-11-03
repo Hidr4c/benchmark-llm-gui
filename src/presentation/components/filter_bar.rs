@@ -1,7 +1,8 @@
 use eframe::egui;
 use crate::domain::hardware::HardwarePlatform;
+use crate::domain::specialty::DomainSpecialty;
 use crate::presentation::components::filter_bar_advanced::render_advanced_panel;
-pub use crate::presentation::filtering::{FilterState, ModalityFilter, ModelScope, SizeCategory, TableColumnMode, UserPriority};
+pub use crate::presentation::filtering::{FilterState, ModalityFilter, ModelScope, SizeCategory, SpecialtyFilter, TableColumnMode, UserPriority};
 use crate::presentation::i18n::Language;
 use crate::presentation::theme::ThemeTokens;
 
@@ -10,13 +11,14 @@ pub fn render_filter_bar(
     filters: &mut FilterState,
     total_count: usize,
     matching_count: usize,
+    is_detecting: bool,
     on_auto_detect: &mut bool,
     on_export: &mut bool,
     lang: Language,
 ) {
     let t = lang.t();
     ui.vertical(|ui| {
-        // --- Row 1: Central Core Actions (Exact Order Requested) ---
+        // --- Row 1: Central Core Actions (Single Fluid Line) ---
         ui.horizontal_wrapped(|ui| {
             // 1. Choix du type de LLM (Périmètre : Local vs Cloud vs Tous)
             let scope_label = match filters.scope {
@@ -39,7 +41,14 @@ pub fn render_filter_bar(
 
             // 2. Choix des Benchmarks (Sources croisées / Agentic / Code / etc.)
             egui::ComboBox::from_id_salt("benchmark_source_combo")
-                .selected_text(filters.sources.label())
+                .selected_text(match () {
+                    _ if filters.sources.is_all() => t.bench_avg,
+                    _ if filters.sources.is_open_llm_only() => t.bench_general,
+                    _ if filters.sources.is_coding_only() => t.bench_coding,
+                    _ if filters.sources.is_agentic_only() => t.bench_agentic,
+                    _ if filters.sources.is_real_world_only() => t.bench_real_world,
+                    _ => if lang == Language::French { "Mix Personnalisé" } else { "Custom Blend" },
+                })
                 .width(160.0)
                 .show_ui(ui, |ui| {
                     if ui.selectable_label(filters.sources.is_all(), t.bench_avg).clicked() {
@@ -79,6 +88,50 @@ pub fn render_filter_bar(
                     if ui.selectable_label(filters.priority == UserPriority::RealWorld, t.priority_real_world).clicked() { filters.set_priority(UserPriority::RealWorld); }
                     if ui.selectable_label(filters.priority == UserPriority::Compactness, t.priority_compact).clicked() { filters.set_priority(UserPriority::Compactness); }
                 }).response.on_hover_text(t.priority_tooltip);
+
+
+
+            ui.separator();
+
+            // 4. Choix du Domaine Metier / Specialite (7 options: Tous + 6 specialites)
+            let spec_label = match filters.specialty {
+                SpecialtyFilter::All => if lang == Language::French { "Tous les domaines" } else { "All Domains" },
+                SpecialtyFilter::Specific(s) => if lang == Language::French { s.label_fr() } else { s.label_en() },
+            };
+            egui::ComboBox::from_id_salt("filter_bar_domain_combo")
+                .selected_text(spec_label)
+                .width(140.0)
+                .show_ui(ui, |ui| {
+                    let all_lbl = if lang == Language::French { "Tous les domaines (7/7)" } else { "All Domains (7/7)" };
+                    if ui.selectable_label(filters.specialty == SpecialtyFilter::All, all_lbl).clicked() {
+                        filters.specialty = SpecialtyFilter::All;
+                    }
+                    ui.separator();
+                    let specs = [
+                        DomainSpecialty::SoftwareDev,
+                        DomainSpecialty::VisionCreative,
+                        DomainSpecialty::VoiceSpeech,
+                        DomainSpecialty::GenomicsBio,
+                        DomainSpecialty::WorldModel3D,
+                        DomainSpecialty::MultiAgent,
+                    ];
+                    for s in specs {
+                        let is_sel = filters.specialty == SpecialtyFilter::Specific(s);
+                        let item_lbl = format!("[{}] {}", s.badge_text(), if lang == Language::French { s.label_fr() } else { s.label_en() });
+                        if ui.selectable_label(is_sel, item_lbl).clicked() {
+                            filters.specialty = SpecialtyFilter::Specific(s);
+                        }
+                    }
+                }).response.on_hover_text(if lang == Language::French {
+                    "Filtrer par domaine metier (Code, Vision, Voix, ADN, 3D, Multi-Agents)"
+                } else {
+                    "Filter by domain specialty (Code, Vision, Voice, DNA, 3D, Multi-Agents)"
+                });
+
+            if filters.specialty != SpecialtyFilter::All && ui.small_button("X").on_hover_text("Reinitialiser le domaine").clicked() {
+                filters.specialty = SpecialtyFilter::All;
+            }
+
 
             ui.separator();
 
@@ -153,10 +206,17 @@ pub fn render_filter_bar(
             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_hardware"), hw_resp.rect));
             hw_resp.on_hover_text(t.hw_tooltip);
 
+            let detect_lbl = if is_detecting {
+                if lang == Language::French { "[Detection...]" } else { "[Detecting...]" }
+            } else {
+                t.btn_auto_detect
+            };
             let detect_btn = egui::Button::new(
-                egui::RichText::new(t.btn_auto_detect).color(ThemeTokens::CYAN_EDGE).strong()
+                egui::RichText::new(detect_lbl)
+                    .color(if is_detecting { ThemeTokens::WARNING } else { ThemeTokens::CYAN_EDGE })
+                    .strong()
             );
-            let detect_resp = ui.add(detect_btn).on_hover_text(t.tooltip_auto_detect);
+            let detect_resp = ui.add_enabled(!is_detecting, detect_btn).on_hover_text(t.tooltip_auto_detect);
             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_detect"), detect_resp.rect));
             if detect_resp.clicked() {
                 *on_auto_detect = true;
@@ -165,7 +225,7 @@ pub fn render_filter_bar(
             }
             let last_detect = ui.ctx().memory_mut(|m| m.data.get_temp::<f64>(egui::Id::new("detect_pc_click_time"))).unwrap_or(0.0);
             if ui.input(|i| i.time) - last_detect < 3.0 && filters.hardware != HardwarePlatform::All {
-                ui.label(egui::RichText::new(format!("[✓ {}]", filters.hardware.label())).color(ThemeTokens::SUCCESS).strong().size(11.0));
+                ui.label(egui::RichText::new(format!("[OK {}]", filters.hardware.label())).color(ThemeTokens::SUCCESS).strong().size(11.0));
             }
 
             ui.separator();
@@ -180,34 +240,20 @@ pub fn render_filter_bar(
 
             ui.separator();
 
-            // 7. Préréglages & Sélecteur Personnalisé de Colonnes
-            filters.show_advanced_columns = filters.table_prefs.are_advanced_columns_visible();
-            filters.show_raw_sources = filters.table_prefs.are_raw_sources_visible();
-
-            let chk_adv = ui.checkbox(&mut filters.show_advanced_columns, egui::RichText::new("Avancé").size(11.5).strong())
-                .on_hover_text("Afficher les colonnes détaillées : Année, Efficacité, Valeur Réelle / Éco, Popularité");
-            if chk_adv.changed() {
-                filters.table_prefs.set_advanced_columns_visible(filters.show_advanced_columns);
+            let reset_lbl = if lang == Language::French { "Reinitialiser" } else { "Reset" };
+            if ui.button(egui::RichText::new(reset_lbl).color(ThemeTokens::WARNING).strong()).on_hover_text(if lang == Language::French {
+                "Reinitialiser tous les filtres, le materiel et les tris"
+            } else {
+                "Reset all active filters, hardware and sorts"
+            }).clicked() {
+                filters.reset();
+                filters.table_prefs.reset_filters();
             }
 
-            let chk_raw = ui.checkbox(&mut filters.show_raw_sources, egui::RichText::new("Sources Brutes").size(11.5).strong())
-                .on_hover_text("Afficher les scores bruts par benchmark : MMLU-Pro, SWE-bench, Tool-Calling, OpenLLM");
-            if chk_raw.changed() {
-                filters.table_prefs.set_raw_sources_visible(filters.show_raw_sources);
-            }
-
-            let col_btn = ui.button(egui::RichText::new(t.table_menu.btn_column_chooser).size(11.5))
-                .on_hover_text(t.table_menu.menu_column_chooser);
-            if col_btn.clicked() {
-                filters.column_chooser_open = true;
-            }
-
-            let cols_rect = chk_adv.rect.union(chk_raw.rect).union(col_btn.rect);
-            ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_adv_cols"), cols_rect));
 
             ui.separator();
 
-            // 8. Compteur visible
+            // 7. Compteur visible
             let counter_resp = ui.label(
                 egui::RichText::new(format!("{matching_count} / {total_count}"))
                     .color(if matching_count > 0 { ThemeTokens::SUCCESS } else { ThemeTokens::WARNING })
@@ -218,11 +264,12 @@ pub fn render_filter_bar(
                 m.data.insert_temp(egui::Id::new("tour_result_hardware"), counter_resp.rect);
             });
 
+
             // 9. Indicateur des filtres de colonnes actifs (intégré en ligne sans saut de layout)
             let active_filters = filters.table_prefs.active_filter_count();
             if active_filters > 0 {
                 ui.separator();
-                let clear_lbl = format!("Filtres ({active_filters}) ×");
+                let clear_lbl = format!("Filtres ({active_filters}) x");
                 if ui.button(egui::RichText::new(clear_lbl).color(ThemeTokens::CYAN_EDGE).strong().size(11.0))
                     .on_hover_text(t.table_menu.menu_clear_all_filters)
                     .clicked()

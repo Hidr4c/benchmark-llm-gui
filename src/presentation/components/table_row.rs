@@ -68,7 +68,7 @@ fn render_cell_by_column(
         TableColumnId::Model => {
             row.col(|ui| {
                 ui.horizontal(|ui| {
-                    if !item.is_child && item.variant_count > 1 {
+                    if !item.is_child && (item.variant_count > 1 || item.is_expanded) {
                         let arrow = if item.is_expanded { "v" } else { ">" };
                         let tag = format!("{arrow} [{} var.]", item.variant_count);
                         let tag_resp = ui.small_button(egui::RichText::new(tag).size(10.0).color(ThemeTokens::PRIMARY));
@@ -76,14 +76,22 @@ fn render_cell_by_column(
                             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_result_grouped"), tag_resp.rect));
                         }
                         if tag_resp.clicked() {
-                            if item.is_expanded { filters.expanded_roots.remove(&item.root_name); }
-                            else { filters.expanded_roots.insert(item.root_name.clone()); }
+                            let has_search = !filters.search_text.trim().is_empty();
+                            if has_search {
+                                let key = format!("collapsed:{}", item.root_name);
+                                if item.is_expanded { filters.expanded_roots.insert(key); }
+                                else { filters.expanded_roots.remove(&key); }
+                            } else if item.is_expanded {
+                                filters.expanded_roots.remove(&item.root_name);
+                            } else {
+                                filters.expanded_roots.insert(item.root_name.clone());
+                            }
                         }
                     }
 
                     let display_name = if item.is_child {
                         format!("  |-- {}", model.name)
-                    } else if filters.group_by_root && !item.is_expanded {
+                    } else if filters.group_by_root && (item.variant_count > 1 || item.is_expanded) {
                         item.root_name.clone()
                     } else {
                         model.name.clone()
@@ -112,6 +120,23 @@ fn render_cell_by_column(
                     let mod_rgb = model.modality.badge_color_rgb();
                     ui.label(egui::RichText::new(model.modality.tag_short()).size(9.0).color(egui::Color32::from_rgb(mod_rgb.0, mod_rgb.1, mod_rgb.2)))
                         .on_hover_text(model.modality.label());
+
+                    let is_redundant_badge = match model.specialty {
+                        crate::domain::specialty::DomainSpecialty::VisionCreative => {
+                            matches!(model.modality, crate::domain::modality::ModelModality::Multimodal | crate::domain::modality::ModelModality::ImageGen)
+                        }
+                        crate::domain::specialty::DomainSpecialty::VoiceSpeech => {
+                            model.modality == crate::domain::modality::ModelModality::AudioSpeech
+                        }
+                        _ => false,
+                    };
+
+                    if model.specialty != crate::domain::specialty::DomainSpecialty::General && !is_redundant_badge {
+                        let (sr, sg, sb) = model.specialty.badge_color_rgb();
+                        let spec_lbl = if lang == Language::French { model.specialty.label_fr() } else { model.specialty.label_en() };
+                        ui.label(egui::RichText::new(model.specialty.badge_text()).size(9.0).color(egui::Color32::from_rgb(sr, sg, sb)).strong())
+                            .on_hover_text(format!("Domaine: {spec_lbl}"));
+                    }
 
                     if model.is_cloud {
                         ui.label(egui::RichText::new("CLOUD").size(9.0).color(egui::Color32::from_rgb(175, 110, 245)));
@@ -213,6 +238,15 @@ fn render_cell_by_column(
         }
         TableColumnId::OpenLlm => {
             row.col(|ui| { render_score_badge_cell(ui, model.scores.open_llm); });
+        }
+        TableColumnId::Math => {
+            row.col(|ui| { render_score_badge_cell(ui, model.scores.math_lvl5); });
+        }
+        TableColumnId::Gpqa => {
+            row.col(|ui| { render_score_badge_cell(ui, model.scores.gpqa); });
+        }
+        TableColumnId::Ifeval => {
+            row.col(|ui| { render_score_badge_cell(ui, model.scores.ifeval); });
         }
         TableColumnId::CloudPrice => {
             row.col(|ui| {

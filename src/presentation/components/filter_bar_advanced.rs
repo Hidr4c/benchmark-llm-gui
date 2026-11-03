@@ -88,11 +88,12 @@ pub fn render_advanced_panel(
                         }
                     });
 
+
                 ui.add_space(6.0);
                 ui.separator();
                 ui.add_space(6.0);
 
-                // 3. Family / Architecture
+                // 4. Family / Architecture
                 ui.label(egui::RichText::new(adv.lbl_family).size(11.5).color(ThemeTokens::TEXT_MUTED));
                 let families = ["All", "Mistral", "Qwen", "Llama", "DeepSeek", "SmolLM", "Gemma", "Phi"];
                 egui::ComboBox::from_id_salt("adv_family_combo")
@@ -110,7 +111,7 @@ pub fn render_advanced_panel(
                 ui.separator();
                 ui.add_space(6.0);
 
-                // 4. Maximum RAM Required Slider - Explicitly Labeled!
+                // 5. Maximum RAM Required Slider
                 ui.label(egui::RichText::new(adv.lbl_max_ram).size(11.5).strong().color(ThemeTokens::CYAN_EDGE));
                 ui.add(
                     egui::Slider::new(&mut filters.max_size_gb, 0.5..=100.0)
@@ -122,7 +123,7 @@ pub fn render_advanced_panel(
                 ui.separator();
                 ui.add_space(6.0);
 
-                // 5. Score Min Slider
+                // 6. Score Min Slider
                 ui.label(egui::RichText::new(adv.lbl_min_score).size(11.5).strong().color(ThemeTokens::GOLD_5090));
                 ui.add(
                     egui::Slider::new(&mut filters.min_intelligence, 0.0..=100.0)
@@ -133,7 +134,7 @@ pub fn render_advanced_panel(
                 ui.separator();
                 ui.add_space(6.0);
 
-                // 6. Score Confidence / Reliability Level
+                // 7. Score Confidence / Reliability Level
                 ui.label(egui::RichText::new("Fiabilité :").size(11.5).color(ThemeTokens::TEXT_MUTED));
                 if ui.selectable_label(filters.confidence_level == ConfidenceFilter::All, "Tous").on_hover_text("Tous les scores (y compris source unique)").clicked() {
                     filters.confidence_level = ConfidenceFilter::All;
@@ -144,6 +145,8 @@ pub fn render_advanced_panel(
                 if ui.selectable_label(filters.confidence_level == ConfidenceFilter::HighOnly, "Haute (3+)").on_hover_text("Haute fiabilité uniquement (au moins 3 sources croisées)").clicked() {
                     filters.confidence_level = ConfidenceFilter::HighOnly;
                 }
+
+
             });
         });
 }

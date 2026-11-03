@@ -1,5 +1,6 @@
 use benchmark_llm_gui::domain::comparator::{CompMetricX, CompMetricY, HardwareComparator, ModelRole};
 use benchmark_llm_gui::domain::model::{BenchmarkScores, ModelBenchmark, SourceSelection};
+use benchmark_llm_gui::domain::hardware::HardwarePlatform;
 use benchmark_llm_gui::domain::simulator::{GpuTier, HardwareRigConfig, SimTargetMode};
 
 fn make_test_model(id: &str, name: &str, vram_gb: f32, score: f32) -> ModelBenchmark {
@@ -31,6 +32,7 @@ fn make_test_model(id: &str, name: &str, vram_gb: f32, score: f32) -> ModelBench
         pricing_output_usd: None,
         release_year: Some(2026),
         modality: Default::default(),
+        specialty: Default::default(),
         economic: None,
     }
 }
@@ -42,6 +44,8 @@ fn test_comparator_metrics_within_vram() {
         gpu: GpuTier::Rtx5090_32G,
         ram_gb: 64.0,
         nas_web_ram_gb: 4.0,
+        platform: HardwarePlatform::Gpu32Gb,
+        max_storage_gb: None,
     };
     let sources = SourceSelection::default();
 
@@ -65,6 +69,8 @@ fn test_comparator_metrics_exceeding_vram() {
         gpu: GpuTier::Rtx4060_8G,
         ram_gb: 16.0,
         nas_web_ram_gb: 4.0,
+        platform: HardwarePlatform::Gpu32Gb,
+        max_storage_gb: None,
     };
     let sources = SourceSelection::default();
 
@@ -84,6 +90,8 @@ fn test_comparator_cloud_model_zero_vram() {
         gpu: GpuTier::Rtx5090_32G,
         ram_gb: 64.0,
         nas_web_ram_gb: 4.0,
+        platform: HardwarePlatform::Gpu32Gb,
+        max_storage_gb: None,
     };
     let sources = SourceSelection::default();
     let mut cloud_model = make_test_model("google/gemini-pro", "Gemini 4 Carbon", 0.0, 92.0);
@@ -107,6 +115,8 @@ fn test_comparator_metric_axes_extraction() {
         gpu: GpuTier::Rtx5090_32G,
         ram_gb: 64.0,
         nas_web_ram_gb: 4.0,
+        platform: HardwarePlatform::Gpu32Gb,
+        max_storage_gb: None,
     };
     let sources = SourceSelection::default();
     let metrics = HardwareComparator::compute_metrics(&model, &rig, &sources);

@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use crate::domain::hardware::HardwarePlatform;
 use crate::domain::license::LicenseCategory;
 use crate::domain::modality::ModelModality;
+use crate::domain::specialty::DomainSpecialty;
 use crate::domain::model::{SortField, SortOrder, SourceSelection};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +36,13 @@ pub enum ModalityFilter {
     #[default]
     All,
     Specific(ModelModality),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SpecialtyFilter {
+    #[default]
+    All,
+    Specific(DomainSpecialty),
 }
 
 impl ModalityFilter {
@@ -88,6 +96,7 @@ pub struct FilterState {
     pub priority: UserPriority,
     pub sources: SourceSelection,
     pub modality: ModalityFilter,
+    pub specialty: SpecialtyFilter,
     pub column_mode: TableColumnMode,
     pub show_advanced_columns: bool,
     pub show_raw_sources: bool,
@@ -118,6 +127,7 @@ impl Default for FilterState {
             priority: UserPriority::Intelligence,
             sources: SourceSelection::default(),
             modality: ModalityFilter::All,
+            specialty: SpecialtyFilter::All,
             column_mode: TableColumnMode::GlobalEvaluation,
             show_advanced_columns: false,
             show_raw_sources: false,

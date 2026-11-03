@@ -13,33 +13,29 @@ pub fn render_tutorial_view(
     lang: Language,
 ) {
     let t_tools = lang.tools();
-    let subtab_key = egui::Id::new("tutorial_selected_subtab");
-    let mut selected_subtab = ui.ctx().memory_mut(|m| m.data.get_temp::<usize>(subtab_key)).unwrap_or(0);
 
     // Segmented header switcher
     ui.horizontal(|ui| {
-        let is_tab0 = selected_subtab == 0;
+        let is_tab0 = tour_state.tutorial_subtab == 0;
         let btn0 = if is_tab0 {
             ui.button(egui::RichText::new(t_tools.tab_overview).strong().color(ThemeTokens::CYAN_EDGE).size(13.0))
         } else {
             ui.button(egui::RichText::new(t_tools.tab_overview).color(ThemeTokens::TEXT_MUTED).size(13.0))
         };
         if btn0.clicked() {
-            selected_subtab = 0;
-            ui.ctx().memory_mut(|m| m.data.insert_temp(subtab_key, 0));
+            tour_state.tutorial_subtab = 0;
         }
 
         ui.add_space(8.0);
 
-        let is_tab1 = selected_subtab == 1;
+        let is_tab1 = tour_state.tutorial_subtab == 1;
         let btn1 = if is_tab1 {
             ui.button(egui::RichText::new(t_tools.tab_install_guide).strong().color(ThemeTokens::GOLD_5090).size(13.0))
         } else {
             ui.button(egui::RichText::new(t_tools.tab_install_guide).color(ThemeTokens::TEXT_MUTED).size(13.0))
         };
         if btn1.clicked() {
-            selected_subtab = 1;
-            ui.ctx().memory_mut(|m| m.data.insert_temp(subtab_key, 1));
+            tour_state.tutorial_subtab = 1;
         }
     });
 
@@ -48,7 +44,7 @@ pub fn render_tutorial_view(
     ui.add_space(6.0);
 
     egui::ScrollArea::vertical().show(ui, |ui| {
-        if selected_subtab == 1 {
+        if tour_state.tutorial_subtab == 1 {
             crate::presentation::components::local_ai_tools_view::render_local_ai_tools_guide(ui, lang);
         } else {
             // 1. Hero Banner: Interactive Tour / Auto-Play Launcher
