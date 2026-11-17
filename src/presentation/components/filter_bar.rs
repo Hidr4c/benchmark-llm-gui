@@ -220,7 +220,11 @@ pub fn render_filter_bar(
             ui.separator();
 
             // 6. Bouton Filtres Avancés
-            let adv_text = if filters.show_advanced { "Masquer Filtres ^" } else { "Filtres Avances v" };
+            let adv_text = if lang == Language::French {
+                if filters.show_advanced { "Masquer Filtres ^" } else { "Filtres Avances v" }
+            } else {
+                if filters.show_advanced { "Hide Filters ^" } else { "Advanced Filters v" }
+            };
             let adv_resp = ui.button(egui::RichText::new(adv_text).color(if filters.show_advanced { ThemeTokens::CYAN_EDGE } else { ThemeTokens::TEXT_PRIMARY }));
             ui.ctx().memory_mut(|m| m.data.insert_temp(egui::Id::new("tour_target_adv_filters"), adv_resp.rect));
             if adv_resp.clicked() {

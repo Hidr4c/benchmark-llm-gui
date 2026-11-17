@@ -20,14 +20,14 @@ pub fn render_graph_search_picker(
     };
 
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new("Recherche :").strong().size(12.0));
+        ui.label(egui::RichText::new(if lang == Language::French { "Recherche :" } else { "Search:" }).strong().size(12.0));
         ui.add(
             egui::TextEdit::singleline(search_query)
                 .id_source("graph_search_model_input")
                 .hint_text(t_hint)
                 .desired_width(340.0),
         );
-        if !search_query.is_empty() && ui.small_button("Effacer").clicked() {
+        if !search_query.is_empty() && ui.small_button(if lang == Language::French { "Effacer" } else { "Clear" }).clicked() {
             search_query.clear();
         }
     });
@@ -81,7 +81,7 @@ pub fn render_slot_model_card(
     metrics: Option<&ModelHardwareMetrics>,
     rig: &HardwareRigConfig,
     color: egui::Color32,
-    _lang: Language,
+    lang: Language,
 ) {
     let current_model = slot_id.as_ref().and_then(|id| all_models.iter().find(|m| &m.id == id));
 
@@ -92,15 +92,18 @@ pub fn render_slot_model_card(
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
             ui.horizontal(|ui| {
-                ui.label(egui::RichText::new(format!("[Modèle #{}]", slot_num)).color(color).strong().size(13.0));
+                let slot_title = if lang == Language::French { format!("[Modèle #{}]", slot_num) } else { format!("[Model #{}]", slot_num) };
+                ui.label(egui::RichText::new(slot_title).color(color).strong().size(13.0));
                 if let Some(m) = current_model {
                     ui.label(egui::RichText::new(&m.name).strong().size(12.5).color(egui::Color32::WHITE));
                 } else {
-                    ui.label(egui::RichText::new("Aucun modèle sélectionné").italics().size(12.0).color(ThemeTokens::TEXT_MUTED));
+                    let no_model_text = if lang == Language::French { "Aucun modèle sélectionné" } else { "No model selected" };
+                    ui.label(egui::RichText::new(no_model_text).italics().size(12.0).color(ThemeTokens::TEXT_MUTED));
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if current_model.is_some() && ui.small_button("Effacer").clicked() {
+                    let clear_btn = if lang == Language::French { "Effacer" } else { "Clear" };
+                    if current_model.is_some() && ui.small_button(clear_btn).clicked() {
                         *slot_id = None;
                         query.clear();
                     }
@@ -111,11 +114,11 @@ pub fn render_slot_model_card(
 
             // Search input field with auto-completion
             ui.horizontal(|ui| {
-                ui.label(egui::RichText::new("Recherche :").size(11.0).color(ThemeTokens::TEXT_MUTED));
+                ui.label(egui::RichText::new(if lang == Language::French { "Recherche :" } else { "Search:" }).size(11.0).color(ThemeTokens::TEXT_MUTED));
                 ui.add(
                     egui::TextEdit::singleline(query)
                         .id_source(egui::Id::new("comparator_slot_search").with(slot_num))
-                        .hint_text("Taper un nom ou taille...")
+                        .hint_text(if lang == Language::French { "Taper un nom ou taille..." } else { "Type a name or size..." })
                         .desired_width(240.0),
                 );
                 if !query.is_empty() && ui.small_button("X").clicked() {
@@ -163,13 +166,17 @@ pub fn render_slot_model_card(
                 let size_text = if m.is_cloud { "Cloud API".into() } else { format!("{:.1} Go", m.size_gb) };
                 let score = m.score_for_sources(&SourceSelection::default()).unwrap_or(0.0);
                 let year = m.release_year_label();
-                let text = format!("Empreinte : {}  |  Année : {}  |  Famille : {}  |  Score : {:.1} pts", size_text, year, m.family, score);
+                let text = if lang == Language::French {
+                    format!("Empreinte : {}  |  Année : {}  |  Famille : {}  |  Score : {:.1} pts", size_text, year, m.family, score)
+                } else {
+                    format!("Footprint: {}  |  Year: {}  |  Family: {}  |  Score: {:.1} pts", size_text, year, m.family, score)
+                };
                 ui.label(egui::RichText::new(text).size(10.5).color(ThemeTokens::TEXT_SECONDARY));
 
                 // Unified Hardware Diagnostic Specs
                 if let Some(met) = metrics {
                     ui.add_space(3.0);
-                    render_model_hardware_specs_grid(ui, met, rig, color);
+                    render_model_hardware_specs_grid(ui, met, rig, color, lang);
                 }
             }
         });

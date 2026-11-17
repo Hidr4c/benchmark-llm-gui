@@ -1,3 +1,5 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+
 use std::sync::Arc;
 use eframe::egui;
 use benchmark_llm_gui::domain::traits::{IBenchmarkRepository, IModelFetcher};
@@ -9,9 +11,12 @@ use benchmark_llm_gui::presentation::theme::ThemeTokens;
 
 #[cfg(target_os = "windows")]
 unsafe extern "system" {
+    fn AttachConsole(dw_process_id: u32) -> i32;
     fn SetProcessDpiAwarenessContext(value: isize) -> i32;
 }
 
+#[cfg(target_os = "windows")]
+const ATTACH_PARENT_PROCESS: u32 = 0xFFFFFFFF;
 #[cfg(target_os = "windows")]
 const DPI_AWARENESS_CONTEXT_SYSTEM_AWARE: isize = -2;
 
@@ -34,6 +39,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Support --sync or --cli flag for headless execution
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--sync" || a == "--cli") {
+        #[cfg(target_os = "windows")]
+        unsafe {
+            let _ = AttachConsole(ATTACH_PARENT_PROCESS);
+        }
         println!("Running in CLI / Synchronization mode...");
         let models = rt.block_on(fetcher.fetch_and_unify())?;
         println!("Live data retrieved: {} models found!", models.len());

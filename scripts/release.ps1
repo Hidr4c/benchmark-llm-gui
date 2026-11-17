@@ -22,6 +22,8 @@ param(
     [ValidateSet("start", "finish", "full")]
     [string]$Action = "full",
 
+    [string]$Title = "",
+
     [switch]$SkipTests
 )
 
@@ -31,6 +33,13 @@ $ErrorActionPreference = "Stop"
 $CleanVersion = $Version.TrimStart('v')
 if ($CleanVersion -notmatch '^\d+\.\d+\.\d+$') {
     throw "Invalid semantic version format: '$Version'. Expected format: X.Y.Z (e.g. 1.1.0)"
+}
+
+if (-not $Title) {
+    $Title = switch ($CleanVersion) {
+        "1.2.0" { "Windows GUI Subsystem, Complete EN/FR Parity & Hardware Profiler" }
+        default { "Universal LLM Benchmark Explorer & Hardware Profiler" }
+    }
 }
 
 $Tag = "v$CleanVersion"
@@ -59,14 +68,17 @@ function Run-Tests {
 function Step-StartRelease {
     Write-Host "`n>>> Starting release $Tag on branch $ReleaseBranch..." -ForegroundColor Cyan
     
-    # 1. Ensure on develop and up to date
+    # 1. Ensure on develop
     git checkout develop
-    git pull origin develop
+    $hasRemoteDevelop = git ls-remote --heads origin develop
+    if ($hasRemoteDevelop) {
+        git pull origin develop
+    }
 
     Run-Tests
 
-    # 2. Create release branch
-    Write-Host "`n>>> [2/4] Creating release branch $ReleaseBranch..." -ForegroundColor Yellow
+    # 2. Create release branch (strictly local / private)
+    Write-Host "`n>>> [2/4] Creating local release branch $ReleaseBranch..." -ForegroundColor Yellow
     git checkout -b $ReleaseBranch develop
 
     # 3. Bump version in Cargo.toml
@@ -79,13 +91,12 @@ function Step-StartRelease {
     # Update Cargo.lock
     cargo check --quiet
 
-    # 4. Commit version bump on release branch
-    Write-Host ">>> [4/4] Committing version bump on $ReleaseBranch..." -ForegroundColor Yellow
+    # 4. Commit version bump on release branch (kept private / local)
+    Write-Host ">>> [4/4] Committing version bump on $ReleaseBranch (local only)..." -ForegroundColor Yellow
     git add Cargo.toml Cargo.lock
     git commit -m "chore(release): bump version to $CleanVersion for $Tag"
-    git push origin $ReleaseBranch
 
-    Write-Host "`n[SUCCESS] Release branch $ReleaseBranch created and pushed to origin." -ForegroundColor Green
+    Write-Host "`n[SUCCESS] Local release branch $ReleaseBranch prepared (private)." -ForegroundColor Green
 }
 
 function Step-FinishRelease {
@@ -93,40 +104,40 @@ function Step-FinishRelease {
 
     Assert-GitClean
 
-    # 1. Squash merge into master (strictly 1 commit per release version)
-    Write-Host ">>> Squash merging $ReleaseBranch into master..." -ForegroundColor Yellow
+    # 1. Update master to release content (strictly 1 squashed commit per release version)
+    Write-Host ">>> Updating master tree with $ReleaseBranch content..." -ForegroundColor Yellow
     git checkout master
     git pull origin master
-    git merge --squash $ReleaseBranch
-    git commit -m "feat: release $Tag - Universal LLM Benchmark Explorer & Hardware Profiler"
+    git checkout $ReleaseBranch -- .
+    git commit -m "feat: release $Tag - $Title"
 
     # 2. Create annotated tag pointing to master release commit
     Write-Host ">>> Creating annotated release tag $Tag..." -ForegroundColor Yellow
-    git tag -a $Tag -m "Release $Tag - Universal LLM Benchmark Explorer & Hardware Profiler" -f
+    git tag -a $Tag -m "Release $Tag - $Title" -f
 
     # 3. Create or update granular release branch vX.Y.Z
     Write-Host ">>> Updating granular release branch $Tag..." -ForegroundColor Yellow
     git branch -f $Tag $ReleaseBranch
 
-    # 4. Merge back into develop
-    Write-Host ">>> Merging $ReleaseBranch back into develop..." -ForegroundColor Yellow
+    # 4. Merge back into develop (locally)
+    Write-Host ">>> Merging $ReleaseBranch back into develop (locally)..." -ForegroundColor Yellow
     git checkout develop
-    git pull origin develop
+    $hasRemoteDevelop = git ls-remote --heads origin develop
+    if ($hasRemoteDevelop) {
+        git pull origin develop
+    }
     git merge --no-ff $ReleaseBranch -m "merge: sync release $Tag into develop"
 
-    # 5. Push all branches and tag
-    Write-Host ">>> Pushing master, develop, $Tag, and tag $Tag to origin..." -ForegroundColor Yellow
+    # 5. Push ONLY master and release tag to origin (Public GitHub)
+    Write-Host ">>> Pushing master and tag $Tag to origin (release branches remain strictly local/private)..." -ForegroundColor Yellow
     git push origin master
-    git push origin develop
-    git push origin "refs/heads/$Tag`:refs/heads/$Tag" --force
     git push origin "refs/tags/$Tag`:refs/tags/$Tag" --force
 
     Write-Host "`n==========================================================" -ForegroundColor Green
     Write-Host "  RELEASE $Tag COMPLETED AND DEPLOYED!" -ForegroundColor Green
-    Write-Host "  - Master: updated (squashed 1 commit per release)" -ForegroundColor Green
-    Write-Host "  - Granular branch: $Tag synchronized" -ForegroundColor Green
-    Write-Host "  - Develop: updated and synchronized" -ForegroundColor Green
+    Write-Host "  - Master: updated on GitHub (strictly squashed 1 commit per release)" -ForegroundColor Green
     Write-Host "  - Tag: $Tag pushed (GitHub Actions release workflow triggered)" -ForegroundColor Green
+    Write-Host "  - Release & develop branches: kept local and private" -ForegroundColor Green
     Write-Host "==========================================================" -ForegroundColor Green
 }
 

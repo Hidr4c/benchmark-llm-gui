@@ -201,32 +201,34 @@ fn render_filters_guide(ui: &mut egui::Ui, active_tab: &mut AppTab, filters: &mu
 fn render_practical_guides(ui: &mut egui::Ui, tour_state: &mut TourState, lang: Language) {
     let t = lang.t();
     let avail_w = ui.available_width();
-    ui.label(egui::RichText::new(" Guides Pratiques & Cas d'Usage Cles").size(14.5).color(ThemeTokens::CYAN_EDGE).strong());
+    let is_fr = lang == Language::French;
+    let hdr_title = if is_fr { " Guides Pratiques & Cas d'Usage Cles" } else { " Practical Guides & Key Use Cases" };
+    ui.label(egui::RichText::new(hdr_title).size(14.5).color(ThemeTokens::CYAN_EDGE).strong());
     ui.add_space(4.0);
 
     if avail_w < 780.0 {
         let card_w = (avail_w - 20.0).max(200.0);
-        render_card(ui, card_w, "", t.tut_card1_title, t.tut_card1_desc, " Voir le Classement des Modeles", || tour_state.jump_to(2));
+        render_card(ui, card_w, "", t.tut_card1_title, t.tut_card1_desc, if is_fr { " Voir le Classement des Modeles" } else { " View Model Leaderboard" }, || tour_state.jump_to(2));
         ui.add_space(8.0);
-        render_card(ui, card_w, "[~]", t.tut_card2_title, t.tut_card2_desc, " Voir le Graphique Pareto", || tour_state.jump_to(6));
+        render_card(ui, card_w, "[~]", t.tut_card2_title, t.tut_card2_desc, if is_fr { " Voir le Graphique Pareto" } else { " View Pareto Chart" }, || tour_state.jump_to(6));
         ui.add_space(8.0);
-        render_card(ui, card_w, "", t.tut_card3_title, t.tut_card3_desc, " Ouvrir le Simulateur NAS", || tour_state.jump_to(8));
+        render_card(ui, card_w, "", t.tut_card3_title, t.tut_card3_desc, if is_fr { " Ouvrir le Simulateur NAS" } else { " Open NAS Simulator" }, || tour_state.jump_to(8));
         ui.add_space(8.0);
-        render_card(ui, card_w, "", t.tut_card4_title, t.tut_card4_desc, " Inspecter les Benchmarks", || tour_state.jump_to(5));
+        render_card(ui, card_w, "", t.tut_card4_title, t.tut_card4_desc, if is_fr { " Inspecter les Benchmarks" } else { " Inspect Benchmarks" }, || tour_state.jump_to(5));
     } else {
         let card_w = ((avail_w - 36.0) * 0.5 - 24.0).max(180.0);
         ui.horizontal(|ui| {
-            render_card(ui, card_w, "", t.tut_card1_title, t.tut_card1_desc, " Voir le Classement des Modeles", || tour_state.jump_to(2));
+            render_card(ui, card_w, "", t.tut_card1_title, t.tut_card1_desc, if is_fr { " Voir le Classement des Modeles" } else { " View Model Leaderboard" }, || tour_state.jump_to(2));
             ui.add_space(12.0);
-            render_card(ui, card_w, "[~]", t.tut_card2_title, t.tut_card2_desc, " Voir le Graphique Pareto", || tour_state.jump_to(6));
+            render_card(ui, card_w, "[~]", t.tut_card2_title, t.tut_card2_desc, if is_fr { " Voir le Graphique Pareto" } else { " View Pareto Chart" }, || tour_state.jump_to(6));
         });
 
         ui.add_space(10.0);
 
         ui.horizontal(|ui| {
-            render_card(ui, card_w, "", t.tut_card3_title, t.tut_card3_desc, " Ouvrir le Simulateur NAS", || tour_state.jump_to(8));
+            render_card(ui, card_w, "", t.tut_card3_title, t.tut_card3_desc, if is_fr { " Ouvrir le Simulateur NAS" } else { " Open NAS Simulator" }, || tour_state.jump_to(8));
             ui.add_space(12.0);
-            render_card(ui, card_w, "", t.tut_card4_title, t.tut_card4_desc, " Inspecter les Benchmarks", || tour_state.jump_to(5));
+            render_card(ui, card_w, "", t.tut_card4_title, t.tut_card4_desc, if is_fr { " Inspecter les Benchmarks" } else { " Inspect Benchmarks" }, || tour_state.jump_to(5));
         });
     }
 }

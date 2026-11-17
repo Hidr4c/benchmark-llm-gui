@@ -102,12 +102,12 @@ pub fn render_comparator_view(
 
             // 4. Machine Fitness Recommendation Box (Directly under model cards!)
             if let (Some(met1), Some(met2)) = (&m1_metrics, &m2_metrics) {
-                render_machine_fitness_box(ui, met1, met2, &state.rig);
+                render_machine_fitness_box(ui, met1, met2, &state.rig, lang);
                 ui.add_space(6.0);
             }
 
             // 5. Thematic Dual Bars (Barres Superposées - Perfectly Aligned)
-            render_thematic_dual_bars(ui, p1, p2, &state.rig);
+            render_thematic_dual_bars(ui, p1, p2, &state.rig, lang);
 
             // 6. Return Button at the Bottom
             ui.add_space(14.0);
@@ -142,18 +142,18 @@ fn render_header_and_hardware(
     let t = lang.t();
     let header_resp = ui.horizontal(|ui| {
         let top_back = egui::Button::new(
-            egui::RichText::new("<- Retour").strong().color(ThemeTokens::CYAN_EDGE).size(12.0)
+            egui::RichText::new(if lang == Language::French { "<- Retour" } else { "<- Back" }).strong().color(ThemeTokens::CYAN_EDGE).size(12.0)
         )
         .fill(egui::Color32::from_rgb(18, 28, 44))
         .stroke(egui::Stroke::new(1.0, ThemeTokens::CYAN_EDGE))
         .rounding(6.0);
 
-        if ui.add(top_back).on_hover_text("Revenir au classement des modeles").clicked() {
+        if ui.add(top_back).on_hover_text(if lang == Language::French { "Revenir au classement des modeles" } else { "Return to models leaderboard" }).clicked() {
             *active_tab = AppTab::Table;
         }
 
         ui.heading(
-            egui::RichText::new("Comparateur Materiel Face-a-Face (2 Modeles)")
+            egui::RichText::new(if lang == Language::French { "Comparateur Materiel Face-a-Face (2 Modeles)" } else { "Side-by-Side Hardware Comparator (2 Models)" })
                 .color(ThemeTokens::PRIMARY)
                 .size(16.0)
                 .strong(),
@@ -162,7 +162,7 @@ fn render_header_and_hardware(
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             if let Some(hw) = detected_hw {
                 let btn = egui::Button::new(
-                    egui::RichText::new("Mon PC Detecte").strong().color(ThemeTokens::CYAN_EDGE),
+                    egui::RichText::new(if lang == Language::French { "Mon PC Detecte" } else { "My Detected PC" }).strong().color(ThemeTokens::CYAN_EDGE),
                 );
                 if ui.add(btn).clicked() {
                     apply_detected_to_rig(&mut state.rig, hw);

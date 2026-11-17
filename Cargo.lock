@@ -439,7 +439,7 @@ checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 
 [[package]]
 name = "benchmark-llm-gui"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -447,6 +447,7 @@ dependencies = [
  "eframe",
  "egui_extras",
  "egui_plot",
+ "image",
  "open",
  "regex",
  "reqwest",

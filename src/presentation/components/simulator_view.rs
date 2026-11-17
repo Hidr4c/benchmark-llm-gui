@@ -49,7 +49,7 @@ pub fn render_simulator_view(
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     // 1. Hardware Target Selector (Identical 3 categories)
-                    ui.label(egui::RichText::new("Matériel Cible :").strong().color(ThemeTokens::CYAN_EDGE));
+                    ui.label(egui::RichText::new(if lang == Language::French { "Matériel Cible :" } else { "Target Hardware:" }).strong().color(ThemeTokens::CYAN_EDGE));
                     egui::ComboBox::from_id_salt("sim_hw_platform_dropdown")
                         .selected_text(egui::RichText::new(config.platform.label()).strong().color(ThemeTokens::GOLD_5090))
                         .width(280.0)
@@ -97,9 +97,9 @@ pub fn render_simulator_view(
                     ui.add_space(10.0);
 
                     // 2. Storage / Bundle Size Limit Selector
-                    ui.label(egui::RichText::new("Taille Disque / Bundle Max :").strong().color(ThemeTokens::TEXT_PRIMARY));
+                    ui.label(egui::RichText::new(if lang == Language::French { "Taille Disque / Bundle Max :" } else { "Max Storage / Bundle Size:" }).strong().color(ThemeTokens::TEXT_PRIMARY));
                     let storage_lbl = match config.max_storage_gb {
-                        None => "Illimité (Tous modèles)",
+                        None => if lang == Language::French { "Illimité (Tous modèles)" } else { "Unlimited (All models)" },
                         Some(s) if s <= 0.6 => "500 Mo (Micro App / IoT)",
                         Some(s) if s <= 1.2 => "1.0 Go (App Mobile / Chatbot)",
                         Some(s) if s <= 2.2 => "2.0 Go (App Mobile Pro)",
@@ -112,14 +112,11 @@ pub fn render_simulator_view(
                         .selected_text(egui::RichText::new(storage_lbl).strong())
                         .width(220.0)
                         .show_ui(ui, |ui| {
-                            if ui.selectable_label(config.max_storage_gb.is_none(), "Illimité (Tous modèles)").clicked() { config.max_storage_gb = None; }
-                            if ui.selectable_label(config.max_storage_gb == Some(0.5), "500 Mo (Micro App / IoT)").clicked() { config.max_storage_gb = Some(0.5); }
-                            if ui.selectable_label(config.max_storage_gb == Some(1.0), "1.0 Go (App Mobile / Chatbot)").clicked() { config.max_storage_gb = Some(1.0); }
-                            if ui.selectable_label(config.max_storage_gb == Some(2.0), "2.0 Go (App Mobile Pro)").clicked() { config.max_storage_gb = Some(2.0); }
-                            if ui.selectable_label(config.max_storage_gb == Some(4.0), "4.0 Go (Standard PC / NAS)").clicked() { config.max_storage_gb = Some(4.0); }
-                            if ui.selectable_label(config.max_storage_gb == Some(8.0), "8.0 Go (Modèles 7B-8B)").clicked() { config.max_storage_gb = Some(8.0); }
-                            if ui.selectable_label(config.max_storage_gb == Some(16.0), "16.0 Go (Modèles 14B-30B)").clicked() { config.max_storage_gb = Some(16.0); }
-                            if ui.selectable_label(config.max_storage_gb == Some(32.0), "32.0 Go (Gros Modèles)").clicked() { config.max_storage_gb = Some(32.0); }
+                            let unlim_str = if lang == Language::French { "Illimité (Tous modèles)" } else { "Unlimited (All models)" };
+                            let opts = [(None, unlim_str), (Some(0.5), "500 MB (Micro App / IoT)"), (Some(1.0), "1.0 GB (Mobile / Chatbot)"), (Some(2.0), "2.0 GB (Mobile Pro)"), (Some(4.0), "4.0 GB (Standard PC / NAS)"), (Some(8.0), "8.0 GB (Models 7B-8B)"), (Some(16.0), "16.0 GB (Models 14B-30B)"), (Some(32.0), "32.0 GB (Large Models)")];
+                            for (val, lbl) in opts {
+                                if ui.selectable_label(config.max_storage_gb == val, lbl).clicked() { config.max_storage_gb = val; }
+                            }
                         });
                 });
 
@@ -152,34 +149,34 @@ pub fn render_simulator_view(
 
         // --- 3. Visual 4-Card KPI Dashboard (Responsive 2x2 on narrow windows) ---
         let speed_color = if sim.projected_speed_tps >= 35.0 { ThemeTokens::SUCCESS } else if sim.projected_speed_tps >= 15.0 { ThemeTokens::GOLD_5090 } else { ThemeTokens::DANGER };
-        let speed_level = if sim.projected_speed_tps >= 50.0 { "Très Fluide" } else if sim.projected_speed_tps >= 20.0 { "Interactif" } else { "Lent (Offload)" };
+        let is_fr = lang == Language::French;
+        let speed_level = if is_fr { if sim.projected_speed_tps >= 50.0 { "Très Fluide" } else if sim.projected_speed_tps >= 20.0 { "Interactif" } else { "Lent (Offload)" } } else { if sim.projected_speed_tps >= 50.0 { "Very Fast" } else if sim.projected_speed_tps >= 20.0 { "Interactive" } else { "Slow (Offload)" } };
         let oom_color = if sim.stability_percent >= 80.0 { ThemeTokens::SUCCESS } else if sim.stability_percent >= 50.0 { ThemeTokens::GOLD_5090 } else { ThemeTokens::DANGER };
-        let oom_verdict = if sim.stability_percent >= 80.0 { "Stable & Fluide" } else if sim.stability_percent >= 50.0 { "Marge Restreinte" } else { "Risque OOM !" };
+        let oom_verdict = if is_fr { if sim.stability_percent >= 80.0 { "Stable & Fluide" } else if sim.stability_percent >= 50.0 { "Marge Restreinte" } else { "Risque OOM !" } } else { if sim.stability_percent >= 80.0 { "Stable & Smooth" } else if sim.stability_percent >= 50.0 { "Tight Margin" } else { "OOM Risk!" } };
+        let unit_gb = if is_fr { "Go" } else { "GB" };
+        let c0_title = if is_fr { "[VRAM] MEMOIRE ALLOUEE" } else { "[VRAM] ALLOCATED MEMORY" };
+        let c0_val = format!("{:.1} {}", sim.usable_vram_gb, unit_gb);
+        let c0_desc = if is_fr { format!("RAM : {:.1} Go | IA Total : {:.1} Go", sim.usable_ram_gb, sim.total_ai_capacity_gb) } else { format!("RAM: {:.1} GB | AI Total: {:.1} GB", sim.usable_ram_gb, sim.total_ai_capacity_gb) };
+        let c1_title = if is_fr { "[~] DEBIT INFERENCE" } else { "[~] INFERENCE SPEED" };
+        let c1_val = format!("{:.0} tok/s", sim.projected_speed_tps);
+        let c1_desc = if is_fr { format!("{} | Bandwidth : {:.0} Go/s", speed_level, sim.effective_bandwidth_gbps) } else { format!("{} | Bandwidth: {:.0} GB/s", speed_level, sim.effective_bandwidth_gbps) };
+        let c2_title = if is_fr { " STABILITE / RISQUE OOM" } else { " STABILITY / OOM RISK" };
+        let c2_val = format!("{:.0}%", sim.stability_percent);
+        let c2_desc = if is_fr { format!("{} (Marge: {:.1} Go)", oom_verdict, sim.ram_headroom_gb) } else { format!("{} (Headroom: {:.1} GB)", oom_verdict, sim.ram_headroom_gb) };
+        let c3_title = if is_fr { " ECONOMIE VS CLOUD" } else { " SAVINGS VS CLOUD" };
+        let c3_val = format!("-{:.1}%", sim.savings_percent);
+        let c3_desc = if is_fr { format!("{:.3} € local vs {:.2} € Cloud", sim.cost_per_100_tasks_local_eur, sim.cost_per_100_tasks_cloud_eur) } else { format!("${:.3} local vs ${:.2} Cloud", sim.cost_per_100_tasks_local_eur, sim.cost_per_100_tasks_cloud_eur) };
 
         let avail_w = ui.available_width();
-        if avail_w < 960.0 {
-            ui.columns(2, |cols| {
-                render_card(&mut cols[0], "[VRAM] MEMOIRE ALLOUEE", &format!("{:.1} Go", sim.usable_vram_gb), &format!("RAM : {:.1} Go | IA Total : {:.1} Go", sim.usable_ram_gb, sim.total_ai_capacity_gb), ThemeTokens::TEXT_PRIMARY);
-                render_card(&mut cols[1], "[~] DEBIT INFERENCE", &format!("{:.0} tok/s", sim.projected_speed_tps), &format!("{} | Bandwidth : {:.0} Go/s", speed_level, sim.effective_bandwidth_gbps), speed_color);
+        let num_cols = if avail_w < 960.0 { 2 } else { 4 };
+        let cards = [(c0_title, &c0_val, &c0_desc, ThemeTokens::TEXT_PRIMARY), (c1_title, &c1_val, &c1_desc, speed_color), (c2_title, &c2_val, &c2_desc, oom_color), (c3_title, &c3_val, &c3_desc, ThemeTokens::SUCCESS)];
+        for chunk in cards.chunks(num_cols) {
+            ui.columns(chunk.len(), |cols| {
+                for (i, (t, v, d, c)) in chunk.iter().enumerate() { render_card(&mut cols[i], t, v, d, *c); }
             });
             ui.add_space(6.0);
-            ui.columns(2, |cols| {
-                render_card(&mut cols[0], " STABILITE / RISQUE OOM", &format!("{:.0}%", sim.stability_percent), &format!("{} (Marge: {:.1} Go)", oom_verdict, sim.ram_headroom_gb), oom_color);
-                render_card(&mut cols[1], " ECONOMIE VS CLOUD", &format!("-{:.1}%", sim.savings_percent), &format!("{:.3} € local vs {:.2} € Cloud", sim.cost_per_100_tasks_local_eur, sim.cost_per_100_tasks_cloud_eur), ThemeTokens::SUCCESS);
-            });
-        } else {
-            ui.columns(4, |cols| {
-                render_card(&mut cols[0], "[VRAM] MEMOIRE ALLOUEE", &format!("{:.1} Go", sim.usable_vram_gb), &format!("RAM : {:.1} Go | IA Total : {:.1} Go", sim.usable_ram_gb, sim.total_ai_capacity_gb), ThemeTokens::TEXT_PRIMARY);
-                render_card(&mut cols[1], "[~] DEBIT INFERENCE", &format!("{:.0} tok/s", sim.projected_speed_tps), &format!("{} | Bandwidth : {:.0} Go/s", speed_level, sim.effective_bandwidth_gbps), speed_color);
-                render_card(&mut cols[2], " STABILITE / RISQUE OOM", &format!("{:.0}%", sim.stability_percent), &format!("{} (Marge: {:.1} Go)", oom_verdict, sim.ram_headroom_gb), oom_color);
-                render_card(&mut cols[3], " ECONOMIE VS CLOUD", &format!("-{:.1}%", sim.savings_percent), &format!("{:.3} € local vs {:.2} € Cloud", sim.cost_per_100_tasks_local_eur, sim.cost_per_100_tasks_cloud_eur), ThemeTokens::SUCCESS);
-            });
         }
-
-        ui.add_space(12.0);
-
-        // --- 4. Recommended Models (Responsive Grid) ---
-        render_recommended_models_grid(ui, config, &sim, all_models, filters, selected_model_id, t);
+        render_recommended_models_grid(ui, config, &sim, all_models, filters, selected_model_id, t, is_fr);
     });
 }
 
@@ -212,13 +209,14 @@ fn render_recommended_models_grid(
     filters: &FilterState,
     selected_model_id: &mut Option<String>,
     t: &crate::presentation::i18n::Translations,
+    is_fr: bool,
 ) {
     ui.horizontal(|ui| {
         ui.label(egui::RichText::new(t.sim_rec_models_title).strong().color(ThemeTokens::GOLD_5090).size(14.0));
         let cap_txt = if let Some(max_s) = config.max_storage_gb {
-            format!("(VRAM <= {:.1} Go, Disque <= {:.1} Go)", sim.total_ai_capacity_gb, max_s)
+            if is_fr { format!("(VRAM <= {:.1} Go, Disque <= {:.1} Go)", sim.total_ai_capacity_gb, max_s) } else { format!("(VRAM <= {:.1} GB, Storage <= {:.1} GB)", sim.total_ai_capacity_gb, max_s) }
         } else {
-            format!("(VRAM <= {:.1} Go)", sim.total_ai_capacity_gb)
+            if is_fr { format!("(VRAM <= {:.1} Go)", sim.total_ai_capacity_gb) } else { format!("(VRAM <= {:.1} GB)", sim.total_ai_capacity_gb) }
         };
         ui.label(egui::RichText::new(cap_txt).color(ThemeTokens::TEXT_MUTED));
     });
@@ -263,13 +261,17 @@ fn render_recommended_models_grid(
                         ui.label(egui::RichText::new(&m.name).strong().size(13.0).color(ThemeTokens::TEXT_PRIMARY));
                         ui.add_space(2.0);
                         ui.label(egui::RichText::new(format!(" Score : {:.1} pts", sc)).strong().color(ThemeTokens::GOLD_5090));
-                        ui.label(egui::RichText::new(format!("[VRAM] VRAM : {:.1} Go", m.vram_rec_gb)).color(ThemeTokens::CYAN_EDGE));
-                        ui.label(egui::RichText::new(format!(" Disque : {:.1} Go", m.size_gb)).color(ThemeTokens::TEXT_MUTED));
+                        let unit_gb = if is_fr { "Go" } else { "GB" };
+                        ui.label(egui::RichText::new(format!("[VRAM] VRAM : {:.1} {}", m.vram_rec_gb, unit_gb)).color(ThemeTokens::CYAN_EDGE));
+                        let store_lbl = if is_fr { "Disque" } else { "Storage" };
+                        ui.label(egui::RichText::new(format!(" {} : {:.1} {}", store_lbl, m.size_gb, unit_gb)).color(ThemeTokens::TEXT_MUTED));
                         if let Some(tps) = m.tokens_per_sec {
-                            ui.label(egui::RichText::new(format!(" Débit : {:.0} tok/s", tps)).color(ThemeTokens::SUCCESS));
+                            let speed_lbl = if is_fr { "Débit" } else { "Speed" };
+                            ui.label(egui::RichText::new(format!(" {} : {:.0} tok/s", speed_lbl, tps)).color(ThemeTokens::SUCCESS));
                         }
                         ui.add_space(4.0);
-                        if ui.button(egui::RichText::new(" Inspecter").strong()).clicked() {
+                        let inspect_lbl = if is_fr { " Inspecter" } else { " Inspect" };
+                        if ui.button(egui::RichText::new(inspect_lbl).strong()).clicked() {
                             *selected_model_id = Some(m.id.clone());
                         }
                     });

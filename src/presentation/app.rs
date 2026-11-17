@@ -114,6 +114,18 @@ impl BenchmarkApp {
             self.status_message = Some(("CSV export successful ('benchmarks_export.csv')!".into(), false));
         }
     }
+
+    pub fn set_active_tab(&mut self, tab: AppTab) {
+        self.active_tab = tab;
+    }
+
+    pub fn set_comparator_slots(&mut self, slot0: Option<String>, slot1: Option<String>) {
+        self.comp_state.slots = [slot0, slot1];
+    }
+
+    pub fn all_models(&self) -> &[ModelBenchmark] {
+        &self.all_models
+    }
 }
 
 impl eframe::App for BenchmarkApp {

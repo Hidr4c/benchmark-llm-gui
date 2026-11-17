@@ -1,6 +1,6 @@
 [package]
 name = "benchmark-llm-gui"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2024"
 
 [dependencies]
@@ -17,3 +17,6 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 async-trait = "0.1"
 regex = "1.11"
+
+[dev-dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }
