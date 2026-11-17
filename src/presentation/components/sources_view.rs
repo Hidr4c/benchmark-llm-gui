@@ -20,9 +20,13 @@ pub fn render_sources_view(ui: &mut egui::Ui, lang: Language) {
         ui.add_space(12.0);
 
         let categories = [
+            SourceCategory::MultimodalMedia,
+            SourceCategory::CodingHarnesses,
+            SourceCategory::LocalRuntimes,
             SourceCategory::AcademicGeneral,
             SourceCategory::CodingDevelopment,
             SourceCategory::AgenticTools,
+            SourceCategory::RealWorldEconomic,
             SourceCategory::HardwareSpeed,
             SourceCategory::CommunityLibrary,
             SourceCategory::CloudProprietary,

@@ -262,3 +262,36 @@ fn test_preferences_sanitize_inactive_filters() {
     assert_eq!(prefs.column_filters[&TableColumnId::CloudPrice].operator, FilterOperator::Contains);
     assert_eq!(prefs.column_filters[&TableColumnId::Score].operator, FilterOperator::GreaterEqual);
 }
+
+#[test]
+fn test_confidence_column_filtering_and_sorting() {
+    use benchmark_llm_gui::domain::model::SortField;
+    let mut prefs = TablePreferences::default();
+    assert!(prefs.is_visible(TableColumnId::Confidence));
+
+    // Verify sanitize inserts Confidence right after Score for legacy saved DB layouts
+    prefs.column_order.retain(|c| *c != TableColumnId::Confidence);
+    prefs.sanitize();
+    let score_idx = prefs.column_order.iter().position(|c| *c == TableColumnId::Score).unwrap();
+    assert_eq!(prefs.column_order[score_idx + 1], TableColumnId::Confidence);
+
+    let high_m = ModelBenchmark {
+        id: "ok".into(), name: "Reliable".into(),
+        scores: BenchmarkScores { open_llm: Some(80.0), coding: Some(82.0), agentic: Some(79.0), real_world: Some(78.0), ..Default::default() },
+        ..Default::default()
+    };
+    let low_m = ModelBenchmark {
+        id: "low".into(), name: "SingleSrc".into(),
+        scores: BenchmarkScores { open_llm: Some(90.0), ..Default::default() },
+        ..Default::default()
+    };
+
+    prefs.column_filters.insert(TableColumnId::Confidence, ColumnFilter::new(FilterOperator::Contains, "OK"));
+    assert!(prefs.matches_model(&high_m, "#1"));
+    assert!(!prefs.matches_model(&low_m, "#2"));
+
+    let mut filters = FilterState::default();
+    filters.sort_field = SortField::Confidence;
+    let sorted = FilterService::compute_filtered_indices(&[low_m, high_m], &filters);
+    assert_eq!(sorted, vec![1, 0]);
+}

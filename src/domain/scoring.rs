@@ -73,6 +73,7 @@ impl ScoringEngine {
     pub const WEIGHT_CODE: f32 = 1.5;
     pub const WEIGHT_REAL_WORLD: f32 = 1.3;
     pub const WEIGHT_MMLU: f32 = 1.2;
+    pub const WEIGHT_MEDIA: f32 = 1.1;
     pub const WEIGHT_AGENT: f32 = 1.0;
     pub const WEIGHT_GENERAL: f32 = 0.8;
 
@@ -120,9 +121,10 @@ impl ScoringEngine {
         let has_code = scores.coding.is_some();
         let has_agent = scores.agentic.is_some();
         let has_real_world = scores.real_world.is_some();
+        let has_media_bench = scores.image_bench.is_some() || scores.video_bench.is_some() || scores.audio_bench.is_some();
         let has_academic = scores.mmlu_pro.is_some() || scores.open_llm.is_some() || scores.average.is_some();
 
-        let practical_sources = (has_code as usize) + (has_agent as usize) + (has_real_world as usize);
+        let practical_sources = (has_code as usize) + (has_agent as usize) + (has_real_world as usize) + (has_media_bench as usize);
 
         if practical_sources >= 2 {
             (1.0, ScoreConfidence::High)
@@ -152,8 +154,22 @@ impl ScoringEngine {
         if sel.open_llm {
             if let Some(m) = scores.mmlu_pro {
                 items.push((m, Self::WEIGHT_MMLU, "MMLU"));
-            } else if let Some(g) = scores.open_llm.or(scores.average) {
+            } else if let Some(g) = scores.open_llm {
                 items.push((g, Self::WEIGHT_GENERAL, "General"));
+            }
+            if let Some(v) = scores.video_bench {
+                items.push((v, Self::WEIGHT_MEDIA, "VideoBench"));
+            }
+            if let Some(img) = scores.image_bench {
+                items.push((img, Self::WEIGHT_MEDIA, "ImageBench"));
+            }
+            if let Some(aud) = scores.audio_bench {
+                items.push((aud, Self::WEIGHT_MEDIA, "AudioBench"));
+            }
+            if items.is_empty() {
+                if let Some(avg) = scores.average {
+                    items.push((avg, Self::WEIGHT_GENERAL, "Adoption"));
+                }
             }
         }
         if sel.agentic {
@@ -178,6 +194,9 @@ impl ScoringEngine {
 
         let (coverage_factor, coverage_confidence) = Self::compute_source_coverage_factor(scores, is_cloud);
         let weighted_median = Self::weighted_median(&items);
+        if !weighted_median.is_finite() {
+            return None;
+        }
 
         // Apply quantization factor, generational time decay, and source coverage confidence
         let adjusted = weighted_median * quant_factor * time_factor * coverage_factor;
@@ -222,7 +241,7 @@ impl ScoringEngine {
         }
 
         let mut sorted = items.to_vec();
-        sorted.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+        sorted.sort_by(|a, b| a.0.total_cmp(&b.0));
 
         let total_weight: f32 = sorted.iter().map(|(_, w, _)| *w).sum();
         let half_weight = total_weight / 2.0;

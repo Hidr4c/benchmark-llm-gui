@@ -11,6 +11,8 @@ pub enum AppTab {
     Graph,
     Comparator,
     Simulator,
+    Harnesses,
+    Runtimes,
     Sources,
     Tutorial,
 }
@@ -18,23 +20,29 @@ pub enum AppTab {
 impl AppTab {
     pub fn label(&self, lang: Language) -> &'static str {
         let t = lang.t();
+        let eco = lang.eco();
         match self {
             Self::Table => t.tab_table,
             Self::Graph => t.tab_graph,
             Self::Comparator => t.tab_comparator,
             Self::Simulator => t.tab_simulator,
+            Self::Harnesses => eco.tab_harnesses,
+            Self::Runtimes => eco.tab_runtimes,
             Self::Sources => t.tab_sources,
             Self::Tutorial => t.tab_tutorial,
         }
     }
 
     pub fn short_label(&self, lang: Language) -> &'static str {
+        let eco = lang.eco();
         match lang {
             Language::French => match self {
                 Self::Table => "Classement",
                 Self::Graph => "Graphique Pareto",
                 Self::Comparator => "Comparateur VS",
                 Self::Simulator => "Simulateur",
+                Self::Harnesses => eco.tab_harnesses_short,
+                Self::Runtimes => eco.tab_runtimes_short,
                 Self::Sources => "Sources",
                 Self::Tutorial => "Guide IA",
             },
@@ -43,6 +51,8 @@ impl AppTab {
                 Self::Graph => "Pareto Chart",
                 Self::Comparator => "VS Comparator",
                 Self::Simulator => "Simulator",
+                Self::Harnesses => eco.tab_harnesses_short,
+                Self::Runtimes => eco.tab_runtimes_short,
                 Self::Sources => "Sources",
                 Self::Tutorial => "AI Guide",
             },
@@ -117,6 +127,8 @@ pub fn render_top_header(
                     AppTab::Graph,
                     AppTab::Comparator,
                     AppTab::Simulator,
+                    AppTab::Harnesses,
+                    AppTab::Runtimes,
                     AppTab::Sources,
                     AppTab::Tutorial,
                 ];

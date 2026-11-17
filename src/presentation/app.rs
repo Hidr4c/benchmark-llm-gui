@@ -11,13 +11,16 @@ use crate::presentation::components::comparator_view::{render_comparator_view, C
 use crate::presentation::components::detail_view::render_detail_panel;
 use crate::presentation::components::filter_bar::{render_filter_bar, FilterState};
 use crate::presentation::components::graph_view::{render_graph_view, GraphViewState};
+use crate::presentation::components::harnesses_view::render_harnesses_view;
 use crate::presentation::components::issue_reporter_modal::{render_contact_modal, render_sync_error_modal};
+use crate::presentation::components::runtimes_view::render_runtimes_view;
 use crate::presentation::components::simulator_view::render_simulator_view;
 use crate::presentation::components::sources_view::render_sources_view;
 use crate::presentation::components::table_view::render_table;
 use crate::presentation::components::top_bar::{render_top_header, AppTab};
 use crate::presentation::components::tour_overlay::{render_tour_overlay, TourState};
 use crate::presentation::components::tutorial_view::render_tutorial_view;
+use crate::presentation::ecosystem_state::EcosystemState;
 use crate::presentation::filtering::FilterService;
 use crate::presentation::i18n::Language;
 use crate::presentation::updater_state::UpdaterState;
@@ -37,6 +40,7 @@ pub struct BenchmarkApp {
     comp_state: ComparatorState,
     graph_state: GraphViewState,
     tour_state: TourState,
+    ecosystem: EcosystemState,
     is_syncing: bool,
     status_message: Option<(String, bool)>,
     sync_sender: Sender<Result<Vec<ModelBenchmark>, String>>,
@@ -60,7 +64,8 @@ impl BenchmarkApp {
 
         let mut filters = FilterState::default();
         if let Ok(pref_repo) = crate::infrastructure::preferences::SqlitePreferencesRepository::open("benchmark.db") {
-            if let Ok(Some(prefs)) = pref_repo.load_table_preferences() {
+            if let Ok(Some(mut prefs)) = pref_repo.load_table_preferences() {
+                prefs.sanitize();
                 filters.sort_field = prefs.sort_field;
                 filters.sort_order = prefs.sort_order;
                 filters.table_prefs = prefs;
@@ -75,7 +80,8 @@ impl BenchmarkApp {
             sim_config: HardwareRigConfig::default(), snapshots, selected_snapshot_id: selected_id,
             all_models: models, filters, selected_model_id: None, active_tab: AppTab::Table,
             comp_state: ComparatorState::default(), graph_state: GraphViewState::default(),
-            tour_state: TourState::default(), is_syncing: false, status_message: initial_msg,
+            tour_state: TourState::default(), ecosystem: EcosystemState::load_or_empty("benchmark.db"),
+            is_syncing: false, status_message: initial_msg,
             sync_sender: tx, sync_receiver: rx, zoom_factor: 1.0, language: Language::French,
             updater: UpdaterState::new(Arc::new(GitHubReleaseAdapter::new("Hidr4c", "benchmark-llm-gui"))),
             sync_error_dialog: None, contact_dialog_open: false, last_saved_prefs,
@@ -84,6 +90,8 @@ impl BenchmarkApp {
 
     pub fn trigger_live_sync(&mut self, ctx: egui::Context) {
         if self.is_syncing { return; }
+        self.updater.trigger_background_check(ctx.clone());
+        self.ecosystem.spawn_sync(ctx.clone());
         self.is_syncing = true;
         self.status_message = Some(("Synchronizing with Hugging Face, Benchmarks & LiteLLM...".into(), false));
         let tx = self.sync_sender.clone();
@@ -131,7 +139,15 @@ impl BenchmarkApp {
 impl eframe::App for BenchmarkApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.set_zoom_factor(self.zoom_factor);
+        self.updater.ensure_startup_check(ctx.clone());
         self.updater.poll();
+        if let Some(eco_res) = self.ecosystem.poll() {
+            match eco_res {
+                Ok(msg) if !self.is_syncing => self.status_message = Some((msg, false)),
+                Err(e) if !self.is_syncing => self.status_message = Some((e, true)),
+                _ => {}
+            }
+        }
 
         if let Ok(result) = self.sync_receiver.try_recv() {
             self.is_syncing = false;
@@ -168,7 +184,8 @@ impl eframe::App for BenchmarkApp {
             );
             if self.active_tab == AppTab::Table || self.active_tab == AppTab::Graph {
                 ui.add_space(2.0); ui.separator(); ui.add_space(2.0);
-                render_filter_bar(ui, &mut self.filters, total_count, matching_count, &mut trigger_auto_detect, &mut trigger_export, self.language);
+                let available_families = FilterService::extract_unique_families(&self.all_models);
+                render_filter_bar(ui, &mut self.filters, &available_families, total_count, matching_count, &mut trigger_auto_detect, &mut trigger_export, self.language);
             }
             ui.add_space(3.0);
         });
@@ -220,7 +237,8 @@ impl eframe::App for BenchmarkApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let t = self.language.t();
-            if self.all_models.is_empty() && !self.is_syncing && self.active_tab != AppTab::Sources && self.active_tab != AppTab::Tutorial {
+            let allow_empty = matches!(self.active_tab, AppTab::Sources | AppTab::Tutorial | AppTab::Harnesses | AppTab::Runtimes);
+            if self.all_models.is_empty() && !self.is_syncing && !allow_empty {
                 ui.vertical_centered(|ui| {
                     ui.add_space(60.0); ui.heading("LLM Benchmark Explorer"); ui.add_space(10.0);
                     ui.label(t.no_matching_models); ui.add_space(15.0);
@@ -244,6 +262,16 @@ impl eframe::App for BenchmarkApp {
                     AppTab::Simulator => {
                         egui::ScrollArea::vertical().show(ui, |ui| render_simulator_view(ui, &mut self.sim_config, self.detected_hardware.as_ref(), &self.all_models, &self.filters, &mut self.selected_model_id, self.language));
                         self.tour_state.check_and_update_sim_progress(&self.sim_config);
+                    }
+                    AppTab::Harnesses => {
+                        let mut sync_req = false;
+                        render_harnesses_view(ui, &self.ecosystem.harnesses, self.ecosystem.is_syncing, &mut sync_req, self.language);
+                        if sync_req { self.ecosystem.spawn_sync(ctx.clone()); }
+                    }
+                    AppTab::Runtimes => {
+                        let mut sync_req = false;
+                        render_runtimes_view(ui, &self.ecosystem.runtimes, self.ecosystem.is_syncing, &mut sync_req, self.language);
+                        if sync_req { self.ecosystem.spawn_sync(ctx.clone()); }
                     }
                     AppTab::Sources => render_sources_view(ui, self.language),
                     AppTab::Tutorial => render_tutorial_view(ui, &mut self.tour_state, &mut self.active_tab, &mut self.filters, self.language),

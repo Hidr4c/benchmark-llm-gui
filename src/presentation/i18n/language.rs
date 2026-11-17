@@ -19,6 +19,7 @@ use super::sub_translations_issue::{
     ContactTranslations, SyncErrorTranslations,
     EN_CONTACT, EN_SYNC_ERROR, FR_CONTACT, FR_SYNC_ERROR,
 };
+use super::sub_translations_ecosystem::{EcosystemTranslations, EN_ECOSYSTEM, FR_ECOSYSTEM};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Language {
@@ -113,6 +114,13 @@ impl Language {
         match self {
             Self::French => &FR_CONTACT,
             Self::English => &EN_CONTACT,
+        }
+    }
+
+    pub fn eco(&self) -> &'static EcosystemTranslations {
+        match self {
+            Self::French => &FR_ECOSYSTEM,
+            Self::English => &EN_ECOSYSTEM,
         }
     }
 }

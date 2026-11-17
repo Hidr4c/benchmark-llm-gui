@@ -68,7 +68,7 @@ impl ModelLicense {
     }
 
     pub fn detect(id: &str, provider: Option<&str>, is_cloud: bool) -> Self {
-        if is_cloud || provider.is_some_and(|p| p == "OpenAI" || p == "Anthropic" || p == "Google") {
+        if is_cloud || provider.is_some_and(|p| p.eq_ignore_ascii_case("openai") || p.eq_ignore_ascii_case("anthropic") || p.eq_ignore_ascii_case("google")) {
             return Self::ProprietaryCloud;
         }
 

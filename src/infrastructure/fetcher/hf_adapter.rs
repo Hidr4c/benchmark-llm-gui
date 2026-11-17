@@ -1,16 +1,24 @@
 use std::collections::HashSet;
 use serde::Deserialize;
 
-const HF_TOP_URL: &str = "https://huggingface.co/api/models?filter=gguf&sort=downloads&direction=-1&limit=150";
-const HF_MISTRAL_URL: &str = "https://huggingface.co/api/models?search=mistral&filter=gguf&sort=downloads&direction=-1&limit=25";
-const HF_DEEPSEEK_URL: &str = "https://huggingface.co/api/models?search=deepseek&filter=gguf&sort=downloads&direction=-1&limit=25";
-const HF_LLAMA_URL: &str = "https://huggingface.co/api/models?search=llama-3&filter=gguf&sort=downloads&direction=-1&limit=25";
-const HF_LIGHTWEIGHT_URL: &str = "https://huggingface.co/api/models?search=smollm2&filter=gguf&limit=20";
-const HF_TINY_URL: &str = "https://huggingface.co/api/models?search=0.5B&filter=gguf&limit=20";
-const HF_GENOMICS_URL: &str = "https://huggingface.co/api/models?search=genomics&filter=gguf&sort=downloads&direction=-1&limit=20";
-const HF_AUDIO_URL: &str = "https://huggingface.co/api/models?search=audio&filter=gguf&sort=downloads&direction=-1&limit=20";
-const HF_3D_URL: &str = "https://huggingface.co/api/models?search=3d&filter=gguf&sort=downloads&direction=-1&limit=20";
-const HF_AGENT_URL: &str = "https://huggingface.co/api/models?search=agent&filter=gguf&sort=downloads&direction=-1&limit=20";
+const HF_ENDPOINTS: [&str; 16] = [
+    "https://huggingface.co/api/models?filter=gguf&sort=downloads&direction=-1&limit=150",
+    "https://huggingface.co/api/models?search=qwen4&sort=downloads&direction=-1&limit=15",
+    "https://huggingface.co/api/models?search=qwen3.8&sort=downloads&direction=-1&limit=15",
+    "https://huggingface.co/api/models?search=qwen3.5&sort=downloads&direction=-1&limit=15",
+    "https://huggingface.co/api/models?search=mistral&filter=gguf&sort=downloads&direction=-1&limit=25",
+    "https://huggingface.co/api/models?search=deepseek&filter=gguf&sort=downloads&direction=-1&limit=25",
+    "https://huggingface.co/api/models?search=llama-3&filter=gguf&sort=downloads&direction=-1&limit=25",
+    "https://huggingface.co/api/models?search=smollm2&filter=gguf&limit=15",
+    "https://huggingface.co/api/models?search=genomics&filter=gguf&sort=downloads&direction=-1&limit=15",
+    "https://huggingface.co/api/models?author=Comfy-Org&sort=downloads&direction=-1&limit=35",
+    "https://huggingface.co/api/models?pipeline_tag=text-to-image&sort=downloads&direction=-1&limit=25",
+    "https://huggingface.co/api/models?pipeline_tag=text-to-video&sort=downloads&direction=-1&limit=20",
+    "https://huggingface.co/api/models?pipeline_tag=image-to-video&sort=downloads&direction=-1&limit=20",
+    "https://huggingface.co/api/models?pipeline_tag=image-to-3d&sort=downloads&direction=-1&limit=20",
+    "https://huggingface.co/api/models?pipeline_tag=text-to-audio&sort=downloads&direction=-1&limit=15",
+    "https://huggingface.co/api/models?pipeline_tag=text-to-speech&sort=downloads&direction=-1&limit=20",
+];
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct HfModelItem {
@@ -46,43 +54,43 @@ impl HuggingFaceAdapter {
     }
 
     pub async fn fetch_models(&self) -> Result<Vec<HfModelItem>, String> {
-        let (top, mistral, deepseek, llama, light, tiny, genomics, audio, three_d, agent) = tokio::join!(
-            self.fetch_endpoint(HF_TOP_URL),
-            self.fetch_endpoint(HF_MISTRAL_URL),
-            self.fetch_endpoint(HF_DEEPSEEK_URL),
-            self.fetch_endpoint(HF_LLAMA_URL),
-            self.fetch_endpoint(HF_LIGHTWEIGHT_URL),
-            self.fetch_endpoint(HF_TINY_URL),
-            self.fetch_endpoint(HF_GENOMICS_URL),
-            self.fetch_endpoint(HF_AUDIO_URL),
-            self.fetch_endpoint(HF_3D_URL),
-            self.fetch_endpoint(HF_AGENT_URL),
-        );
-
         let mut seen = HashSet::new();
         let mut all = Vec::new();
-
-        for item in top
-            .into_iter()
-            .chain(mistral)
-            .chain(deepseek)
-            .chain(llama)
-            .chain(light)
-            .chain(tiny)
-            .chain(genomics)
-            .chain(audio)
-            .chain(three_d)
-            .chain(agent)
-        {
-            if seen.insert(item.id.clone()) {
-                all.push(item);
+        for url_batch in [
+            tokio::join!(
+                self.fetch_endpoint(HF_ENDPOINTS[0]),
+                self.fetch_endpoint(HF_ENDPOINTS[1]),
+                self.fetch_endpoint(HF_ENDPOINTS[2]),
+                self.fetch_endpoint(HF_ENDPOINTS[3]),
+                self.fetch_endpoint(HF_ENDPOINTS[4]),
+                self.fetch_endpoint(HF_ENDPOINTS[5]),
+                self.fetch_endpoint(HF_ENDPOINTS[6]),
+                self.fetch_endpoint(HF_ENDPOINTS[7]),
+            ),
+            tokio::join!(
+                self.fetch_endpoint(HF_ENDPOINTS[8]),
+                self.fetch_endpoint(HF_ENDPOINTS[9]),
+                self.fetch_endpoint(HF_ENDPOINTS[10]),
+                self.fetch_endpoint(HF_ENDPOINTS[11]),
+                self.fetch_endpoint(HF_ENDPOINTS[12]),
+                self.fetch_endpoint(HF_ENDPOINTS[13]),
+                self.fetch_endpoint(HF_ENDPOINTS[14]),
+                self.fetch_endpoint(HF_ENDPOINTS[15]),
+            ),
+        ] {
+            let lists = [url_batch.0, url_batch.1, url_batch.2, url_batch.3, url_batch.4, url_batch.5, url_batch.6, url_batch.7];
+            for batch in lists {
+                for item in batch {
+                    if seen.insert(item.id.clone()) {
+                        all.push(item);
+                    }
+                }
             }
         }
 
         if all.is_empty() {
-            return Err("No GGUF models retrieved from Hugging Face Hub".into());
+            return Err("No models retrieved from Hugging Face Hub".into());
         }
-
         Ok(all)
     }
 }

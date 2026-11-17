@@ -18,13 +18,15 @@ pub enum SortField {
     RealWorld,
     Coding,
     Agentic,
+    Confidence,
+    Modality,
+    ImageBench,
+    VideoBench,
+    AudioBench,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SortOrder {
-    Ascending,
-    Descending,
-}
+pub enum SortOrder { Ascending, Descending }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceSelection {
@@ -41,19 +43,23 @@ impl Default for SourceSelection {
 }
 
 impl SourceSelection {
+    pub fn dev_agentic() -> Self { Self { open_llm: false, coding: true, agentic: true, real_world: false } }
     pub fn is_all(&self) -> bool { self.open_llm && self.coding && self.agentic && self.real_world }
     pub fn is_open_llm_only(&self) -> bool { self.open_llm && !self.coding && !self.agentic && !self.real_world }
     pub fn is_coding_only(&self) -> bool { !self.open_llm && self.coding && !self.agentic && !self.real_world }
     pub fn is_agentic_only(&self) -> bool { !self.open_llm && !self.coding && self.agentic && !self.real_world }
+    pub fn is_dev_agentic(&self) -> bool { !self.open_llm && self.coding && self.agentic && !self.real_world }
     pub fn is_real_world_only(&self) -> bool { !self.open_llm && !self.coding && !self.agentic && self.real_world }
     pub fn active_count(&self) -> usize { (self.open_llm as usize) + (self.coding as usize) + (self.agentic as usize) + (self.real_world as usize) }
     pub fn label(&self) -> &'static str {
         if self.is_all() {
             "Cross-Referenced Pillars (All)"
+        } else if self.is_dev_agentic() {
+            "Agentic Coding (Code + Tools)"
         } else if self.is_open_llm_only() {
             "General & Academic (Open LLM)"
         } else if self.is_coding_only() {
-            "Code & Dev (SWE-Bench)"
+            "Code & Patching (SWE-Bench)"
         } else if self.is_agentic_only() {
             "Agents & Tool-Calling (BFCL)"
         } else if self.is_real_world_only() {
@@ -77,6 +83,12 @@ pub struct BenchmarkScores {
     pub agentic: Option<f32>,
     pub average: Option<f32>,
     pub real_world: Option<f32>,
+    #[serde(default)]
+    pub image_bench: Option<f32>,
+    #[serde(default)]
+    pub video_bench: Option<f32>,
+    #[serde(default)]
+    pub audio_bench: Option<f32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -200,68 +212,7 @@ impl ModelBenchmark {
     }
 
     pub fn root_model_name(&self) -> String {
-        let lower = self.name.to_lowercase();
-        let fam = &self.family;
-
-        if self.is_cloud {
-            let checks = [
-                ("gpt-6.1-sol", "GPT 6.1 Sol"), ("gpt 6.1 sol", "GPT 6.1 Sol"),
-                ("gpt-6.1", "GPT 6.1"), ("gpt 6.1", "GPT 6.1"),
-                ("gemini-2.0-flash", "Gemini 2.0 Flash"), ("gemini 2.0 flash", "Gemini 2.0 Flash"),
-                ("gemini-1.5-flash", "Gemini 1.5 Flash"), ("gemini-1.5-pro", "Gemini 1.5 Pro"),
-                ("claude-3.5", "Claude 3.5"), ("claude 3.5", "Claude 3.5"),
-                ("gpt-4o", "GPT-4o"), ("deepseek-v3", "DeepSeek V3"), ("deepseek-r1", "DeepSeek R1"),
-            ];
-            for (pat, root) in checks {
-                if lower.contains(pat) { return root.to_string(); }
-            }
-            if lower.contains("o1") && fam == "OpenAI" { return "OpenAI o1".to_string(); }
-            if lower.contains("o3") && fam == "OpenAI" { return "OpenAI o3".to_string(); }
-
-            let base = self.name
-                .trim_end_matches(" Pro").trim_end_matches(" pro")
-                .trim_end_matches(" Mini").trim_end_matches(" mini")
-                .trim_end_matches(" Lite").trim_end_matches(" lite")
-                .trim_end_matches(" Preview").trim_end_matches(" preview")
-                .trim_end_matches(" Thinking").trim_end_matches(" Turbo")
-                .trim_end_matches(" (free)").trim_end_matches(":free").trim();
-            if !base.is_empty() { return base.to_string(); }
-            return self.name.clone();
-        }
-
-        let p_str = if let Some(p) = self.param_count_b {
-            if p < 1.0 { format!("{:.0}M", p * 1000.0) }
-            else if (p.fract() - 0.0).abs() < 0.05 { format!("{:.0}B", p) }
-            else { format!("{:.1}B", p) }
-        } else { "Model".to_string() };
-
-        if lower.contains("deepseek-r1") || (lower.contains("r1") && fam == "DeepSeek") {
-            format!("DeepSeek R1 {p_str}")
-        } else if lower.contains("coder") {
-            format!("{fam} Coder {p_str}")
-        } else if lower.contains("smollm2") {
-            format!("SmolLM2 {p_str}")
-        } else if lower.contains("mistral-small") || lower.contains("mistral small") {
-            format!("Mistral Small {p_str}")
-        } else if lower.contains("ministral") {
-            format!("Ministral {p_str}")
-        } else if lower.contains("llama-3.3") || lower.contains("llama 3.3") {
-            format!("Llama 3.3 {p_str}")
-        } else if lower.contains("llama-3.2") || lower.contains("llama 3.2") {
-            format!("Llama 3.2 {p_str}")
-        } else if lower.contains("llama-3.1") || lower.contains("llama 3.1") {
-            format!("Llama 3.1 {p_str}")
-        } else if lower.contains("qwen3.6") || lower.contains("qwen 3.6") {
-            format!("Qwen 3.6 {p_str}")
-        } else if lower.contains("qwen3.8") || lower.contains("qwen 3.8") {
-            format!("Qwen 3.8 {p_str}")
-        } else if lower.contains("qwen3.5") || lower.contains("qwen 3.5") {
-            format!("Qwen 3.5 {p_str}")
-        } else if lower.contains("qwen2.5") || lower.contains("qwen 2.5") {
-            format!("Qwen 2.5 {p_str}")
-        } else {
-            format!("{fam} {p_str}")
-        }
+        crate::domain::model_naming::compute_root_model_name(self)
     }
 
     pub fn release_year_label(&self) -> String {

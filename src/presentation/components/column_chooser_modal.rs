@@ -13,7 +13,6 @@ pub fn render_column_chooser_modal(
         return;
     }
 
-    let t = lang.t();
     let mut win_open = true;
     let mut should_close = false;
 
@@ -57,7 +56,7 @@ pub fn render_column_chooser_modal(
                                     prefs.toggle_visibility(col);
                                 }
 
-                                let label = column_display_name(col, t);
+                                let label = column_display_name(col, lang);
                                 let col_color = if visible { ThemeTokens::TEXT_PRIMARY } else { ThemeTokens::TEXT_MUTED };
                                 ui.label(egui::RichText::new(label).color(col_color).strong().size(12.0));
 
@@ -112,15 +111,18 @@ pub fn render_column_chooser_modal(
     }
 }
 
-fn column_display_name(col: TableColumnId, t: &'static crate::presentation::i18n::Translations) -> &'static str {
+fn column_display_name(col: TableColumnId, lang: Language) -> &'static str {
+    let t = lang.t();
     match col {
         TableColumnId::Rank => t.col_rank,
         TableColumnId::Model => t.col_model,
+        TableColumnId::Modality => lang.eco().col_modality,
         TableColumnId::Year => t.col_year,
         TableColumnId::TargetHardware => t.col_hardware,
         TableColumnId::Size => t.col_size,
         TableColumnId::Efficiency => t.col_efficiency,
         TableColumnId::Score => t.col_score,
+        TableColumnId::Confidence => lang.eco().col_confidence,
         TableColumnId::RealWorld => t.col_real_world,
         TableColumnId::Speed => t.col_speed,
         TableColumnId::Popularity => t.col_popularity,
@@ -128,6 +130,9 @@ fn column_display_name(col: TableColumnId, t: &'static crate::presentation::i18n
         TableColumnId::SweBench => t.col_swe_bench,
         TableColumnId::Agentic => t.col_agentic,
         TableColumnId::OpenLlm => t.col_open_llm,
+        TableColumnId::ImageBench => lang.eco().col_image_bench,
+        TableColumnId::VideoBench => lang.eco().col_video_bench,
+        TableColumnId::AudioBench => lang.eco().col_audio_bench,
         TableColumnId::Math => t.col_math,
         TableColumnId::Gpqa => t.col_gpqa,
         TableColumnId::Ifeval => t.col_ifeval,

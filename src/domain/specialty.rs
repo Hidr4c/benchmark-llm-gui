@@ -126,7 +126,16 @@ impl DomainSpecialty {
             return Self::GenomicsBio;
         }
 
-        // 3. Visual Editing, Image-to-Image & Retouching
+        // 3. 3D World Models & Physical CAD / Engineering (checked before broad image match for image-to-3d)
+        if modality == crate::domain::modality::ModelModality::ThreeDGen
+            || text_lower.contains("world model") || text_lower.contains("world-model")
+            || text_lower.contains("3d-generation") || text_lower.contains("image-to-3d") || text_lower.contains("mesh")
+            || text_lower.contains("cad") || text_lower.contains("point-cloud") || text_lower.contains("spatial-ai")
+            || tags.iter().any(|t| t == "3d" || t == "world-model" || t == "cad" || t == "spatial") {
+            return Self::WorldModel3D;
+        }
+
+        // 4. Visual Editing, Image-to-Image & Retouching
         if text_lower.contains("retouch") || text_lower.contains("image-to-image")
             || text_lower.contains("inpainting") || text_lower.contains("outpainting") || text_lower.contains("flux")
             || text_lower.contains("diffusion") || text_lower.contains("sdxl") || text_lower.contains("stable-diffusion")
@@ -134,14 +143,6 @@ impl DomainSpecialty {
             || (pipeline_tag.map_or(false, |p| p.contains("image-to-image") || p.contains("text-to-image"))
                 && (text_lower.contains("edit") || text_lower.contains("photo") || text_lower.contains("art"))) {
             return Self::VisionCreative;
-        }
-
-        // 4. 3D World Models & Physical CAD / Engineering
-        if text_lower.contains("world model") || text_lower.contains("world-model")
-            || text_lower.contains("3d-generation") || text_lower.contains("mesh")
-            || text_lower.contains("cad") || text_lower.contains("point-cloud") || text_lower.contains("spatial-ai")
-            || tags.iter().any(|t| t == "3d" || t == "world-model" || t == "cad" || t == "spatial") {
-            return Self::WorldModel3D;
         }
 
         // 5. Voice, Speech-to-Speech & Ultra-Lifelike TTS
@@ -162,8 +163,13 @@ impl DomainSpecialty {
 
         // 7. Modality-based fallback when tags are absent
         match modality {
-            crate::domain::modality::ModelModality::Multimodal | crate::domain::modality::ModelModality::ImageGen => {
+            crate::domain::modality::ModelModality::Multimodal
+            | crate::domain::modality::ModelModality::ImageGen
+            | crate::domain::modality::ModelModality::VideoGen => {
                 return Self::VisionCreative;
+            }
+            crate::domain::modality::ModelModality::ThreeDGen => {
+                return Self::WorldModel3D;
             }
             crate::domain::modality::ModelModality::AudioSpeech => {
                 return Self::VoiceSpeech;

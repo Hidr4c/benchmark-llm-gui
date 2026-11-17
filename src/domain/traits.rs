@@ -29,3 +29,18 @@ pub trait IPreferencesRepository: Send + Sync {
     fn load_table_preferences(&self) -> Result<Option<crate::domain::table_preferences::TablePreferences>, String>;
     fn save_table_preferences(&self, prefs: &crate::domain::table_preferences::TablePreferences) -> Result<(), String>;
 }
+
+/// Inversion of Control Port: Ecosystem Persistence (Coding Harnesses & Local Runtimes)
+pub trait IEcosystemRepository: Send + Sync {
+    fn save_harness_snapshot(&mut self, data: &crate::domain::harness::HarnessSnapshotData) -> Result<(), String>;
+    fn load_latest_harnesses(&self) -> Result<crate::domain::harness::HarnessSnapshotData, String>;
+    fn save_runtimes_snapshot(&mut self, runtimes: &[crate::domain::runtime::LocalRuntimeProfile]) -> Result<(), String>;
+    fn load_latest_runtimes(&self) -> Result<Vec<crate::domain::runtime::LocalRuntimeProfile>, String>;
+}
+
+/// Inversion of Control Port: Ecosystem Network Fetchers
+#[async_trait]
+pub trait IEcosystemFetcher: Send + Sync {
+    async fn fetch_harnesses(&self) -> Result<crate::domain::harness::HarnessSnapshotData, String>;
+    async fn fetch_runtimes(&self) -> Result<Vec<crate::domain::runtime::LocalRuntimeProfile>, String>;
+}

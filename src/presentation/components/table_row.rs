@@ -13,6 +13,7 @@ use crate::presentation::theme::ThemeTokens;
 
 pub fn render_table_row(
     row: &mut TableRow,
+    visible_cols: &[TableColumnId],
     item: &DisplayItem,
     model: &ModelBenchmark,
     is_first_row: bool,
@@ -22,11 +23,7 @@ pub fn render_table_row(
     lang: Language,
 ) {
     row.set_selected(is_selected);
-    let columns = filters.table_prefs.column_order.clone();
-    for col in columns {
-        if !filters.table_prefs.is_visible(col) {
-            continue;
-        }
+    for &col in visible_cols {
         render_cell_by_column(
             row, col, item, model, is_first_row, is_selected, filters, selected_model_id, lang,
         );
@@ -117,31 +114,39 @@ fn render_cell_by_column(
                         ui.label(egui::RichText::new("[!]").color(ThemeTokens::WARNING)).on_hover_text(format!("{title}: {desc}"));
                     }
 
-                    let mod_rgb = model.modality.badge_color_rgb();
-                    ui.label(egui::RichText::new(model.modality.tag_short()).size(9.0).color(egui::Color32::from_rgb(mod_rgb.0, mod_rgb.1, mod_rgb.2)))
-                        .on_hover_text(model.modality.label());
-
-                    let is_redundant_badge = match model.specialty {
-                        crate::domain::specialty::DomainSpecialty::VisionCreative => {
-                            matches!(model.modality, crate::domain::modality::ModelModality::Multimodal | crate::domain::modality::ModelModality::ImageGen)
-                        }
-                        crate::domain::specialty::DomainSpecialty::VoiceSpeech => {
-                            model.modality == crate::domain::modality::ModelModality::AudioSpeech
-                        }
-                        _ => false,
-                    };
-
-                    if model.specialty != crate::domain::specialty::DomainSpecialty::General && !is_redundant_badge {
-                        let (sr, sg, sb) = model.specialty.badge_color_rgb();
-                        let spec_lbl = if lang == Language::French { model.specialty.label_fr() } else { model.specialty.label_en() };
-                        ui.label(egui::RichText::new(model.specialty.badge_text()).size(9.0).color(egui::Color32::from_rgb(sr, sg, sb)).strong())
-                            .on_hover_text(format!("Domaine: {spec_lbl}"));
-                    }
-
                     if model.is_cloud {
                         ui.label(egui::RichText::new("CLOUD").size(9.0).color(egui::Color32::from_rgb(175, 110, 245)));
                     } else if model.is_embedded_friendly() {
                         ui.label(egui::RichText::new("EMBED").size(9.0).color(ThemeTokens::CYAN_EDGE));
+                    }
+
+                    // Make remaining empty horizontal area inside Model cell clickable for inspection
+                    let trail = ui.allocate_response(ui.available_size(), egui::Sense::click())
+                        .on_hover_cursor(egui::CursorIcon::PointingHand);
+                    if trail.clicked() {
+                        *selected_model_id = Some(model.id.clone());
+                    }
+                });
+            });
+        }
+        TableColumnId::Modality => {
+            row.col(|ui| {
+                ui.horizontal(|ui| {
+                    let mod_rgb = model.modality.badge_color_rgb();
+                    ui.label(egui::RichText::new(model.modality.tag_short()).size(10.5).strong().color(egui::Color32::from_rgb(mod_rgb.0, mod_rgb.1, mod_rgb.2)))
+                        .on_hover_text(model.modality.label());
+
+                    let is_redundant = matches!(
+                        (model.specialty, model.modality),
+                        (crate::domain::specialty::DomainSpecialty::VisionCreative, crate::domain::modality::ModelModality::Multimodal | crate::domain::modality::ModelModality::ImageGen)
+                        | (crate::domain::specialty::DomainSpecialty::VoiceSpeech, crate::domain::modality::ModelModality::AudioSpeech)
+                        | (crate::domain::specialty::DomainSpecialty::WorldModel3D, crate::domain::modality::ModelModality::ThreeDGen)
+                    );
+                    if model.specialty != crate::domain::specialty::DomainSpecialty::General && !is_redundant {
+                        let (sr, sg, sb) = model.specialty.badge_color_rgb();
+                        let spec_lbl = if lang == Language::French { model.specialty.label_fr() } else { model.specialty.label_en() };
+                        ui.label(egui::RichText::new(model.specialty.badge_text()).size(9.5).color(egui::Color32::from_rgb(sr, sg, sb)).strong())
+                            .on_hover_text(format!("{spec_lbl}"));
                     }
                 });
             });
@@ -180,25 +185,31 @@ fn render_cell_by_column(
                 if let Some(breakdown) = model.score_breakdown(&filters.sources) {
                     let score = breakdown.final_score;
                     let progress = (score / 100.0).clamp(0.0, 1.0);
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new(format!("{:.1}", score)).strong().color(ThemeTokens::TEXT_PRIMARY));
+                        ui.add(egui::ProgressBar::new(progress).desired_width(32.0).fill(ThemeTokens::PRIMARY));
+                    }).response.on_hover_text(format!("{} {:.1} pts\n{}", t.score_variance_label, breakdown.variance, breakdown.formula));
+                } else {
+                    ui.label(egui::RichText::new("N/A").color(ThemeTokens::TEXT_MUTED));
+                }
+            });
+        }
+        TableColumnId::Confidence => {
+            row.col(|ui| {
+                if let Some(breakdown) = model.score_breakdown(&filters.sources) {
                     let (cr, cg, cb) = breakdown.confidence.color_rgb();
                     let conf_color = egui::Color32::from_rgb(cr, cg, cb);
                     let conf = lang.confidence();
-                    let conf_tip = match breakdown.confidence {
-                        crate::domain::scoring::ScoreConfidence::High => conf.ok_tooltip,
-                        crate::domain::scoring::ScoreConfidence::Medium => conf.med_tooltip,
-                        crate::domain::scoring::ScoreConfidence::Low => conf.low_tooltip,
+                    let is_fr = lang == Language::French;
+                    let (lvl_txt, tip) = match breakdown.confidence {
+                        crate::domain::scoring::ScoreConfidence::High => (if is_fr { "Haute" } else { "High" }, conf.ok_tooltip),
+                        crate::domain::scoring::ScoreConfidence::Medium => (if is_fr { "Moyenne" } else { "Medium" }, conf.med_tooltip),
+                        crate::domain::scoring::ScoreConfidence::Low => (if is_fr { "Faible" } else { "Low" }, conf.low_tooltip),
                     };
-                    ui.horizontal(|ui| {
-                        ui.label(egui::RichText::new(format!("{:.1}", score)).strong().color(ThemeTokens::TEXT_PRIMARY));
-                        ui.add(egui::ProgressBar::new(progress).desired_width(28.0).fill(ThemeTokens::PRIMARY));
-                        ui.label(egui::RichText::new(breakdown.confidence.badge()).color(conf_color).strong().size(11.0))
-                            .on_hover_text(conf_tip);
-                    }).response.on_hover_text(format!(
-                        "{}\n\n{} {:.1} pts\n{}",
-                        conf_tip, t.score_variance_label, breakdown.variance, breakdown.formula
-                    ));
+                    ui.label(egui::RichText::new(format!("{} {}", breakdown.confidence.badge(), lvl_txt)).color(conf_color).strong().size(11.0))
+                        .on_hover_text(format!("{}\n\n{} {:.1} pts", tip, t.score_variance_label, breakdown.variance));
                 } else {
-                    ui.label(egui::RichText::new("N/A").color(ThemeTokens::TEXT_MUTED));
+                    ui.label(egui::RichText::new("[!] -").color(ThemeTokens::TEXT_MUTED));
                 }
             });
         }
@@ -239,6 +250,15 @@ fn render_cell_by_column(
         TableColumnId::OpenLlm => {
             row.col(|ui| { render_score_badge_cell(ui, model.scores.open_llm); });
         }
+        TableColumnId::ImageBench => {
+            row.col(|ui| { render_score_badge_cell(ui, model.scores.image_bench); });
+        }
+        TableColumnId::VideoBench => {
+            row.col(|ui| { render_score_badge_cell(ui, model.scores.video_bench); });
+        }
+        TableColumnId::AudioBench => {
+            row.col(|ui| { render_score_badge_cell(ui, model.scores.audio_bench); });
+        }
         TableColumnId::Math => {
             row.col(|ui| { render_score_badge_cell(ui, model.scores.math_lvl5); });
         }
@@ -251,12 +271,20 @@ fn render_cell_by_column(
         TableColumnId::CloudPrice => {
             row.col(|ui| {
                 if model.is_cloud {
-                    if let Some(in_p) = model.pricing_input_usd {
-                        let out_p = model.pricing_output_usd.unwrap_or(0.0);
-                        ui.label(egui::RichText::new(format!("${in_p:.2} / ${out_p:.2}")).color(ThemeTokens::GOLD_5090))
-                            .on_hover_text(format!("Prompt: ${in_p:.2} / 1M | Completion: ${out_p:.2} / 1M"));
-                    } else {
-                        ui.label("Cloud API");
+                    match (model.pricing_input_usd.filter(|&v| v > 0.0), model.pricing_output_usd.filter(|&v| v > 0.0)) {
+                        (Some(in_p), Some(out_p)) => {
+                            ui.label(egui::RichText::new(format!("${in_p:.2} / ${out_p:.2}")).color(ThemeTokens::GOLD_5090))
+                                .on_hover_text(format!("Prompt: ${in_p:.2} / 1M | Completion: ${out_p:.2} / 1M"));
+                        }
+                        (Some(in_p), None) => {
+                            ui.label(egui::RichText::new(format!("In ${in_p:.2}")).color(ThemeTokens::GOLD_5090));
+                        }
+                        (None, Some(out_p)) => {
+                            ui.label(egui::RichText::new(format!("Out ${out_p:.2}")).color(ThemeTokens::GOLD_5090));
+                        }
+                        (None, None) => {
+                            ui.label(egui::RichText::new("N/A (API)").color(ThemeTokens::TEXT_MUTED));
+                        }
                     }
                 } else {
                     ui.label(egui::RichText::new(t.price_free_local).color(ThemeTokens::SUCCESS));

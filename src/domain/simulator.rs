@@ -255,10 +255,13 @@ impl HardwareRigConfig {
         let projected_speed_tps = ((effective_bandwidth / ref_model_size_gb) * 0.82).clamp(1.5, 300.0);
 
         let ram_headroom = usable_ram - (ref_model_size_gb * 0.35);
+        let low_gpu_host_ram = !self.gpu.is_embedded() && usable_vram >= 8.0 && usable_ram < (usable_vram * 0.45).min(12.0);
         let (stability_percent, stability_verdict) = if usable_ram < 0.8 || ram_headroom < 0.2 {
             (25.0, "[!] Risque OOM Critique : Sature la RAM et risque de crasher !")
         } else if ram_headroom < 1.5 {
             (65.0, "[~] Marge Restreinte : Inférence fonctionnelle.")
+        } else if low_gpu_host_ram {
+            (72.0, "[~] RAM Hôte Limitée : Offload CPU / Staging restreint.")
         } else if usable_vram >= 8.0 {
             (98.0, "[OK] Stabilité Maximale : Exécution 100% VRAM GPU isolée.")
         } else {

@@ -129,57 +129,13 @@ fn render_header_cell_content(
             active: false,
         });
 
-        ui.push_id(egui::Id::new("col_filter_row").with(col_id), |ui| {
-            ui.allocate_ui_with_layout(
-                egui::vec2(ui.available_width(), 22.0),
-                egui::Layout::left_to_right(egui::Align::Center),
-                |ui| {
-                    ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
-
-                    // Operator selector button
-                    let op_btn_text = egui::RichText::new(cf.operator.symbol())
-                        .size(11.0)
-                        .color(if cf.active { ThemeTokens::CYAN_EDGE } else { ThemeTokens::TEXT_MUTED });
-
-                    ui.menu_button(op_btn_text, |ui| {
-                        ui.set_min_width(180.0);
-                        ui.label(egui::RichText::new(t.table_menu.menu_operator_label).size(10.5).color(ThemeTokens::TEXT_MUTED));
-                        ui.separator();
-                        for &op in FilterOperator::all() {
-                            let label = format!("{:>3}  {}", op.symbol(), operator_label(op, lang));
-                            if ui.selectable_value(&mut cf.operator, op, label).clicked() {
-                                cf.active = !cf.pattern.trim().is_empty();
-                                ui.close_menu();
-                            }
-                        }
-                    }).response.on_hover_text(format!("Règle : {} (Cliquer pour changer)", operator_label(cf.operator, lang)));
-
-                    // Input field: always reserve 18px for clear button so column width never oscillates!
-                    let edit_w = (ui.available_width() - 18.0).max(18.0);
-                    let text_edit = ui.add_sized(
-                        [edit_w, 18.0],
-                        egui::TextEdit::singleline(&mut cf.pattern)
-                            .hint_text("...")
-                            .clip_text(true)
-                            .font(egui::TextStyle::Small)
-                            .id_source(egui::Id::new("col_filter_txt").with(col_id)),
-                    );
-
-                    if text_edit.changed() {
-                        cf.active = !cf.pattern.trim().is_empty();
-                    }
-
-                    // Quick clear button
-                    if !cf.pattern.is_empty() {
-                        if ui.small_button("×").on_hover_text("Effacer le filtre").clicked() {
-                            cf.pattern.clear();
-                            cf.active = false;
-                            cf.operator = FilterOperator::Contains;
-                        }
-                    }
-                },
-            );
-        });
+        crate::presentation::components::table_filter_header::render_column_filter_row(
+            ui,
+            egui::Id::new("col_filter_row").with(col_id),
+            cf,
+            default_op,
+            lang,
+        );
 
         // Context Menu (Right Click on Title/Cell)
         title_resp.context_menu(|ui| {
@@ -198,12 +154,14 @@ fn render_header_cell_content(
             if ui.checkbox(&mut adv_vis, adv_lbl).changed() {
                 filters.show_advanced_columns = adv_vis;
                 filters.table_prefs.set_advanced_columns_visible(adv_vis);
+                ui.ctx().request_repaint();
             }
             let raw_lbl = if lang == Language::French { "Sources Brutes" } else { "Raw Sources" };
             let mut raw_vis = filters.show_raw_sources;
             if ui.checkbox(&mut raw_vis, raw_lbl).changed() {
                 filters.show_raw_sources = raw_vis;
                 filters.table_prefs.set_raw_sources_visible(raw_vis);
+                ui.ctx().request_repaint();
             }
             ui.separator();
 

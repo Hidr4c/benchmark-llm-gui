@@ -52,7 +52,7 @@ impl GraphMetric {
             GraphMetric::Efficiency => m.efficiency_ratio_with_sources(&filters.sources) as f64,
             GraphMetric::PriceUsd => {
                 if m.is_cloud {
-                    m.pricing_input_usd.unwrap_or(0.0) as f64
+                    cloud_api_price_usd(m).unwrap_or(-1.0)
                 } else if include_electricity {
                     m.estimated_electricity_cost_usd_per_1m() as f64
                 } else {
@@ -60,6 +60,22 @@ impl GraphMetric {
                 }
             }
         }
+    }
+}
+
+/// Computes blended (3:1 input/output) or available Cloud API pricing in $/1M tokens.
+/// Returns `None` when a Cloud model has no public pricing data so it is never plotted as "$0.00".
+pub fn cloud_api_price_usd(m: &ModelBenchmark) -> Option<f64> {
+    if !m.is_cloud {
+        return None;
+    }
+    let inp = m.pricing_input_usd.filter(|&v| v > 0.0).map(|v| v as f64);
+    let out = m.pricing_output_usd.filter(|&v| v > 0.0).map(|v| v as f64);
+    match (inp, out) {
+        (Some(i), Some(o)) => Some(i * 0.75 + o * 0.25),
+        (Some(i), None) => Some(i),
+        (None, Some(o)) => Some(o),
+        (None, None) => None,
     }
 }
 
@@ -72,8 +88,9 @@ pub struct GraphViewState {
     pub reset_requested: bool,
     pub vram_budget_gb: f32,
     pub include_electricity_cost: bool,
+    pub log_price_x: bool,
     pub search_query: String,
-    pub last_criteria_key: Option<(GraphMetric, GraphMetric, bool, usize, usize)>,
+    pub last_criteria_key: Option<(GraphMetric, GraphMetric, bool, bool, usize, usize)>,
 }
 
 impl Default for GraphViewState {
@@ -87,6 +104,7 @@ impl Default for GraphViewState {
             reset_requested: false,
             vram_budget_gb: 48.0,
             include_electricity_cost: true,
+            log_price_x: true,
             search_query: String::new(),
             last_criteria_key: None,
         }
@@ -116,7 +134,10 @@ pub fn compute_pareto_frontier(plotted: &[PlottedPoint]) -> (Vec<usize>, Vec<[f6
     }
 
     let mut sorted: Vec<usize> = (0..plotted.len()).collect();
-    sorted.sort_by(|&a, &b| plotted[a].x.partial_cmp(&plotted[b].x).unwrap_or(std::cmp::Ordering::Equal));
+    sorted.sort_by(|&a, &b| {
+        plotted[a].x.total_cmp(&plotted[b].x)
+            .then_with(|| plotted[b].y.total_cmp(&plotted[a].y))
+    });
 
     let mut max_y = f64::NEG_INFINITY;
     for idx in sorted {
@@ -137,6 +158,7 @@ pub fn render_inspection_card(
     filters: &FilterState,
     selected_model_id: &mut Option<String>,
     t: &crate::presentation::i18n::Translations,
+    is_log_price: bool,
 ) {
     ui.add_space(4.0);
     eframe::egui::Frame::group(ui.style())
@@ -162,9 +184,13 @@ pub fn render_inspection_card(
                 ui.label(eframe::egui::RichText::new(format!("* {} : {:.1} pts", t.col_score, sc)).strong().color(crate::presentation::theme::ThemeTokens::GOLD_5090));
                 ui.separator();
                 if m.is_cloud {
-                    let p_in = m.pricing_input_usd.map(|p| format!("${:.2}", p)).unwrap_or_else(|| "N/A".to_string());
-                    let p_out = m.pricing_output_usd.map(|p| format!("${:.2}", p)).unwrap_or_else(|| "N/A".to_string());
-                    ui.label(eframe::egui::RichText::new(format!(" In: {p_in}/1M | Out: {p_out}/1M ({})", m.provider.as_deref().unwrap_or("API"))).color(crate::presentation::theme::ThemeTokens::GOLD_5090));
+                    let price_str = match (m.pricing_input_usd.filter(|&v| v > 0.0), m.pricing_output_usd.filter(|&v| v > 0.0)) {
+                        (Some(i), Some(o)) => format!("In: ${i:.2}/1M | Out: ${o:.2}/1M"),
+                        (Some(i), None) => format!("In: ${i:.2}/1M"),
+                        (None, Some(o)) => format!("Out: ${o:.2}/1M"),
+                        (None, None) => "Tarif API: N/A".into(),
+                    };
+                    ui.label(eframe::egui::RichText::new(format!(" {price_str} ({})", m.provider.as_deref().unwrap_or("API"))).color(crate::presentation::theme::ThemeTokens::GOLD_5090));
                 } else {
                     let elec = m.estimated_electricity_cost_usd_per_1m();
                     ui.label(eframe::egui::RichText::new(format!(" 0$ API | [~] Elec: ~${:.2}/1M", elec)).color(crate::presentation::theme::ThemeTokens::SUCCESS));
@@ -181,18 +207,19 @@ pub fn render_inspection_card(
 
             // Co-located models switcher if multiple models share this coordinate
             if let Some(target_p) = plotted.iter().find(|p| all_models[p.index].id == m.id) {
+                let to_x = crate::presentation::components::graph_bounds::to_plot_x;
+                let target_px = to_x(target_p.x, is_log_price);
+                let dx_tol = if is_log_price { 0.09 } else { 0.35 };
                 let co_located: Vec<&PlottedPoint> = plotted.iter()
-                    .filter(|p| (p.x - target_p.x).abs() < 0.35 && (p.y - target_p.y).abs() < 0.45)
+                    .filter(|p| (to_x(p.x, is_log_price) - target_px).abs() < dx_tol && (p.y - target_p.y).abs() < 0.45)
                     .collect();
-
                 if co_located.len() > 1 {
                     ui.add_space(4.0);
                     ui.horizontal_wrapped(|ui| {
-                        ui.label(eframe::egui::RichText::new(format!(" {} modèles co-localisés à ce point :", co_located.len())).strong().color(crate::presentation::theme::ThemeTokens::CYAN_EDGE));
+                        ui.label(eframe::egui::RichText::new(format!(" {} co-localisés :", co_located.len())).strong().color(crate::presentation::theme::ThemeTokens::CYAN_EDGE));
                         for cp in co_located {
                             let is_cur = all_models[cp.index].id == m.id;
-                            let chip_txt = format!("{} ({:.1} pts)", cp.name, cp.score);
-                            if ui.selectable_label(is_cur, chip_txt).clicked() {
+                            if ui.selectable_label(is_cur, format!("{} ({:.1} pts)", cp.name, cp.score)).clicked() {
                                 *selected_model_id = Some(all_models[cp.index].id.clone());
                             }
                         }
@@ -216,9 +243,13 @@ pub fn render_champion_bar(
     ui.add_space(3.0);
     ui.horizontal(|ui| {
         if filters.scope == crate::presentation::filtering::ModelScope::CloudOnly || state.x_metric == GraphMetric::PriceUsd {
-            let best_cost = plotted.iter().max_by(|a, b| a.y.partial_cmp(&b.y).unwrap_or(std::cmp::Ordering::Equal));
-            if let Some(b) = best_cost {
-                let champ_lbl = format!(" Best Score : {} ({:.1} pts, ${:.2}/1M)", b.name, b.y, b.x);
+            if let Some(b) = plotted.iter().max_by(|a, b| a.y.total_cmp(&b.y)) {
+                let unit_lbl = if state.x_metric == GraphMetric::PriceUsd {
+                    format!("${:.2}/1M", b.x)
+                } else {
+                    format!("{:.1}", b.x)
+                };
+                let champ_lbl = format!(" Best Score : {} ({:.1} pts, {unit_lbl})", b.name, b.y);
                 if ui.button(eframe::egui::RichText::new(champ_lbl).strong().color(crate::presentation::theme::ThemeTokens::GOLD_5090)).clicked() {
                     *selected_model_id = Some(all_models[b.index].id.clone());
                 }
@@ -226,12 +257,7 @@ pub fn render_champion_bar(
         } else {
             ui.label(eframe::egui::RichText::new(t.vram_budget_label).strong().color(crate::presentation::theme::ThemeTokens::CYAN_EDGE));
             ui.add(eframe::egui::Slider::new(&mut state.vram_budget_gb, 0.5..=48.0).suffix(" GB").logarithmic(true));
-
-            let best_in_budget = plotted.iter()
-                .filter(|p| p.vram_gb <= state.vram_budget_gb)
-                .max_by(|a, b| a.y.partial_cmp(&b.y).unwrap_or(std::cmp::Ordering::Equal));
-
-            if let Some(b) = best_in_budget {
+            if let Some(b) = plotted.iter().filter(|p| p.vram_gb <= state.vram_budget_gb).max_by(|a, b| a.y.total_cmp(&b.y)) {
                 ui.separator();
                 let champ_lbl = format!("{} {:.1} GB : {} ({:.1} pts, {:.1}G)", t.vram_best_prefix, state.vram_budget_gb, b.name, b.y, b.vram_gb);
                 if ui.button(eframe::egui::RichText::new(champ_lbl).strong().color(crate::presentation::theme::ThemeTokens::GOLD_5090)).clicked() {
@@ -257,16 +283,13 @@ pub fn render_pareto_chips(
         ui.label(eframe::egui::RichText::new(t.pareto_champions).strong().color(crate::presentation::theme::ThemeTokens::GOLD_5090));
         for &pi in pareto_indices {
             let p = &plotted[pi];
-            let chip_label = if state.x_metric == GraphMetric::PriceUsd {
-                format!("{} (${:.2})", p.name, p.x)
-            } else {
-                format!("{} ({:.1} GB)", p.name, p.vram_gb)
+            let chip_label = match state.x_metric {
+                GraphMetric::PriceUsd => format!("{} (${:.2})", p.name, p.x),
+                GraphMetric::SpeedTps => format!("{} ({:.0} t/s)", p.name, p.x),
+                _ => format!("{} ({:.1} GB)", p.name, p.vram_gb),
             };
             let is_sel = selected_model_id.as_ref() == Some(&all_models[p.index].id);
-            if ui.selectable_label(is_sel, chip_label)
-                .on_hover_text(format!("Score: {:.1} pts\nInspect model.", p.score))
-                .clicked()
-            {
+            if ui.selectable_label(is_sel, chip_label).on_hover_text(format!("Score: {:.1} pts", p.score)).clicked() {
                 *selected_model_id = Some(all_models[p.index].id.clone());
             }
         }

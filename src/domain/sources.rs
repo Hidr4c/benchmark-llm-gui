@@ -6,6 +6,9 @@ pub enum SourceCategory {
     CodingDevelopment, // SWE-Bench, LiveCodeBench, HumanEval+
     AgenticTools,      // Agentic Score (RTX 5090), BFCL, Local LLM Benchmark
     RealWorldEconomic, // RLI, SWE-Lancer, SWE-Clar, OSWorld, WebArena, MLE-bench
+    MultimodalMedia,   // ComfyUI Templates, LMArena Media, TTS Arena, OpenRouter Images/Video/Audio
+    CodingHarnesses,   // SWE-bench Multi-Harness, Terminal-Bench 2.0, Aider Polyglot
+    LocalRuntimes,     // LLM-Speed Engine Backends & GitHub Runtimes (Ollama, llama.cpp, Off Grid...)
     HardwareSpeed,     // LLM-Speed, Hardware Benchmarks
     CommunityLibrary,  // Hugging Face Hub (GGUF), Ollama Library
     CloudProprietary,  // LiteLLM Pricing, LMSYS Arena JSON, Artificial Analysis
@@ -18,6 +21,9 @@ impl SourceCategory {
             SourceCategory::CodingDevelopment => "Code, Software Engineering & Real Bug Fixing",
             SourceCategory::AgenticTools => "Autonomous Agents & Tool-Calling on Dedicated GPUs",
             SourceCategory::RealWorldEconomic => "Real-World Value, Freelance Work & Economic Tasks",
+            SourceCategory::MultimodalMedia => "ComfyUI & Generative Media (Image, Video, 3D, Audio / TTS)",
+            SourceCategory::CodingHarnesses => "AI Coding Agent Harnesses (Claude Code, OpenCode, Cline, Kilo...)",
+            SourceCategory::LocalRuntimes => "Local Inference Engines & Off-Grid Mobile Runners",
             SourceCategory::HardwareSpeed => "Hardware Throughput, Latency (TTFT) & Speed (tok/s)",
             SourceCategory::CommunityLibrary => "Model Registries & Quantized GGUF Catalogs",
             SourceCategory::CloudProprietary => "Proprietary Cloud Models, Pricing & Human ELO",
@@ -37,7 +43,7 @@ pub struct BenchmarkSourceInfo {
 
 impl BenchmarkSourceInfo {
     pub fn all_sources() -> Vec<BenchmarkSourceInfo> {
-        vec![
+        let mut sources = vec![
             // 1. General & Academic
             BenchmarkSourceInfo {
                 name: "Open LLM Leaderboard (v2 & v3 Datasets API)",
@@ -267,6 +273,8 @@ impl BenchmarkSourceInfo {
                 metrics_measured: "Human preference Bradley-Terry ELO rating.",
                 is_connected_live: true,
             },
-        ]
+        ];
+        sources.extend(crate::domain::sources_ecosystem::ecosystem_sources());
+        sources
     }
 }

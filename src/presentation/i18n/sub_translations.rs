@@ -80,34 +80,34 @@ pub struct DockTranslations {
 }
 
 pub const FR_UPDATE: UpdateTranslations = UpdateTranslations {
-    btn_check: "MàJ",
-    btn_checking: "Vérification...",
-    btn_available: "Nouvelle Version Disponible !",
-    btn_up_to_date: "A jour",
+    btn_check: "v",
+    btn_checking: "Vérif...",
+    btn_available: "Mettre à jour vers",
+    btn_up_to_date: "À jour",
     modal_title: "Mise à Jour de l'Application",
     current_version: "Version Actuelle :",
     new_version: "Nouvelle Version Disponible :",
     release_notes_title: "Notes de Version :",
-    btn_download: "Télécharger la Mise à Jour",
+    btn_download: "Valider : Télécharger, Installer & Redémarrer",
     btn_close: "Fermer",
     no_notes: "Aucune note de version fournie.",
-    tooltip_check: "Vérifier la disponibilité d'une nouvelle version sur GitHub Releases",
+    tooltip_check: "Vérifier GitHub Releases (détection auto au démarrage et sur Actualiser)",
     err_check: "Erreur lors de la vérification de la mise à jour",
 };
 
 pub const EN_UPDATE: UpdateTranslations = UpdateTranslations {
-    btn_check: "Update",
+    btn_check: "v",
     btn_checking: "Checking...",
-    btn_available: "New Version Available!",
+    btn_available: "Update version to",
     btn_up_to_date: "Up to date",
     modal_title: "Application Update",
     current_version: "Current Version:",
     new_version: "New Version Available:",
     release_notes_title: "Release Notes:",
-    btn_download: "Download Update",
+    btn_download: "Confirm: Download, Install & Restart",
     btn_close: "Close",
     no_notes: "No release notes provided.",
-    tooltip_check: "Check GitHub Releases for new application versions",
+    tooltip_check: "Check GitHub Releases (auto-checked at startup and on Refresh)",
     err_check: "Error checking for updates",
 };
 

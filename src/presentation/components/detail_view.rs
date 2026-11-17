@@ -140,7 +140,7 @@ pub fn render_detail_panel(
 
                 ui.label(egui::RichText::new(t.raw_score_notice).size(11.0).color(ThemeTokens::TEXT_MUTED));
                 egui::Grid::new("scores_grid").num_columns(4).spacing([18.0, 5.0]).striped(true).show(ui, |ui| {
-                    render_score_cell(ui, t.bench_general, model.scores.open_llm.or(model.scores.average), "open_llm");
+                    render_score_cell(ui, t.bench_general, model.scores.open_llm, "open_llm");
                     render_score_cell(ui, t.bench_coding, model.scores.coding, "coding");
                     ui.end_row();
 
@@ -155,6 +155,16 @@ pub fn render_detail_panel(
                     render_score_cell(ui, "MATH Lvl 5 :", model.scores.math_lvl5, "math");
                     render_score_cell(ui, "GPQA :", model.scores.gpqa, "gpqa");
                     ui.end_row();
+
+                    if model.scores.image_bench.is_some() || model.scores.video_bench.is_some() || model.scores.audio_bench.is_some() {
+                        render_score_cell(ui, &format!("{} :", lang.eco().col_image_bench), model.scores.image_bench, "open_llm");
+                        render_score_cell(ui, &format!("{} :", lang.eco().col_video_bench), model.scores.video_bench, "open_llm");
+                        ui.end_row();
+
+                        render_score_cell(ui, &format!("{} :", lang.eco().col_audio_bench), model.scores.audio_bench, "open_llm");
+                        render_score_cell(ui, "Adoption :", model.scores.average, "open_llm");
+                        ui.end_row();
+                    }
                 });
 
                 // Real-World & Economic Value Benchmarks

@@ -24,10 +24,14 @@ pub fn render_table(
     let items = build_display_items(all_models, filtered_indices, filters);
     let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
 
-    let visible_cols: Vec<TableColumnId> = filters.table_prefs.column_order.iter()
+    let mut visible_cols: Vec<TableColumnId> = filters.table_prefs.column_order.iter()
         .copied()
         .filter(|c| filters.table_prefs.is_visible(*c))
         .collect();
+    if visible_cols.is_empty() {
+        filters.table_prefs.hidden_columns.remove(&TableColumnId::Model);
+        visible_cols.push(TableColumnId::Model);
+    }
 
     egui::ScrollArea::horizontal()
         .id_salt("table_scroll_area_horizontal")
@@ -36,11 +40,11 @@ pub fn render_table(
             let any_raw = visible_cols.iter().any(|c| c.is_raw_source());
             let any_adv = visible_cols.iter().any(|c| c.is_advanced());
             let min_w = if any_raw && any_adv {
-                1450.0
+                1560.0
             } else if any_raw || any_adv {
-                1220.0
+                1320.0
             } else {
-                950.0
+                1050.0
             };
             ui.set_min_width(min_w);
 
@@ -58,7 +62,7 @@ pub fn render_table(
                     header.col(|ui| {
                         let (label, sf, def_order) = column_header_info(col, lang);
                         let resp = render_header_cell(ui, col, label, sf, def_order, filters, lang);
-                        if col == TableColumnId::Score {
+                        if col == TableColumnId::Score || col == TableColumnId::Confidence {
                             resp.on_hover_text(lang.confidence().col_tooltip);
                         }
                     });
@@ -85,6 +89,7 @@ pub fn render_table(
 
                         render_table_row(
                             &mut row,
+                            &visible_cols,
                             item,
                             model,
                             is_first_row,
@@ -113,12 +118,14 @@ pub fn render_table(
 fn column_spec(col: TableColumnId) -> Column {
     match col {
         TableColumnId::Rank => Column::exact(64.0).clip(true),
-        TableColumnId::Model => Column::initial(220.0).at_least(160.0).clip(true),
+        TableColumnId::Model => Column::initial(215.0).at_least(155.0).clip(true),
+        TableColumnId::Modality => Column::initial(105.0).at_least(85.0).clip(true),
         TableColumnId::Year => Column::exact(68.0).clip(true),
         TableColumnId::TargetHardware => Column::initial(135.0).at_least(105.0).clip(true),
         TableColumnId::Size => Column::initial(80.0).at_least(65.0).clip(true),
         TableColumnId::Efficiency => Column::initial(95.0).at_least(80.0).clip(true),
-        TableColumnId::Score => Column::initial(120.0).at_least(100.0).clip(true),
+        TableColumnId::Score => Column::initial(100.0).at_least(82.0).clip(true),
+        TableColumnId::Confidence => Column::initial(105.0).at_least(88.0).clip(true),
         TableColumnId::RealWorld => Column::initial(125.0).at_least(100.0).clip(true),
         TableColumnId::Speed => Column::initial(110.0).at_least(90.0).clip(true),
         TableColumnId::Popularity => Column::initial(90.0).at_least(75.0).clip(true),
@@ -126,6 +133,9 @@ fn column_spec(col: TableColumnId) -> Column {
         | TableColumnId::SweBench
         | TableColumnId::Agentic
         | TableColumnId::OpenLlm
+        | TableColumnId::ImageBench
+        | TableColumnId::VideoBench
+        | TableColumnId::AudioBench
         | TableColumnId::Math
         | TableColumnId::Gpqa
         | TableColumnId::Ifeval => Column::initial(80.0).at_least(65.0).clip(true),
@@ -141,11 +151,13 @@ fn column_header_info(
     match col {
         TableColumnId::Rank => (t.col_rank, None, SortOrder::Ascending),
         TableColumnId::Model => (t.col_model, Some(SortField::Name), SortOrder::Ascending),
+        TableColumnId::Modality => (lang.eco().col_modality, Some(SortField::Modality), SortOrder::Ascending),
         TableColumnId::Year => (t.col_year, Some(SortField::Year), SortOrder::Descending),
         TableColumnId::TargetHardware => (t.col_hardware, Some(SortField::Memory), SortOrder::Ascending),
         TableColumnId::Size => (t.col_size, Some(SortField::Size), SortOrder::Ascending),
         TableColumnId::Efficiency => (t.col_efficiency, Some(SortField::Efficiency), SortOrder::Descending),
         TableColumnId::Score => (t.col_score, Some(SortField::Intelligence), SortOrder::Descending),
+        TableColumnId::Confidence => (lang.eco().col_confidence, Some(SortField::Confidence), SortOrder::Descending),
         TableColumnId::RealWorld => (t.col_real_world, Some(SortField::RealWorld), SortOrder::Descending),
         TableColumnId::Speed => (t.col_speed, Some(SortField::Speed), SortOrder::Descending),
         TableColumnId::Popularity => (t.col_popularity, Some(SortField::Downloads), SortOrder::Descending),
@@ -153,6 +165,9 @@ fn column_header_info(
         TableColumnId::SweBench => (t.col_swe_bench, Some(SortField::Coding), SortOrder::Descending),
         TableColumnId::Agentic => (t.col_agentic, Some(SortField::Agentic), SortOrder::Descending),
         TableColumnId::OpenLlm => (t.col_open_llm, Some(SortField::Intelligence), SortOrder::Descending),
+        TableColumnId::ImageBench => (lang.eco().col_image_bench, Some(SortField::ImageBench), SortOrder::Descending),
+        TableColumnId::VideoBench => (lang.eco().col_video_bench, Some(SortField::VideoBench), SortOrder::Descending),
+        TableColumnId::AudioBench => (lang.eco().col_audio_bench, Some(SortField::AudioBench), SortOrder::Descending),
         TableColumnId::Math => (t.col_math, None, SortOrder::Descending),
         TableColumnId::Gpqa => (t.col_gpqa, None, SortOrder::Descending),
         TableColumnId::Ifeval => (t.col_ifeval, None, SortOrder::Descending),

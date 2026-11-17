@@ -1,4 +1,7 @@
 use crate::domain::model::BenchmarkScores;
+pub use super::family_parser::{
+    canonicalize_family_case, canonicalize_provider_slug, extract_dynamic_family, is_version_or_size_token,
+};
 
 pub fn parse_model_identity(full_id: &str) -> (String, String, Option<f32>) {
     let repo_name = full_id.split('/').last().unwrap_or(full_id);
@@ -6,35 +9,14 @@ pub fn parse_model_identity(full_id: &str) -> (String, String, Option<f32>) {
 
     let strip_suffixes = [
         "-GGUF", "-gguf", ".gguf", "-iMatrix", "-NVFP4", "-GSQ-RCO",
-        "-abliterated", "-MTP", "-UD", "-unsloth", "-Instruct", "-instruct"
+        "-abliterated", "-MTP", "-UD", "-unsloth", "-Instruct", "-instruct",
     ];
 
     for s in strip_suffixes {
         clean = clean.replace(s, "");
     }
 
-    let lower = clean.to_lowercase();
-    let family = if lower.contains("deepseek") {
-        "DeepSeek".to_string()
-    } else if lower.contains("qwen") {
-        "Qwen".to_string()
-    } else if lower.contains("llama") {
-        "Llama".to_string()
-    } else if lower.contains("mistral") || lower.contains("mixtral") || lower.contains("ministral") {
-        "Mistral".to_string()
-    } else if lower.contains("smollm") {
-        "SmolLM".to_string()
-    } else if lower.contains("gemma") {
-        "Gemma".to_string()
-    } else if lower.contains("phi") {
-        "Phi".to_string()
-    } else if lower.contains("danube") {
-        "Danube".to_string()
-    } else if lower.contains("tinyllama") {
-        "TinyLlama".to_string()
-    } else {
-        "Other".to_string()
-    };
+    let family = extract_dynamic_family(full_id, &clean);
 
     let mut params_b = None;
     let tokens: Vec<&str> = clean.split(|c: char| !c.is_alphanumeric() && c != '.').collect();
@@ -100,37 +82,28 @@ pub fn normalize(s: &str) -> String {
 }
 
 pub fn generate_ollama_tag(family: &str, params_b: Option<f32>) -> Option<String> {
-    let base = match family {
-        "Qwen" => "qwen2.5",
-        "Llama" => "llama3.2",
-        "SmolLM" => "smollm2",
-        "Mistral" => "mistral",
-        "DeepSeek" => "deepseek-r1",
-        "Gemma" => "gemma2",
-        "Phi" => "phi4",
-        _ => return None,
-    };
-
-    if let Some(p) = params_b {
-        if p >= 70.0 {
-            Some(format!("{base}:70b"))
-        } else if p >= 30.0 {
-            Some(format!("{base}:32b"))
-        } else if p >= 14.0 {
-            Some(format!("{base}:14b"))
-        } else if p >= 7.0 {
-            Some(format!("{base}:8b"))
-        } else if p >= 3.0 {
-            Some(format!("{base}:3b"))
-        } else if p >= 1.0 {
-            Some(format!("{base}:1.5b"))
-        } else if p >= 0.3 {
-            Some(format!("{base}:0.5b"))
-        } else {
-            Some(format!("{base}:latest"))
-        }
+    let base = family.trim();
+    if base.is_empty() || base.eq_ignore_ascii_case("other") {
+        return None;
+    }
+    let slug = base.to_lowercase().replace(' ', "-");
+    let p = params_b?;
+    if p >= 70.0 {
+        Some(format!("{slug}:70b"))
+    } else if p >= 30.0 {
+        Some(format!("{slug}:32b"))
+    } else if p >= 14.0 {
+        Some(format!("{slug}:14b"))
+    } else if p >= 7.0 {
+        Some(format!("{slug}:8b"))
+    } else if p >= 3.0 {
+        Some(format!("{slug}:3b"))
+    } else if p >= 1.0 {
+        Some(format!("{slug}:1.5b"))
+    } else if p >= 0.3 {
+        Some(format!("{slug}:0.5b"))
     } else {
-        Some(format!("{base}:latest"))
+        Some(format!("{slug}:latest"))
     }
 }
 
@@ -149,44 +122,19 @@ pub fn estimate_scores(name: &str, params_b: Option<f32>) -> BenchmarkScores {
     };
 
     let is_distill = lower.contains("distill");
-    let mut bonus: f32 = 0.0;
-
-    // 2026 native architectures
-    if lower.contains("qwen3") || lower.contains("qwen-3") || lower.contains("qwen3.8") {
-        bonus += 5.0;
-    } else if lower.contains("qwen2.5") || lower.contains("llama3.3") || lower.contains("gemma-2") {
-        bonus += 2.0;
-    }
-
-    // Full frontier reasoning models
-    if (lower.contains("deepseek-r1") || lower.contains("deepseek")) && !is_distill {
-        bonus += 4.0;
-    }
-
-    // Moderate distillation penalty for compressed student models
+    let is_reasoning = lower.contains("-r1") || lower.contains("reason") || lower.contains("think");
+    let mut bonus: f32 = if is_reasoning && !is_distill { 3.5 } else { 0.0 };
     if is_distill {
         bonus -= 3.5;
     }
 
     let mmlu = (base_intel + bonus).clamp(10.0, 96.0);
-    let is_coder = lower.contains("coder") || lower.contains("code");
-    let is_agent = lower.contains("r1") || lower.contains("reason") || lower.contains("agent") || lower.contains("think") || lower.contains("tool");
 
-    let coding_score = if is_coder { (mmlu * 1.05 + 5.0).min(96.0) } else { (mmlu * 0.88).max(10.0) };
-    let agentic_score = if is_agent { (mmlu * 1.02 + 3.0).min(96.0) } else { (mmlu * 0.90).max(10.0) };
-
+    // Heuristic size fallback MUST NOT fabricate verified SWE-Bench (coding) or BFCL (agentic) scores
     BenchmarkScores {
         open_llm: Some(mmlu),
-        ifeval: Some((mmlu + 4.0).min(99.0)),
-        bbh: Some((mmlu * 0.95).round()),
-        math_lvl5: Some((mmlu * 0.75).round()),
-        gpqa: Some((mmlu * 0.55).round()),
-        mmlu_pro: Some(mmlu),
-        musr: Some((mmlu * 0.5).round()),
-        coding: Some((coding_score * 10.0).round() / 10.0),
-        agentic: Some((agentic_score * 10.0).round() / 10.0),
-        average: Some(((mmlu + coding_score + agentic_score) / 3.0 * 10.0).round() / 10.0),
-        real_world: None,
+        average: Some(mmlu),
+        ..Default::default()
     }
 }
 
@@ -203,60 +151,27 @@ pub fn estimate_tps(params_b: Option<f32>) -> (Option<f32>, Option<String>) {
     }
 }
 
+/// Extracts a release year dynamically from repository tokens (`YYYY` or `YYMM`) and API upload date.
 pub fn extract_release_year(id: &str, name: &str, created_at: Option<&str>) -> Option<u16> {
-    let combined = format!("{id} {name}").to_lowercase();
-
-    // 1. Explicit generational architectures (2026 frontier takes precedence over upload metadata)
-    if combined.contains("2026")
-        || combined.contains("gemini-4")
-        || combined.contains("argon")
-        || combined.contains("claude-4")
-        || combined.contains("claude-5")
-        || combined.contains("qwen3")
-        || combined.contains("qwen-3")
-        || combined.contains("gpt-6")
-        || combined.contains("deepseek-v4")
-        || combined.contains("mistral-small-4")
-        || combined.contains("mistral-large-4")
-    {
-        return Some(2026);
-    }
-
-    // 2. Repository upload timestamp if available
-    if let Some(c) = created_at {
-        if c.len() >= 4 {
-            if let Ok(y) = c[0..4].parse::<u16>() {
-                if (2020..=2030).contains(&y) {
-                    return Some(y);
-                }
+    let combined = format!("{id} {name}");
+    for tok in combined.split(|c: char| !c.is_ascii_digit()).filter(|t| t.len() == 4) {
+        if let Ok(num) = tok.parse::<u16>() {
+            if (2022..=2030).contains(&num) {
+                return Some(num);
+            }
+            let yy = num / 100;
+            let mm = num % 100;
+            if (22..=30).contains(&yy) && (1..=12).contains(&mm) {
+                return Some(2000 + yy);
             }
         }
     }
 
-    // 3. Fallback heuristic detection
-    if combined.contains("2025")
-        || combined.contains("2501")
-        || combined.contains("2502")
-        || combined.contains("r1")
-        || combined.contains("deepseek-v3")
-        || combined.contains("gpt-5")
-        || combined.contains("o3")
-    {
-        Some(2025)
-    } else if combined.contains("2024")
-        || combined.contains("2411")
-        || combined.contains("llama-3")
-        || combined.contains("smollm2")
-        || combined.contains("gemma-2")
-        || combined.contains("qwen2.5")
-    {
-        Some(2024)
-    } else if combined.contains("2023")
-        || combined.contains("llama-2")
-        || combined.contains("mistral-7b-v0.1")
-    {
-        Some(2023)
-    } else {
-        Some(2025)
+    if let Some(c) = created_at.and_then(|s| s.get(0..4)).and_then(|s| s.parse::<u16>().ok()) {
+        if (2020..=2030).contains(&c) {
+            return Some(c);
+        }
     }
+
+    Some(2025)
 }

@@ -3,6 +3,7 @@ pub mod fr;
 pub mod language;
 pub mod locale;
 pub mod sub_translations;
+pub mod sub_translations_ecosystem;
 pub mod sub_translations_features;
 pub mod sub_translations_issue;
 pub mod sub_translations_tools;
@@ -14,6 +15,7 @@ pub use sub_translations::{
     AdvFilterTranslations, ComparatorTranslations, ConfidenceTranslations, DockTranslations,
     UpdateTranslations,
 };
+pub use sub_translations_ecosystem::EcosystemTranslations;
 pub use sub_translations_features::{
     ColumnModeTranslations, RoiTranslations, RunnerTranslations,
 };

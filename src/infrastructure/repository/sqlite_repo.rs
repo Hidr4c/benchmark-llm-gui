@@ -76,6 +76,9 @@ impl SqliteRepository {
         let _ = conn.execute("ALTER TABLE models ADD COLUMN score_open_llm REAL;", []);
         let _ = conn.execute("ALTER TABLE models ADD COLUMN score_coding REAL;", []);
         let _ = conn.execute("ALTER TABLE models ADD COLUMN score_agentic REAL;", []);
+        let _ = conn.execute("ALTER TABLE models ADD COLUMN score_image_bench REAL;", []);
+        let _ = conn.execute("ALTER TABLE models ADD COLUMN score_video_bench REAL;", []);
+        let _ = conn.execute("ALTER TABLE models ADD COLUMN score_audio_bench REAL;", []);
         let _ = conn.execute("ALTER TABLE models ADD COLUMN is_cloud INTEGER NOT NULL DEFAULT 0;", []);
         let _ = conn.execute("ALTER TABLE models ADD COLUMN provider TEXT;", []);
         let _ = conn.execute("ALTER TABLE models ADD COLUMN pricing_input_usd REAL;", []);
@@ -113,11 +116,12 @@ impl IBenchmarkRepository for SqliteRepository {
                     snapshot_id, repo_id, name, family, param_count_b, size_gb, vram_rec_gb,
                     tokens_per_sec, tps_hardware, score_average, score_ifeval, score_bbh,
                     score_math, score_gpqa, score_mmlu_pro, score_musr, score_open_llm,
-                    score_coding, score_agentic, downloads, likes, ollama_tag, hf_url, is_moe, context_k,
+                    score_coding, score_agentic, score_image_bench, score_video_bench, score_audio_bench,
+                    downloads, likes, ollama_tag, hf_url, is_moe, context_k,
                     is_cloud, provider, pricing_input_usd, pricing_output_usd, release_year, modality, economic_data, specialty
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
-                    ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33
+                    ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33, ?34, ?35, ?36
                 )",
             ).map_err(|e| e.to_string())?;
 
@@ -143,6 +147,9 @@ impl IBenchmarkRepository for SqliteRepository {
                     m.scores.open_llm,
                     m.scores.coding,
                     m.scores.agentic,
+                    m.scores.image_bench,
+                    m.scores.video_bench,
+                    m.scores.audio_bench,
                     m.downloads as i64,
                     m.likes as i64,
                     m.ollama_tag,
@@ -194,7 +201,8 @@ impl IBenchmarkRepository for SqliteRepository {
                     tokens_per_sec, tps_hardware, score_average, score_ifeval, score_bbh,
                     score_math, score_gpqa, score_mmlu_pro, score_musr, downloads, likes,
                     ollama_tag, hf_url, is_moe, context_k, score_open_llm, score_coding, score_agentic,
-                    is_cloud, provider, pricing_input_usd, pricing_output_usd, release_year, modality, economic_data, specialty
+                    is_cloud, provider, pricing_input_usd, pricing_output_usd, release_year, modality, economic_data, specialty,
+                    score_image_bench, score_video_bench, score_audio_bench
              FROM models WHERE snapshot_id = ?1 ORDER BY id ASC",
         ).map_err(|e| e.to_string())?;
 
@@ -220,6 +228,9 @@ impl IBenchmarkRepository for SqliteRepository {
                 coding: row.get(22).ok(),
                 agentic: row.get(23).ok(),
                 real_world: rw_score,
+                image_bench: row.get(32).ok(),
+                video_bench: row.get(33).ok(),
+                audio_bench: row.get(34).ok(),
             };
             let modality = row.get::<_, Option<String>>(29).ok().flatten().map(|s| ModelModality::from_str_lenient(&s)).unwrap_or_default();
             let specialty = if raw_spec == DomainSpecialty::General {

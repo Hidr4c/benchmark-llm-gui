@@ -9,6 +9,7 @@ use crate::presentation::theme::ThemeTokens;
 pub fn render_filter_bar(
     ui: &mut egui::Ui,
     filters: &mut FilterState,
+    available_families: &[String],
     total_count: usize,
     matching_count: usize,
     on_auto_detect: &mut bool,
@@ -38,31 +39,36 @@ pub fn render_filter_bar(
 
             ui.separator();
 
-            // 2. Choix des Benchmarks (Sources croisées / Agentic / Code / etc.)
+            // 2. Choix des Benchmarks (Sources croisées / Dev Agentique / Code / Agents)
+            let eco = lang.eco();
             egui::ComboBox::from_id_salt("benchmark_source_combo")
                 .selected_text(match () {
                     _ if filters.sources.is_all() => t.bench_avg,
+                    _ if filters.sources.is_dev_agentic() => eco.bench_dev_agentic,
                     _ if filters.sources.is_open_llm_only() => t.bench_general,
                     _ if filters.sources.is_coding_only() => t.bench_coding,
                     _ if filters.sources.is_agentic_only() => t.bench_agentic,
                     _ if filters.sources.is_real_world_only() => t.bench_real_world,
                     _ => if lang == Language::French { "Mix Personnalisé" } else { "Custom Blend" },
                 })
-                .width(160.0)
+                .width(175.0)
                 .show_ui(ui, |ui| {
-                    if ui.selectable_label(filters.sources.is_all(), t.bench_avg).clicked() {
+                    if ui.selectable_label(filters.sources.is_all(), t.bench_avg).on_hover_text(eco.bench_tip_all).clicked() {
                         filters.sources.open_llm = true; filters.sources.coding = true; filters.sources.agentic = true; filters.sources.real_world = true;
                     }
-                    if ui.selectable_label(filters.sources.is_agentic_only(), t.bench_agentic).clicked() {
-                        filters.sources.open_llm = false; filters.sources.coding = false; filters.sources.agentic = true; filters.sources.real_world = false;
+                    if ui.selectable_label(filters.sources.is_dev_agentic(), eco.bench_dev_agentic).on_hover_text(eco.bench_tip_dev_agentic).clicked() {
+                        filters.sources = crate::domain::model::SourceSelection::dev_agentic();
                     }
-                    if ui.selectable_label(filters.sources.is_coding_only(), t.bench_coding).clicked() {
+                    if ui.selectable_label(filters.sources.is_coding_only(), t.bench_coding).on_hover_text(eco.bench_tip_coding).clicked() {
                         filters.sources.open_llm = false; filters.sources.coding = true; filters.sources.agentic = false; filters.sources.real_world = false;
                     }
-                    if ui.selectable_label(filters.sources.is_real_world_only(), t.bench_real_world).clicked() {
+                    if ui.selectable_label(filters.sources.is_agentic_only(), t.bench_agentic).on_hover_text(eco.bench_tip_agentic).clicked() {
+                        filters.sources.open_llm = false; filters.sources.coding = false; filters.sources.agentic = true; filters.sources.real_world = false;
+                    }
+                    if ui.selectable_label(filters.sources.is_real_world_only(), t.bench_real_world).on_hover_text(eco.bench_tip_real_world).clicked() {
                         filters.sources.open_llm = false; filters.sources.coding = false; filters.sources.agentic = false; filters.sources.real_world = true;
                     }
-                    if ui.selectable_label(filters.sources.is_open_llm_only(), t.bench_general).clicked() {
+                    if ui.selectable_label(filters.sources.is_open_llm_only(), t.bench_general).on_hover_text(eco.bench_tip_general).clicked() {
                         filters.sources.open_llm = true; filters.sources.coding = false; filters.sources.agentic = false; filters.sources.real_world = false;
                     }
                 }).response.on_hover_text(t.bench_tooltip);
@@ -273,6 +279,6 @@ pub fn render_filter_bar(
         });
 
         // --- Row 2: Unified Ergonomic Advanced Filters Card ---
-        render_advanced_panel(ui, filters, on_export, lang);
+        render_advanced_panel(ui, filters, available_families, on_export, lang);
     });
 }

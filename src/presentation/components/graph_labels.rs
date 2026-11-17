@@ -1,6 +1,7 @@
 use eframe::egui;
 use egui_plot::{PlotPoint, Text};
 use crate::domain::model::ModelBenchmark;
+use crate::presentation::components::graph_bounds::to_plot_x;
 use crate::presentation::components::graph_types::PlottedPoint;
 use crate::presentation::theme::ThemeTokens;
 
@@ -14,6 +15,7 @@ pub fn render_graph_node_labels(
     selected_model_id: Option<&str>,
     vram_budget_gb: f32,
     dynamic_font_size: f32,
+    is_log_price: bool,
 ) {
     let bounds = plot_ui.plot_bounds();
     let plot_w = bounds.width().max(0.1);
@@ -50,6 +52,7 @@ pub fn render_graph_node_labels(
 
     for &i in &candidate_indices {
         let p = &plotted[i];
+        let px = to_plot_x(p.x, is_log_price);
         let is_target = selected_model_id == Some(&all_models[p.index].id);
         let is_champ = pareto_indices.contains(&i);
         let in_budget = all_models[p.index].is_cloud || p.vram_gb <= vram_budget_gb;
@@ -61,7 +64,7 @@ pub fn render_graph_node_labels(
 
         // Collision detection against already placed labels
         let collides = placed_coords.iter().any(|&[ox, oy]| {
-            (p.x - ox).abs() < min_dx && (p.y - oy).abs() < min_dy
+            (px - ox).abs() < min_dx && (p.y - oy).abs() < min_dy
         });
 
         // Always allow the selected target; discard other collisions to prevent text clutter
@@ -69,7 +72,7 @@ pub fn render_graph_node_labels(
             continue;
         }
 
-        placed_coords.push([p.x, p.y]);
+        placed_coords.push([px, p.y]);
 
         let short_name = truncate_name(&p.name, 18);
         let (label_text, text_color, is_bold) = if is_target {
@@ -88,7 +91,7 @@ pub fn render_graph_node_labels(
         }
 
         plot_ui.text(
-            Text::new(PlotPoint::new(p.x, p.y), rich)
+            Text::new(PlotPoint::new(px, p.y), rich)
                 .anchor(egui::Align2::LEFT_BOTTOM),
         );
     }

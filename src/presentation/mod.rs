@@ -1,6 +1,7 @@
 pub mod app;
 pub mod app_icon;
 pub mod components;
+pub mod ecosystem_state;
 pub mod filtering;
 pub mod filtering_service;
 pub mod i18n;

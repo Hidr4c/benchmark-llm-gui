@@ -8,6 +8,7 @@ use crate::presentation::theme::ThemeTokens;
 pub fn render_advanced_panel(
     ui: &mut egui::Ui,
     filters: &mut FilterState,
+    available_families: &[String],
     on_export: &mut bool,
     lang: Language,
 ) {
@@ -90,16 +91,18 @@ pub fn render_advanced_panel(
                 ui.separator();
                 ui.add_space(6.0);
 
-                // 4. Family / Architecture
+                // 4. Family / Architecture (100% Dynamic from loaded catalog)
                 ui.label(egui::RichText::new(adv.lbl_family).size(11.5).color(ThemeTokens::TEXT_MUTED));
-                let families = ["All", "Mistral", "Qwen", "Llama", "DeepSeek", "SmolLM", "Gemma", "Phi"];
                 egui::ComboBox::from_id_salt("adv_family_combo")
                     .selected_text(&filters.selected_family)
                     .width(105.0)
                     .show_ui(ui, |ui| {
-                        for fam in families {
-                            if ui.selectable_label(filters.selected_family == fam, fam).clicked() {
-                                filters.selected_family = fam.to_string();
+                        if ui.selectable_label(filters.selected_family == "All", "All").clicked() {
+                            filters.selected_family = "All".to_string();
+                        }
+                        for fam in available_families {
+                            if ui.selectable_label(filters.selected_family.eq_ignore_ascii_case(fam), fam).clicked() {
+                                filters.selected_family = fam.clone();
                             }
                         }
                     });
@@ -132,14 +135,15 @@ pub fn render_advanced_panel(
                 ui.add_space(6.0);
 
                 // 7. Score Confidence / Reliability Level
-                ui.label(egui::RichText::new("Fiabilité :").size(11.5).color(ThemeTokens::TEXT_MUTED));
-                if ui.selectable_label(filters.confidence_level == ConfidenceFilter::All, "Tous").on_hover_text("Tous les scores (y compris source unique)").clicked() {
+                let is_fr = lang == Language::French;
+                ui.label(egui::RichText::new(if is_fr { "Fiabilité :" } else { "Confidence:" }).size(11.5).color(ThemeTokens::TEXT_MUTED));
+                if ui.selectable_label(filters.confidence_level == ConfidenceFilter::All, if is_fr { "Tous" } else { "All" }).on_hover_text(if is_fr { "Tous les scores (y compris source unique)" } else { "All scores (including single source)" }).clicked() {
                     filters.confidence_level = ConfidenceFilter::All;
                 }
-                if ui.selectable_label(filters.confidence_level == ConfidenceFilter::MediumPlus, "Moyenne & +").on_hover_text("Scores consolidés (au moins 2 sources)").clicked() {
+                if ui.selectable_label(filters.confidence_level == ConfidenceFilter::MediumPlus, if is_fr { "Moyenne & +" } else { "Medium+" }).on_hover_text(if is_fr { "Scores consolidés (au moins 2 sources)" } else { "Consolidated scores (2+ sources)" }).clicked() {
                     filters.confidence_level = ConfidenceFilter::MediumPlus;
                 }
-                if ui.selectable_label(filters.confidence_level == ConfidenceFilter::HighOnly, "Haute (3+)").on_hover_text("Haute fiabilité uniquement (au moins 3 sources croisées)").clicked() {
+                if ui.selectable_label(filters.confidence_level == ConfidenceFilter::HighOnly, if is_fr { "Haute (3+)" } else { "High (3+)" }).on_hover_text(if is_fr { "Haute fiabilité uniquement (au moins 3 sources croisées)" } else { "High reliability only (3+ cross-checked sources)" }).clicked() {
                     filters.confidence_level = ConfidenceFilter::HighOnly;
                 }
 

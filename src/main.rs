@@ -2,8 +2,10 @@
 
 use std::sync::Arc;
 use eframe::egui;
-use benchmark_llm_gui::domain::traits::{IBenchmarkRepository, IModelFetcher};
+use benchmark_llm_gui::domain::traits::{IBenchmarkRepository, IEcosystemFetcher, IEcosystemRepository, IModelFetcher};
+use benchmark_llm_gui::infrastructure::fetcher::ecosystem_fetcher::LiveEcosystemFetcher;
 use benchmark_llm_gui::infrastructure::fetcher::unifier::LiveModelFetcher;
+use benchmark_llm_gui::infrastructure::repository::sqlite_ecosystem_repo::SqliteEcosystemRepository;
 use benchmark_llm_gui::infrastructure::repository::sqlite_repo::{SqliteRepository, DEFAULT_DB_PATH};
 use benchmark_llm_gui::presentation::app::BenchmarkApp;
 use benchmark_llm_gui::presentation::app_icon::generate_app_icon;
@@ -56,7 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         sorted.sort_by(|a, b| {
             let sa = a.intelligence().unwrap_or(0.0);
             let sb = b.intelligence().unwrap_or(0.0);
-            sb.partial_cmp(&sa).unwrap_or(std::cmp::Ordering::Equal)
+            sb.total_cmp(&sa)
         });
         for (i, m) in sorted.iter().take(5).enumerate() {
             let tag = if m.is_cloud { "Cloud API" } else { "Local GGUF" };
@@ -72,7 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         local_flagships.sort_by(|a, b| {
             let sa = a.intelligence().unwrap_or(0.0);
             let sb = b.intelligence().unwrap_or(0.0);
-            sb.partial_cmp(&sa).unwrap_or(std::cmp::Ordering::Equal)
+            sb.total_cmp(&sa)
         });
         let mut seen_roots = std::collections::HashSet::new();
         let mut rank = 1;
@@ -97,12 +99,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("\nTop 5 Local Models for Lightweight Edge (Efficiency Score / Size):");
         let mut embedded: Vec<_> = models.into_iter().filter(|m| !m.is_cloud).collect();
         embedded.sort_by(|a, b| {
-            b.efficiency_ratio().partial_cmp(&a.efficiency_ratio()).unwrap_or(std::cmp::Ordering::Equal)
+            b.efficiency_ratio().total_cmp(&a.efficiency_ratio())
         });
         for (i, m) in embedded.iter().take(5).enumerate() {
             println!("  #{}: {} | Efficiency: {:.1} pts/GB | Size: {:.0} MB | Score: {:.1}",
                 i + 1, m.name, m.efficiency_ratio(), m.size_mb(), m.intelligence().unwrap_or(0.0)
             );
+        }
+
+        let eco_fetcher = LiveEcosystemFetcher::default();
+        if let Ok(mut eco_repo) = SqliteEcosystemRepository::open(DEFAULT_DB_PATH) {
+            if let Ok(h) = rt.block_on(eco_fetcher.fetch_harnesses()) {
+                println!("\nHarnesses synced: {} profiles, {} runs", h.profiles.len(), h.runs.len());
+                let _ = eco_repo.save_harness_snapshot(&h);
+            }
+            if let Ok(r) = rt.block_on(eco_fetcher.fetch_runtimes()) {
+                println!("Local Runtimes synced: {} engines", r.len());
+                let _ = eco_repo.save_runtimes_snapshot(&r);
+            }
         }
 
         return Ok(());

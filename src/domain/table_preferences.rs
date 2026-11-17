@@ -42,6 +42,29 @@ impl TablePreferences {
     }
 
     pub fn sanitize(&mut self) {
+        let mut seen = HashSet::new();
+        self.column_order.retain(|col| seen.insert(*col));
+        let anchored_insertions = [
+            (TableColumnId::Modality, TableColumnId::Model),
+            (TableColumnId::Confidence, TableColumnId::Score),
+            (TableColumnId::ImageBench, TableColumnId::OpenLlm),
+            (TableColumnId::VideoBench, TableColumnId::ImageBench),
+            (TableColumnId::AudioBench, TableColumnId::VideoBench),
+        ];
+        for &col in TableColumnId::all() {
+            if seen.insert(col) {
+                if let Some(&(_, anchor)) = anchored_insertions.iter().find(|&&(target, _)| target == col) {
+                    if let Some(pos) = self.column_order.iter().position(|&c| c == anchor) {
+                        self.column_order.insert(pos + 1, col);
+                        continue;
+                    }
+                }
+                self.column_order.push(col);
+            }
+        }
+        if TableColumnId::all().iter().all(|c| self.hidden_columns.contains(c)) {
+            self.hidden_columns.remove(&TableColumnId::Model);
+        }
         for filter in self.column_filters.values_mut() {
             if !filter.active && filter.pattern.trim().is_empty() {
                 filter.operator = FilterOperator::Contains;
