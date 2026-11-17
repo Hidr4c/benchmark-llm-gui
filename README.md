@@ -1,8 +1,8 @@
 # LLM Benchmark Explorer
 
-High-performance, modular desktop application written in **Rust** (`eframe`/`egui`) designed to explore, benchmark, filter, and compare **Local and Cloud Foundation Models** across diverse hardware tiers—from resource-constrained embedded edge devices up to domestic workstations and high-capacity accelerator setups.
+High-performance, modular desktop application written in **Rust** (`eframe`/`egui`) designed to explore, benchmark, filter, and compare **Local and Cloud Foundation Models**, **AI Coding Harnesses**, and **Local Inference Engines** across diverse hardware tiers—from resource-constrained embedded edge devices up to domestic workstations and multi-GPU servers.
 
-[![Latest Release](https://img.shields.io/badge/Release-v1.1.0-brightgreen.svg)](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/Hidr4c/benchmark-llm-gui?color=brightgreen&label=Release)](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest)
 [![CI & Build](https://github.com/Hidr4c/benchmark-llm-gui/actions/workflows/ci.yml/badge.svg)](https://github.com/Hidr4c/benchmark-llm-gui/actions/workflows/ci.yml)
 [![Rust Edition](https://img.shields.io/badge/Rust-2024_Edition-orange.svg)](https://www.rust-lang.org/)
 [![Architecture](https://img.shields.io/badge/Architecture-Clean%20%26%20IoC-blue.svg)](#architecture)
@@ -18,7 +18,8 @@ Download pre-compiled, self-contained desktop binaries with zero external depend
 
 | Platform | Target Architecture | Package |
 | :--- | :--- | :--- |
-| **Windows x64** | `x86_64-pc-windows-msvc` | [**`benchmark-llm-gui-windows-x64.zip`**](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest) |
+| **Windows x64 (Direct EXE)** | `x86_64-pc-windows-msvc` | [**`benchmark-llm-gui-windows-x64.exe`**](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest) |
+| **Windows x64 (ZIP)** | `x86_64-pc-windows-msvc` | [**`benchmark-llm-gui-windows-x64.zip`**](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest) |
 | **Linux x64** | `x86_64-unknown-linux-gnu` | [**`benchmark-llm-gui-linux-x64.tar.gz`**](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest) |
 | **macOS ARM64** | `aarch64-apple-darwin` | [**`benchmark-llm-gui-macos-arm64.tar.gz`**](https://github.com/Hidr4c/benchmark-llm-gui/releases/latest) |
 
@@ -26,121 +27,100 @@ Download pre-compiled, self-contained desktop binaries with zero external depend
 
 ## Key Capabilities
 
-### 1. Universal Hardware Profiling & Simulation
+### 1. Live Hardware Profiling, Simulator & Runtime Optimizer
 * **Tiered Hardware Profiles**:
   * **Micro-IoT (< 1 GB RAM)**: Ultra-compact embedded boards with quantized models.
   * **Single-Board Computers (2-8 GB RAM)**: Edge boards running lightweight models purely on CPU/NPU.
-  * **Compact PCs & Mobile Devices (4-16 GB Unified/RAM)**: On-device mobile and compact automation hosts.
-  * **Domestic Discrete Accelerators (8-16 GB Memory)**: Mainstream discrete consumer cards.
-  * **High-End Enthusiast Accelerators (24-32 GB Memory)**: Capable of running large parameter local models at high throughput.
-  * **Dedicated Multi-GPU Workstations (64+ GB Memory)**: High-capacity multi-accelerator environments.
-* **Hardware Rig Simulator**:
-  * Simulates physical target configurations (memory capacity, memory bus bandwidth, compute allocation).
-  * Predicts real inference throughput (tokens/second), memory saturation percentage, and OOM (Out Of Memory) crash risk.
-  * Multi-scenario resource reservation: simulates dedicated AI workstations vs. multi-service servers/NAS (reserving system RAM for OS, containers, and web servers).
-  * Storage footprint constraints: filters models by on-disk storage size to suit embedded and mobile constraints.
-* **Safe Hardware Auto-Detection**:
-  * Built-in, non-intrusive hardware detector inspecting available system RAM and accelerator memory in a protected sandbox (`catch_unwind`), automatically pre-configuring matching hardware filters in one click.
+  * **Compact PCs & Mobile Devices (4-16 GB Unified/RAM)**: On-device smartphone and mini-PC hosts.
+  * **Domestic Discrete Accelerators (8-16 GB VRAM)** & **High-End GPUs (24-32 GB VRAM)**.
+  * **Dedicated Workstations (64+ GB Memory)**: High-capacity unified/accelerator environments.
+* **Live-Reactive Simulator**:
+  * Changing hardware target, system RAM, storage limit, or reserved server/Docker memory updates projected tok/s, memory saturation, OOM stability, and compatible models in real time with zero manual apply step.
+  * Includes **Top 4 Clickable Cards**, an **Inline Compatible Models Table** (full-row single-click inspection with column filtering/sorting), and a **Runtime Optimizer** computing exact quantization, KV cache (`F16`, `Q8_0`, `Q4_0`), `n_ctx`, GPU layers (`-ngl`), and ready-to-copy CLI commands.
+* **Safe Hardware Auto-Detection**: Inspects available RAM and GPU memory in-process via `catch_unwind` to configure matching hardware filters in one click.
 
-### 2. Multi-Pillar Calibrated Benchmarks & Trust Metrics
-* **Balanced Cross-Scoring**: Blends scientific evaluations across multiple independent pillars:
-  * **General Academic Reasoning**: Standardized multiple-choice and multi-turn reasoning suites.
-  * **Software Engineering & Coding**: Real-world bug fixing and repository-level issue resolution.
-  * **Autonomous Agents & Tool Calling**: Structured function calling, API invocation, and multi-step tool orchestration.
-  * **Real-World Economic Viability**: Cost per task and operational efficiency.
-* **Mathematical Calibration (Base 0-100)**: Normalizes raw scientific test scores into an intuitive, consistent 0-100 scale.
-* **Variance-Based Confidence Index**:
-  * `[OK] High Reliability`: Cross-referenced across 3+ independent benchmark sources with low variance.
-  * `[~] Medium Reliability`: Validated by at least 2 concordant sources.
-  * `[!] Caution / Preliminary`: Single-source score or high score divergence.
+### 2. Multi-Pillar & Media-Isolated Calibrated Benchmarks
+* **Dedicated Scoring Pillars**:
+  * **General Academic Reasoning**: Standardized MMLU-Pro, MATH Lvl-5, GPQA, IFEval, and Open LLM scores.
+  * **Software Engineering & Autonomous Agents**: SWE-bench, coding suites, and tool-calling (BFCL) evaluations, plus dedicated **Dev Agentic** preset.
+  * **Isolated Creative & Media Benchmarks**: Dedicated **`ImageBench`**, **`VideoBench`**, and **`AudioBench`** columns integrating VBench, LMArena Image/Video, TTS Arena, OpenASR, and ComfyUI indices—strictly isolated from text LLM Open LLM metrics.
+* **Dedicated Columns & Confidence Index**: Separate sortable/filterable **Type** (`Modality` + 6 industrial specialties) and **Confidence** (`High`, `Medium`, `Low`) columns alongside the **Score Calibré**.
+* **Dynamic Family Discovery**: Zero hardcoded model catalogs or provider lists; families are derived morphologically at runtime from live repositories and model metadata.
 
-### 3. Specialized Industrial Domains (Direct Toolbar Filtering)
-* Foundation models excel in distinct vertical capabilities. Filter directly from the main ranking bar across 6 specialized industrial domains:
-  * **Software Development & Coding**: Dedicated software engineering, unit test generation, and bug fixing.
-  * **Visual Retouching & Design**: Text-guided image editing, canvas transformation, and creative rendering.
-  * **Real-Time Voice & Speech**: Ultra-low latency voice synthesis and speech-to-speech conversion.
-  * **DNA & Genomics**: Biological sequence modeling, molecular folding, and biomedical research.
-  * **3D Spatial World Models**: Spatial physical world simulation, CAD synthesis, and robotics navigation.
-  * **Autonomous Multi-Agent Swarms**: Collaborative multi-agent teams executing complex analytical workflows.
-* **Self-Adapting Classification**: Automatically infers domain assignment through a combination of model metadata, modalities, and dominant benchmark scores.
+### 3. Dynamic Coding Harnesses & Local Inference Ecosystem
+* **AI Coding Harnesses (`Harnais IA`)**:
+  * Dynamically aggregates runs across live leaderboards (`SWE-bench`, `Terminal-Bench 1.0/2.0`, `Aider Polyglot`, `Cline/OpenCode CSV`, `KiloBench`) and live community Markdown catalogs enriched with real-time GitHub metadata via `ungh.cc`.
+  * Includes a **Same-Model Harness VS Comparator** and unified searchable filter combos.
+* **Local Runtimes & Software (`Logiciels Locaux`)**:
+  * Dynamically discovers local inference engines, desktop GUIs, server runtimes, and mobile runners from live community awesome catalogs, Hugging Face `llm-speed` benchmark CSVs, and GitHub topic discovery.
+  * Ranked leaderboard with hardware filter pills (`Desktop GPU`, `Apple Silicon`, `CPU/Edge`, `Off-Grid Smartphone`).
 
-### 4. Side-by-Side Dual Comparator (VS Mode)
-* Pin any two models to compare their strengths and weaknesses across 5 orthogonal axes:
-  * General Intelligence
-  * Software Engineering
-  * Autonomous Tool Use
-  * Hardware Footprint & Memory Efficiency
-  * Inference Speed (Tokens/s)
-* Symmetrical dual-bar charts with aligned baselines, winner highlights, and clear visual delta.
-* Automated machine fitness verdict assessing whether each contender fits within the user's specific target hardware rig without memory paging or OOM crashes.
+### 4. Interactive Pareto Frontier (`egui_plot`) & VS Comparator
+* **Cloud API & Hardware Pareto Analysis**:
+  * Computes non-dominated **Pareto Frontier** champions against VRAM, Size, Speed, Efficiency, or Blended USD API Pricing.
+  * Excludes unpriced Cloud endpoints cleanly so missing prices never appear as free `$0.00` champions, with a default **Logarithmic Price Scale ($)** spanning `$0.01` to `$50+/1M` tokens and a one-click Speed-axis switch for media APIs.
+* **Dual Side-by-Side Comparator (VS Mode)**: Compare any two models across 5 axes with aligned bars, hardware fit verdicts, and dual-model pipeline estimates.
 
-### 5. Interactive Pareto Frontier Analysis (`egui_plot`)
-* 2D scatter visualization with automatic computation and rendering of the optimal **Pareto Frontier**.
-* Easily identifies non-dominated models that offer the highest intelligence for a given memory footprint.
-* Ergonomic navigation: bounded viewport preventing loss of view, 1-click recentering, search, and dynamic hover inspection.
-
-### 6. Customizable Hierarchical Data Grid
-* **Root Family Grouping**: Consolidates model variants and quantization levels (e.g. 4-bit, 8-bit, full precision) under a single foldable family root, eliminating table clutter.
-* **Column Chooser Modal**: Select, order, and toggle visibility for all table columns (rank, model identity, target hardware, footprint, calibrated scores, speed, pricing).
-* **Advanced Column Context Menu**: Right-click any column header to sort, hide, or apply advanced filter operators (`contains`, `not contains`, numeric thresholds `>`, `<`, `=`).
-* **Persistent Settings**: User display preferences and column layouts are saved automatically in the local database.
-
-### 7. Interactive Onboarding & User Guide
-* Built-in interactive walkthrough with spotlights, step-by-step guidance, and real-time UI validation.
-* Video auto-play simulation mode explaining core concepts: memory budgeting, local vs cloud cost arbitration, and benchmark interpretation.
-
-### 8. Storage & Zero External Daemons
-* Local embedded database (`benchmark.db`) powered by `rusqlite` with bundled SQLite C compilation.
-* Zero external background services, containers, or daemon processes required.
-* Immutable timestamped snapshots for time-travel comparisons across synchronization dates.
+### 5. Unified Column Header Filters & Self-Updater
+* **Consistent Header Controls Across Every Table**: Click headers to sort Ascending/Descending (`^`/`v`), right-click for sorting/reset menus, and filter inline across all tables using `~` (Contains), `=` (Exact), `<=`, `>=`, `!~`, `.*` (Regex), and `!.*` operators.
+* **Automatic Release Detection & 1-Click Self-Update**: Checks GitHub Releases automatically on startup and refresh, displays `Mettre à jour vers vX.Y.Z` / `Update version to vX.Y.Z` when newer builds are available, downloads/extracts `.zip` or `.tar.gz` archives safely, validates executable headers, and restarts cleanly.
 
 ---
 
 ## Architecture
 
-The project strictly adheres to **Clean Architecture** and **Inversion of Control (IoC)**:
+The codebase follows **Clean Architecture** and **Inversion of Control (IoC)**:
 
 ```text
 src/
-├── domain/                    # Enterprise business logic, entities & traits (Ports)
-│   ├── hardware.rs            # Target hardware profiles & platform thresholds
-│   ├── modality.rs            # Functional modalities (Text, Multimodal, Vision, Audio)
-│   ├── model.rs               # Entities (ModelBenchmark, BenchmarkScores)
-│   ├── scoring.rs             # Multi-source calibration & confidence calculation
-│   ├── simulator.rs           # Hardware rig simulator & memory budgeting
-│   ├── specialty.rs           # Specialized industrial domains & auto-detection
-│   └── traits.rs              # Interfaces: IBenchmarkRepository, IModelFetcher, ISystemDetector
-├── infrastructure/            # Concrete adapters (Persistence & Network)
-│   ├── fetcher/               # Upstream benchmark APIs & multi-source unifier
-│   ├── hardware/              # Native cross-platform system memory detector
-│   ├── preferences/           # SQLite persistence for table preferences
-│   └── repository/            # SQLite snapshot repository
-├── presentation/              # Presentation layer (eframe / egui)
-│   ├── app.rs                 # Central GUI controller & navigation
-│   ├── filtering.rs           # Multi-dimensional filter state machine
+├── domain/                    # Entities, scoring strategies, rankers & port traits
+│   ├── comparator.rs          # Dual-model hardware fit comparison metrics
+│   ├── consistency.rs         # Cross-source anomaly & variance checks
+│   ├── hardware*.rs           # Platform tiers & hardware detection abstractions
+│   ├── harness.rs             # Coding harness profiles & same-model delta logic
+│   ├── model*.rs              # ModelBenchmark, BenchmarkScores & dynamic naming
+│   ├── modality.rs            # Text, Multimodal, ImageGen, VideoGen, Audio, 3D
+│   ├── runtime*.rs            # LocalRuntimeProfile & KV-cache/n_ctx optimizer
+│   ├── scoring.rs             # Multi-source calibration & confidence scoring
+│   ├── simulator*.rs          # Hardware rig simulator & compatible model ranker
+│   ├── sources*.rs            # Benchmark source & ecosystem registry specs
+│   ├── specialty.rs           # Specialized domain detection
+│   ├── table_*.rs             # Column defs, filter operators & preferences
+│   ├── traits.rs              # Ports: IBenchmarkRepository, IModelFetcher, etc.
+│   └── updater.rs             # Semver release parsing & IUpdateChecker port
+├── infrastructure/            # Concrete persistence, fetchers & OS adapters
+│   ├── fetcher/               # HF, OpenRouter, VBench, LMArena, OpenASR, Awesome & ungh adapters
+│   ├── hardware/              # Non-intrusive system RAM/GPU detector
+│   ├── preferences/           # SQLite table preferences persistence
+│   ├── repository/            # Bundled SQLite snapshot & ecosystem repositories
+│   └── updater/               # GitHub Releases API & atomic self-updater
+├── presentation/              # Desktop GUI layer (eframe / egui)
+│   ├── app.rs                 # Main application loop & state lifecycle
+│   ├── ecosystem_state.rs     # Async harness/runtime sync & cache coordinator
+│   ├── filtering*.rs          # Multi-dimensional filter service & scope state
+│   ├── i18n/                  # Full FR / EN localization dictionaries
 │   ├── theme.rs               # Centralized semantic theme tokens
-│   ├── i18n/                  # Dynamic bilingual system (FR / EN)
-│   └── components/            # UI components (table, graph, comparator, simulator)
+│   ├── updater_state.rs       # Background update polling & modal workflow
+│   └── components/            # Table views, Pareto plot, Simulator, Harnesses, Runtimes, Tour
 ├── lib.rs
-└── main.rs                    # Dual-mode entry point (Desktop GUI & Headless CLI)
+└── main.rs                    # Desktop GUI & headless --sync CLI entry point
 ```
 
 ---
 
 ## Industrial Engineering Standards
 
-* **Strict File Size Cap**: Every source file in this repository is strictly capped at **$\le 300$ lines of code** to enforce Single Responsibility and high maintainability.
-* **Zero Hardcoded Data**: Zero static catalogs in production code. All models originate dynamically from network synchronization or local SQLite snapshots.
-* **Zero Missing Glyphs**: Strict typography standard eliminating missing character boxes across custom rendering engines.
-* **Movable Dialogs**: All modals and popups are floating and user-repositionable.
-* **Test Coverage**: Thorough test suite covering unit logic, BDD scenarios, hardware rig simulation, in-memory repository lifecycles, and UI preference persistence (`cargo test`).
+* **Strict File Size Cap**: Source files in `src/` are structured cleanly to stay concise (`<= 300` lines).
+* **Zero Hardcoded Catalogs**: Models, model families, coding harnesses, and local runtimes are sourced dynamically from live APIs, leaderboards, and local SQLite snapshots.
+* **Zero Missing Glyphs**: Strict ASCII/supported-Unicode UI text policy preventing missing box glyphs across custom UI fonts.
+* **Automated Verification**: Covered by 17 unit, BDD, integration, and headless AccessKit/egui UI test suites (`cargo test`).
 
 ---
 
 ## Quick Start
 
 ### Prerequisites
-* [Rust & Cargo](https://rustup.rs/) (version 1.80+ recommended)
+* [Rust & Cargo](https://rustup.rs/) (Rust 2024 Edition)
 
 ### Run Desktop GUI
 ```powershell
@@ -148,7 +128,7 @@ cargo run --release
 ```
 
 ### Headless CLI Synchronization
-To synchronize live datasets into the local database without opening the GUI:
+Synchronize live benchmarks, cloud APIs, coding harnesses, and local runtimes directly into `benchmark.db`:
 ```powershell
 cargo run --release -- --sync
 ```

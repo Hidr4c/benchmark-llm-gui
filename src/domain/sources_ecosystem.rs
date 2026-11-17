@@ -83,11 +83,11 @@ pub fn ecosystem_sources() -> Vec<BenchmarkSourceInfo> {
             is_connected_live: true,
         },
         BenchmarkSourceInfo {
-            name: "GitHub Live Ecosystem API (Harnesses & Local Runners)",
+            name: "GitHub Live Ecosystem & Community Catalogs",
             category: SourceCategory::LocalRuntimes,
             url: "https://api.github.com/",
-            description: "Dynamic repository metadata & latest releases for coding harnesses (OpenCode, Cline, Continue, Kilo, QwenCode) and local runtimes (Ollama, LM Studio CLI, llama.cpp, Jan, Off Grid OGAM, PocketPal, MLX).",
-            metrics_measured: "Stars, release cadence, license, supported OS/backends (CUDA, Metal, Vulkan, NPU) & off-grid mobile readiness.",
+            description: "Dynamic discovery of AI coding harnesses and local inference runtimes from live community catalogs, GitHub topic queries, ungh.cc metadata & Hugging Face LLM-Speed runs.",
+            metrics_measured: "Stars, release cadence, license, supported OS/backends (CUDA, Metal, Vulkan, MLX, NPU), measured tok/s & off-grid mobile readiness.",
             is_connected_live: true,
         },
     ]

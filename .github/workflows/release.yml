@@ -51,6 +51,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          Copy-Item -Path target/${{ matrix.target }}/release/${{ matrix.binary_name }} -Destination benchmark-llm-gui-windows-x64.exe
           Compress-Archive -Path target/${{ matrix.target }}/release/${{ matrix.binary_name }} -DestinationPath ${{ matrix.artifact_name }}
 
       - name: Package Unix Artifact
@@ -63,7 +64,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
-          path: ${{ matrix.artifact_name }}
+          path: benchmark-llm-gui-*
           retention-days: 1
 
   publish:
@@ -90,6 +91,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            benchmark-llm-gui-windows-x64.exe
             benchmark-llm-gui-windows-x64.zip
             benchmark-llm-gui-linux-x64.tar.gz
             benchmark-llm-gui-macos-arm64.tar.gz
